@@ -4,7 +4,7 @@
 **Audited version:** v1.3.8  
 **Audit/test date:** 2026-09-13  
 **Platform:** 64-bit Windows / Windows PowerShell 5.1 builder  
-**Primary use case:** Local redaction of still images and video that may contain PII/PHI  
+**Primary use case:** Local redaction of still images and video that may contain sensitive information  
 **License:** GPL-2.0-or-later
 
 ## 1. Executive summary
@@ -38,7 +38,7 @@ Any later source/build change invalidates the direct applicability of this test 
 
 ## 3. Security objectives
 
-For PII/PHI-oriented use, TinyRedactionTool aims to:
+For sensitive information-oriented use, TinyRedactionTool aims to:
 
 - process source media locally unless the user deliberately selects a network/cloud-backed path;
 - avoid application telemetry and background upload services;
