@@ -273,4 +273,4 @@ TinyRedactionTool is designed to reduce accidental disclosure, not to control th
 - Long-path behaviour beyond ordinary Windows path limits is not claimed for the standalone build.
 - OS-level forensic artefacts cannot be absolutely eliminated by an ordinary desktop application.
 
-For the implementation details, threat model and v1.3.8 test record, see [`SECURITY_AUDIT.md`](SECURITY-AUDIT.md).
+For the implementation details, threat model and v1.3.8 test record, see [`SECURITY-AUDIT.md`](SECURITY-AUDIT.md).
