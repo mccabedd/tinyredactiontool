@@ -7,7 +7,7 @@ All files contained here are '**as is**'. Issues and pull requests are not monit
 You’re welcome to fork and adapt this project for your own use. If you do, please retain attribution or otherwise acknowledge the original project.
 
 
-<img src="docs/images/screenshot.png" width="400">
+<img src="images/screenshot.png" width="400">
 
 It supports:
 
