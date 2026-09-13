@@ -1,6 +1,13 @@
 # TinyRedactionTool
 
-TinyRedactionTool is a Windows desktop utility for **local redaction of still images and video**. It is designed for workflows that may involve PII/PHI and therefore prefers fail-closed behaviour when media timing, export validation, or trusted-tool integrity cannot be established safely.
+TinyRedactionTool is a Windows desktop utility for **local redaction of still images and video**. It is designed for workflows that may involve sensitive information and therefore prefers fail-closed behaviour when media timing, export validation, or trusted-tool integrity cannot be established safely.
+
+The tool was created and audited using AI assistance.
+All files contained here are '**as is**'. Issues and pull requests are not monitored. Individual troubleshooting and support cannot be provided.
+You’re welcome to fork and adapt this project for your own use. If you do, please retain attribution or otherwise acknowledge the original project.
+
+
+<img src="docs/images/screenshot.png" width="400">
 
 It supports:
 
