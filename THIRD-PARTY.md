@@ -19,8 +19,8 @@ The full GNU GPL version 2 text is provided in the repository's `LICENSE` file.
 
 ## FFmpeg
 
-Project: FFmpeg  
-Website: https://ffmpeg.org/  
+Project: FFmpeg
+Website: https://ffmpeg.org/
 Source: https://github.com/FFmpeg/FFmpeg
 
 TinyRedactionTool uses a custom static build of FFmpeg.
@@ -35,20 +35,29 @@ reports its licence as:
 
 **GNU General Public License version 2 or later (GPL-2.0-or-later).**
 
-FFmpeg copyright belongs to the FFmpeg developers and contributors.
+SPDX-License-Identifier: GPL-2.0-or-later
+
+FFmpeg copyright belongs to the FFmpeg developers and contributors. The full
+GNU GPL version 2 licence text is provided in this repository's `LICENSE`
+file.
 
 ---
 
 ## x264
 
-Project: x264  
-Website: https://www.videolan.org/developers/x264.html  
+Project: x264
+Website: https://www.videolan.org/developers/x264.html
 Source: https://code.videolan.org/videolan/x264
 
 x264 is used by TinyRedactionTool's custom FFmpeg build for H.264 video
 encoding.
 
-x264 is licensed under the GNU General Public License version 2 or later.
+x264 is licensed under the GNU General Public License version 2 or later. A
+separate commercial licence is also available from x264 LLC for parties who
+do not wish to be bound by the GPL; TinyRedactionTool uses the GPL-licensed
+build.
+
+SPDX-License-Identifier: GPL-2.0-or-later
 
 Copyright belongs to the x264 authors and contributors.
 
@@ -59,7 +68,7 @@ file.
 
 ## libvpx
 
-Project: libvpx  
+Project: libvpx
 Source: https://github.com/webmproject/libvpx
 
 libvpx is used by TinyRedactionTool's custom FFmpeg build for VP9 video
@@ -67,6 +76,8 @@ encoding.
 
 libvpx is distributed under a BSD 3-Clause-style licence and includes an
 additional patent grant.
+
+SPDX-License-Identifier: BSD-3-Clause
 
 ### libvpx licence notice
 
@@ -104,12 +115,14 @@ https://github.com/webmproject/libvpx/blob/main/PATENTS
 
 ## Opus / libopus
 
-Project: Opus  
-Website: https://opus-codec.org/  
+Project: Opus
+Website: https://opus-codec.org/
 Source: https://github.com/xiph/opus
 
 libopus is used by TinyRedactionTool's custom FFmpeg build for Opus audio
 encoding in WebM output.
+
+SPDX-License-Identifier: BSD-3-Clause
 
 ### libopus licence notice
 
@@ -150,11 +163,13 @@ https://opus-codec.org/license/
 
 ## libwebp
 
-Project: libwebp  
+Project: libwebp
 Source: https://github.com/webmproject/libwebp
 
 libwebp is used by TinyRedactionTool's custom FFmpeg build for WebP image
 encoding and decoding.
+
+SPDX-License-Identifier: BSD-3-Clause
 
 ### libwebp licence notice
 
@@ -190,9 +205,78 @@ https://github.com/webmproject/libwebp/blob/main/PATENTS
 
 ---
 
+## zlib
+
+Project: zlib
+Website: https://zlib.net/
+Source: https://github.com/madler/zlib
+
+TinyRedactionTool's custom FFmpeg/FFprobe build is linked statically
+(`--extra-ldflags='-static'`), and the build toolchain explicitly installs
+zlib (`mingw-w64-ucrt-x86_64-zlib`) as a build dependency. zlib is compiled
+directly into the embedded `ffmpeg.exe`/`ffprobe.exe` binaries, where it is
+used internally by FFmpeg's PNG encoder/decoder and related codec paths.
+
+SPDX-License-Identifier: Zlib
+
+### zlib licence notice
+
+This software is provided 'as-is', without any express or implied warranty.
+In no event will the authors be held liable for any damages arising from the
+use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+1. The origin of this software must not be misrepresented; you must not
+   claim that you wrote the original software. If you use this software in a
+   product, an acknowledgment in the product documentation would be
+   appreciated but is not required.
+2. Altered source versions must be plainly marked as such, and must not be
+   misrepresented as being the original software.
+3. This notice may not be removed or altered from any source distribution.
+
+Jean-loup Gailly (jloup@gzip.org) and Mark Adler (madler@alumni.caltech.edu)
+
+---
+
+## MinGW-w64 Runtime and GCC Runtime Library
+
+Project: MinGW-w64
+Website: https://www.mingw-w64.org/
+Source: https://sourceforge.net/p/mingw-w64/mingw-w64/ci/master/tree/
+
+TinyRedactionTool's custom FFmpeg/FFprobe build is compiled with the
+MinGW-w64 GCC toolchain (`mingw-w64-ucrt-x86_64-gcc` and related packages)
+and linked statically, so the resulting Windows binaries include:
+
+- **The MinGW-w64 runtime and headers.** These are contributed under a mix of
+  predominantly Public Domain and MIT-style terms across the project's
+  various components. See the canonical licence summary at:
+  https://sourceforge.net/p/mingw-w64/mingw-w64/ci/master/tree/COPYING
+
+- **GCC's runtime support library (libgcc, and any other GCC runtime
+  components pulled in by static linking).** GCC itself is licensed under
+  the GNU General Public License version 3. However, libgcc and the other
+  runtime libraries distributed with GCC are licensed under GPLv3 **with the
+  GCC Runtime Library Exception, version 3.1**. This exception specifically
+  permits compiled programs to statically or dynamically link against these
+  runtime components without the resulting program being subject to GPLv3,
+  provided the conditions of the exception are met. The full exception text
+  is available at:
+  https://www.gnu.org/licenses/gcc-exception-3.1.en.html
+
+No part of GCC's own GPLv3-licensed compiler source is distributed with
+TinyRedactionTool; only the excepted runtime support libraries are present,
+compiled into the embedded FFmpeg/FFprobe binaries as an ordinary consequence
+of using the MinGW-w64 toolchain to build them.
+
+---
+
 ## PS2EXE
 
-Project: PS2EXE  
+Project: PS2EXE
 Source: https://github.com/MScholtes/PS2EXE
 
 PS2EXE is used as a build tool to package the PowerShell application into a
@@ -228,7 +312,11 @@ kept alongside distributed releases so that the standalone executable can be
 rebuilt.
 
 The custom FFmpeg build scripts identify and obtain the corresponding
-upstream open-source components used to build the embedded FFmpeg binary.
+upstream open-source components used to build the embedded FFmpeg binary,
+pinned to a specific upstream FFmpeg source commit and a specific MSYS2
+package snapshot (see `SECURITY-AUDIT.md` for the exact pinned commit hash
+and archive hash). Those upstream projects' own repositories remain the
+canonical source for the pinned revisions used.
 
 Third-party projects retain their own copyrights, trademarks, licence terms
 and patent grants.
