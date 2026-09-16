@@ -1,6 +1,72 @@
 ﻿Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
+# v2.0.0 Slice 4: WinForms has no built-in magnifying-glass cursor. Build one
+# at runtime from the already-embedded Zoom glyph, using a tiny native helper
+# to convert an HICON into an HCURSOR with the hotspot inside the lens.
+if (-not ("ZoomCursorNativeV1" -as [type])) {
+    Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+
+public static class ZoomCursorNativeV1
+{
+    [StructLayout(LayoutKind.Sequential)]
+    private struct ICONINFO
+    {
+        [MarshalAs(UnmanagedType.Bool)] public bool fIcon;
+        public uint xHotspot;
+        public uint yHotspot;
+        public IntPtr hbmMask;
+        public IntPtr hbmColor;
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool GetIconInfo(IntPtr hIcon, out ICONINFO pIconInfo);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr CreateIconIndirect(ref ICONINFO icon);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool DestroyIcon(IntPtr hIcon);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool DestroyCursor(IntPtr hCursor);
+
+    [DllImport("gdi32.dll", SetLastError = true)]
+    private static extern bool DeleteObject(IntPtr hObject);
+
+    public static IntPtr CreateCursorFromIcon(IntPtr hIcon, uint hotX, uint hotY)
+    {
+        ICONINFO info;
+        if (!GetIconInfo(hIcon, out info)) return IntPtr.Zero;
+        try
+        {
+            info.fIcon = false;
+            info.xHotspot = hotX;
+            info.yHotspot = hotY;
+            return CreateIconIndirect(ref info);
+        }
+        finally
+        {
+            if (info.hbmMask != IntPtr.Zero) DeleteObject(info.hbmMask);
+            if (info.hbmColor != IntPtr.Zero) DeleteObject(info.hbmColor);
+        }
+    }
+
+    public static void DestroyIconHandle(IntPtr hIcon)
+    {
+        if (hIcon != IntPtr.Zero) DestroyIcon(hIcon);
+    }
+
+    public static void DestroyCursorHandle(IntPtr hCursor)
+    {
+        if (hCursor != IntPtr.Zero) DestroyCursor(hCursor);
+    }
+}
+"@
+}
+
 # Native Open/Save dialog wrapper used so Windows does not add patient
 # filenames/paths to Recent Items/MRU history. Windows PowerShell 5.1's
 # WinForms FileDialog does not expose AddToRecent, so use the documented
@@ -1454,34 +1520,32 @@ function Get-ExportRedactionList($sourceList) {
 }
 
 # Given a candidate freeform (Polygon) point and the previous vertex already
-# placed, returns a point at the same distance from $from but with its angle
-# snapped to the nearest 0/45/90 degree step (measured from $from), whenever
-# $constrain is true. Mirrors how Get-ConstrainedDelta above locks a
-# Rectangle/Oval drag to a square/circle when Shift is held - this is the
-# freeform-tool equivalent, snapping each new segment to a horizontal,
-# vertical, or 45-degree diagonal instead. Pure math - no controls involved.
-function Get-AngleSnappedPoint([System.Drawing.Point]$from, [System.Drawing.Point]$to, [bool]$constrain) {
+# placed, returns a MEDIA-space PointF at the same distance from $from but with
+# its angle snapped to the nearest 0/45/90 degree step whenever $constrain is
+# true. Keeping this in media space means the draft remains canonical while
+# Shift still produces visually correct horizontal/vertical/45-degree segments.
+function Get-AngleSnappedPoint([System.Drawing.PointF]$from, [System.Drawing.PointF]$to, [bool]$constrain) {
     if (-not $constrain) { return $to }
- 
-    $dx = $to.X - $from.X
-    $dy = $to.Y - $from.Y
+
+    $dx = [double]$to.X - [double]$from.X
+    $dy = [double]$to.Y - [double]$from.Y
     $dist = [Math]::Sqrt(($dx * $dx) + ($dy * $dy))
-    if ($dist -lt 1) { return $to }
- 
+    if ($dist -lt 0.01) { return $to }
+
     $angle = [Math]::Atan2($dy, $dx)
     $step = [Math]::PI / 4.0
     $snapped = [Math]::Round($angle / $step) * $step
- 
-    $nx = $from.X + [int][Math]::Round([Math]::Cos($snapped) * $dist)
-    $ny = $from.Y + [int][Math]::Round([Math]::Sin($snapped) * $dist)
-    return New-Object System.Drawing.Point($nx, $ny)
+
+    $nx = [single]([double]$from.X + ([Math]::Cos($snapped) * $dist))
+    $ny = [single]([double]$from.Y + ([Math]::Sin($snapped) * $dist))
+    return New-Object System.Drawing.PointF($nx, $ny)
 }
 
 # Standard ray-casting point-in-polygon test, used to decide whether a click
-# on a closed-but-uncommitted freeform shape should start moving it (see
-# $movingShape below) rather than starting a brand new path. Points are
-# display-space, same as $polygonPoints itself.
-function Test-PointInPolygon([System.Drawing.Point]$pt, $polyPoints) {
+# on a closed-but-uncommitted freeform shape should start moving it rather
+# than starting a brand new path. Both the test point and polygon vertices are
+# canonical MEDIA-space PointF values in v2.0.0 Slice 2.
+function Test-PointInPolygon([System.Drawing.PointF]$pt, $polyPoints) {
     $inside = $false
     $n = $polyPoints.Count
     $j = $n - 1
@@ -1496,30 +1560,40 @@ function Test-PointInPolygon([System.Drawing.Point]$pt, $polyPoints) {
     return $inside
 }
 
-# Bounding box (display-space) of a set of points - used to clamp a Polygon
-# move so the whole shape stays within the displayed image, the same way a
-# Rectangle/Oval move clamps against $moveOrigSelection directly.
+# Bounding box (MEDIA space) of a set of draft freeform points. It is used
+# only to clamp whole-shape movement to the canonical media bounds.
 function Get-PointsBoundingRect($points) {
-    $minX = $points[0].X; $maxX = $points[0].X
-    $minY = $points[0].Y; $maxY = $points[0].Y
+    $minX = [double]$points[0].X; $maxX = [double]$points[0].X
+    $minY = [double]$points[0].Y; $maxY = [double]$points[0].Y
     foreach ($pt in $points) {
-        if ($pt.X -lt $minX) { $minX = $pt.X }
-        if ($pt.X -gt $maxX) { $maxX = $pt.X }
-        if ($pt.Y -lt $minY) { $minY = $pt.Y }
-        if ($pt.Y -gt $maxY) { $maxY = $pt.Y }
+        if ($pt.X -lt $minX) { $minX = [double]$pt.X }
+        if ($pt.X -gt $maxX) { $maxX = [double]$pt.X }
+        if ($pt.Y -lt $minY) { $minY = [double]$pt.Y }
+        if ($pt.Y -gt $maxY) { $maxY = [double]$pt.Y }
     }
-    return New-Object System.Drawing.Rectangle($minX, $minY, ($maxX - $minX), ($maxY - $minY))
+    return New-Object System.Drawing.RectangleF(
+        [single]$minX, [single]$minY,
+        [single]($maxX - $minX), [single]($maxY - $minY))
+}
+
+# The legal extent for uncommitted draft vertices/endpoints. Mouse points map
+# to media pixel positions 0..(size-1), matching Clamp-MediaPoint.
+function Get-DraftMediaBounds {
+    if ($videoWidth -le 0 -or $videoHeight -le 0) { return $null }
+    return New-Object System.Drawing.RectangleF(
+        0.0, 0.0,
+        [single][Math]::Max(0.0, ([double]$videoWidth - 1.0)),
+        [single][Math]::Max(0.0, ([double]$videoHeight - 1.0)))
 }
 
 # Given a shape's original bounding box and a raw (dx,dy) the mouse has
 # moved, returns the same delta clipped so the translated bounding box never
-# leaves $imgRect - i.e. dragging a shape to the edge of the image stops it
-# right at the edge instead of letting it slide off/out of frame.
-function Get-ClampedTranslation($origBounds, [double]$dx, [double]$dy, $imgRect) {
-    $minDx = $imgRect.X - $origBounds.X
-    $maxDx = ($imgRect.X + $imgRect.Width) - ($origBounds.X + $origBounds.Width)
-    $minDy = $imgRect.Y - $origBounds.Y
-    $maxDy = ($imgRect.Y + $imgRect.Height) - ($origBounds.Y + $origBounds.Height)
+# leaves the supplied bounds. In Slice 2 the caller supplies MEDIA bounds.
+function Get-ClampedTranslation($origBounds, [double]$dx, [double]$dy, $bounds) {
+    $minDx = $bounds.X - $origBounds.X
+    $maxDx = ($bounds.X + $bounds.Width) - ($origBounds.X + $origBounds.Width)
+    $minDy = $bounds.Y - $origBounds.Y
+    $maxDy = ($bounds.Y + $bounds.Height) - ($origBounds.Y + $origBounds.Height)
     $cdx = [Math]::Max($minDx, [Math]::Min($maxDx, $dx))
     $cdy = [Math]::Max($minDy, [Math]::Min($maxDy, $dy))
     return @{ Dx = $cdx; Dy = $cdy }
@@ -1650,29 +1724,65 @@ $previewSeconds = 0.0
 $loadedFrame = -1
  
 $dragging = $false
-$dragStart = New-Object System.Drawing.Point(0,0)
-$selection = New-Object System.Drawing.Rectangle(0,0,0,0)
+
+# v2.0.0 Slice 2: all *draft* redaction geometry is now canonical displayed-media
+# geometry from the moment the user creates it. Rectangle/Oval use RectangleF;
+# Freeform uses PointF vertices. Viewport resizing/panel changes therefore never
+# mutate the draft itself - Paint simply projects the same media geometry back
+# into the current Fit viewport.
+$dragStart = New-Object System.Drawing.PointF(0,0)
+$selection = New-Object System.Drawing.RectangleF(0,0,0,0)
 $previewImage = $null
 
+# v2.0.0 viewport state. Slice 4 exposes Fit/manual zoom while redaction geometry
+# remains canonical media-space. 1.0 means one displayed-media pixel equals
+# one viewport pixel (100%).
+$zoomMode = "Fit"
+$zoomFactor = 1.0
+$panOffsetX = 0.0
+$panOffsetY = 0.0
+$maxZoomFactor = 8.0
+$minZoomFactor = 0.01
+$zoomStepFactor = 1.25
+$zoomToolActive = $false
+$script:zoomCursor = $null
+$script:zoomCursorHandle = [IntPtr]::Zero
+
+# v2.0.0 Slice 5: left-button drag while the Zoom tool is active pans the
+# manual-zoom viewport. A small screen-pixel threshold distinguishes a click
+# (zoom in) from a drag (pan), so ordinary left-click zoom behaviour remains
+# intact. Pan offsets remain VIEW-space state only; redaction geometry stays
+# canonical media-space.
+$script:zoomPanCandidate = $false
+$script:zoomPanning = $false
+$script:zoomPanStartPoint = New-Object System.Drawing.PointF(0,0)
+$script:zoomPanStartOffsetX = 0.0
+$script:zoomPanStartOffsetY = 0.0
+$zoomPanDragThreshold = 4.0
+
+# v2.0.0 Slice 6: holding Space while a drawing tool is selected temporarily
+# borrows the same left-drag pan gesture without changing toolMode, radio-button
+# state, draft geometry, or Begin/End redaction state. Releasing Space returns
+# immediately to the existing drawing tool because the tool was never changed.
+$script:spacePanActive = $false
+
 # Moving a drawn-but-not-yet-committed shape (Rectangle/Oval/closed Polygon)
-# by dragging inside it, rather than starting a brand new one. $moveStart is
-# the display-space point the drag began at; $moveOrigSelection/
-# $moveOrigPolygonPoints snapshot the shape's own position at that moment,
-# so the whole shape translates by the same delta the mouse has moved
-# without accumulating rounding drift frame to frame.
+# by dragging inside it, rather than starting a brand new one. $moveStart,
+# $moveOrigSelection and $moveOrigPolygonPoints are all MEDIA-space snapshots,
+# so viewport changes cannot alter what is being moved.
 $movingShape = $false
-$moveStart = New-Object System.Drawing.Point(0,0)
+$moveStart = New-Object System.Drawing.PointF(0,0)
 $moveOrigSelection = $null
 $moveOrigPolygonPoints = $null
- 
+
 # Drawing tool: "Rectangle", "Oval", or "Polygon" (the freeform tool). Rectangle
-# and Oval are drag-based and use $selection above; Polygon is click-to-add-point
-# and uses the three variables below instead.
+# and Oval are drag-based and use the media-space $selection above; Polygon is
+# click-to-add-point and stores media-space PointF vertices below.
 $toolMode = "Rectangle"
 $polygonActive = $false
-$polygonPoints = New-Object System.Collections.Generic.List[System.Drawing.Point]
+$polygonPoints = New-Object System.Collections.Generic.List[System.Drawing.PointF]
 $polygonMousePos = $null
- 
+
 $pendingRedaction = $null
 $redactions = New-Object System.Collections.ArrayList
 
@@ -1698,6 +1808,11 @@ $eyedropperActive = $false
 # One checkbox controls both visual-obscuration modes.
 $script:suppressVisualObscurationWarning = $false
 $script:visualObscurationWarningOpen = $false
+
+# Audio is not inspected/redacted. The warning can be suppressed for the
+# current session only, matching the visual-obscuration/network warnings.
+$script:suppressAudioWarning = $false
+$script:audioWarningOpen = $false
 
 # Network-backed media is permitted after an explicit warning. Keep source and
 # destination suppression separate because opening unredacted source media and
@@ -1816,7 +1931,12 @@ function Enable-RoundedPaint($control, [int]$radius = 10) {
         # the rounded background still peeks through as a "selected" halo.
         if ($sender.Image) {
             $margin = 4
-            $imgRect = New-Object System.Drawing.Rectangle($margin, $margin, ($sender.Width - $margin*2), ($sender.Height - $margin*2))
+            $availW = [Math]::Max(1, $sender.Width - ($margin * 2))
+            $availH = [Math]::Max(1, $sender.Height - ($margin * 2))
+            $side = [Math]::Min($availW, $availH)
+            $imgX = [int](($sender.Width - $side) / 2)
+            $imgY = [int](($sender.Height - $side) / 2)
+            $imgRect = New-Object System.Drawing.Rectangle($imgX, $imgY, $side, $side)
             $e.Graphics.DrawImage($sender.Image, $imgRect)
         }
         elseif ($sender.Text) {
@@ -1935,15 +2055,50 @@ function New-MiniField($parent, [string]$caption, [int]$x, [int]$width, [int]$he
     return $valLbl
 }
 
+# ----------------------------------------------------------------------
+# TinyRedactionTool v2.0.0 release UI
+# ----------------------------------------------------------------------
+# Shared compact-layout constants. "UiGap" is the small edge/gutter distance
+# used consistently around the toolbar, panel toggle and header action icons.
+$script:UiGap = 4
+$script:UiIconButtonSize = 34
+$script:ToolbarWidth = $script:UiIconButtonSize + (2 * $script:UiGap) # 42 = 4 + 34 + 4
+$script:InspectorCollapsedWidth = $script:UiIconButtonSize + (2 * $script:UiGap) # 42
+$script:InspectorExpandedWidth = 350
+$script:CompactButtonWidth = 130
+$script:OpenButtonWidth = 150
+$script:ExportButtonWidth = 176
+$script:CompactButtonHeight = 30
+$script:HeaderHeight = 64
+
+# v2.0.0 preserves the approved compact v1.4.0 UI while adding viewport-only
+# zoom/pan. Rectangle, Oval and Freeform draft/committed geometry remains in
+# canonical displayed-media coordinates; zoom/pan/window/panel state remains
+# view-only state and is not part of export geometry. Existing CFR/VFR timing,
+# export/security validation and FFmpeg/FFprobe trust behaviour are preserved.
+# ----------------------------------------------------------------------
+
 $form = New-Object System.Windows.Forms.Form
-$form.Text = "Video | Image Redactor"
+$form.Text = "TinyRedactionTool"
 $form.StartPosition = "CenterScreen"
 $form.Size = New-Object System.Drawing.Size(1540,980)
 $form.MinimumSize = New-Object System.Drawing.Size(1320,820)
 $form.KeyPreview = $true
 $form.Font = New-UIFont 9.0
 $form.AutoScaleMode = "Dpi"
-$form.BackColor = [System.Drawing.Color]::FromArgb(246,248,251)
+$form.BackColor = [System.Drawing.Color]::FromArgb(223,238,245)
+
+# WinForms does not automatically adopt the PS2EXE assembly icon for a Form
+# created dynamically from PowerShell. In packaged mode, explicitly assign the
+# icon embedded in TinyRedactionTool.exe so the window/taskbar uses the same
+# custom application icon as Explorer. This is presentation-only state.
+if (Test-IsPackagedHost) {
+    try {
+        $hostExe = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+        $script:mainFormIcon = [System.Drawing.Icon]::ExtractAssociatedIcon($hostExe)
+        if ($script:mainFormIcon) { $form.Icon = $script:mainFormIcon }
+    } catch {}
+}
 
 # Shared tooltip component for the icon-only toolbar/playback buttons, which
 # have no visible text of their own to explain what they do.
@@ -1956,9 +2111,9 @@ $script:appToolTip.ReshowDelay = 200
 $top = New-Object System.Windows.Forms.Panel
 $top.Dock = "None"
 $top.Location = New-Object System.Drawing.Point(0,0)
-$top.Size = New-Object System.Drawing.Size($form.ClientSize.Width,82)
+$top.Size = New-Object System.Drawing.Size($form.ClientSize.Width,$script:HeaderHeight)
 $top.Anchor = "Top,Left,Right"
-$top.Padding = New-Object System.Windows.Forms.Padding(22,0,22,0)
+$top.Padding = New-Object System.Windows.Forms.Padding($script:UiGap,0,$script:UiGap,0)
 $top.Tag = "header"
 $form.Controls.Add($top)
 
@@ -1976,23 +2131,30 @@ function Get-AppIconImage {
 }
 
 # Embedded toolbar/playback icon glyphs, stored as base64 PNGs for the
-# same single-file-script reason as $script:AppIconBase64 above. Each was
-# supplied as a full pre-styled icon (dark rounded tile + glyph); the flat
-# background around the tile was flood-fill removed so they drop onto any
-# button/theme cleanly, leaving the tile+glyph as one flattened image.
+# same single-file-script reason as $script:AppIconBase64 above. v1.4's
+# Rectangle/Oval/Freeform/Zoom/Copy and Moon/Sun glyphs are normalized
+# transparent RGBA line-art assets with a consistent apparent size/stroke.
+# The theme engine tints monochrome glyphs at runtime, so one canonical asset
+# works in both Day and Dark modes without maintaining duplicate PNG sets.
 $script:IconBase64 = @{
     "play" = "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"
     "pause" = "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"
     "next_frame" = "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"
     "previous_frame" = "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"
-    "freeform" = "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"
-    "oval" = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAHtElEQVR4nO2dXahUVRTHfzNzb5ZaZt9aRhEiRAVKPRQ9RhA9SJ9gT0LkQxL0KpJc1KhHCXzsKSQy7DW69VAUPYVUYBZiiIZmVmoqej9mpoe1l3vPuedrz+xzz8zc/YfNzJlzzj7rY++11l57nz0QERERERERERERERERsaho1E1ABhrARMD6OkA7YH1jjaoaRbOiegfCsPWAJtJa7wTeMN8HEVwbaAE/ANPAJDA3II1jC20Mq4AfgW7A0gY2m/qHsidUhYZHaQJ3Az8hQrsKzAYoM4gC5oDnDV0tT/pGEq3iS65DHe4jiPDnCNsDZsznPvOcG/DrCT68eCFkpOGiibS6myjH6BWEyXlzX2gz0UAU8J9z3AFWlLi3g/RG9U9BUYUClNBNwOeIErK6sjrJ94B3ESfZopqQsYu0fJAesQPY6dCQdr2awueAw1SkhJBomvI0cAE/M/EWcA+2F+hniHLNPGMnouQdnrRdMDwpf0MLbeUnEcLnzWenoMya69YDzyBCC+kDusCHhrbHzfFsCbpcHk4meAyCUCaoiRCpxM0ljouI1q69GvgKeAXYS7Z5KIt5c/83wJvmN20QzRJ0gfUfc/RGRkFMUQgFuHax6/zeSByXqWcOEdhnpoSE+pYuNkgoCw2TtTdBIH8wqD1TIp4AfgeOm8/7+6i/gzDaRux0M3BxW7uP4JSH+4Bjhr/dpo7KwtMyUMaeAs6Tb3+LbK2arI2m7ioY0zo3Yk1KGR+QVXYh/NeiBLWDy7HRzjw269iPk9yOMFMlQ1r/9j5pTEZVLzNg5rbfG1uGgElT1K6mxfsaxqX5g7ahYTewn+rjbB3k7Ufo3oV11Ek0gFvp5afpfHaQBthEeFAFVY6kXb+ENTNJs9MF/jGETuYUECEsRt6lgRV4Hk3LDe1pvGnYvDlRd+VjBO0x7wDfmqJxcpbdP0exWaljcFP0zBZCe5o/0ONfga+B7xCZQHXpnetCnCLfTiaJvIpt5aOESYT2tB6QVabMvcH9mGp1m3nQDNLy81q/phK2UGO00CdaCM1bsGmRNCXouXlsxnWbqaNUTyjbXdQ2r8HG60UCbQCvAoeoLsFWFXQE/jFi7w9mXOeaMTVVa8xxKX/ma3tnM+7RyOUYsBZYB9yLCN931Dks0IjpEPAAws/75lzWtGYTkVFp+DoMdyiedu4acMb5bdRafhI62j1ljv8lP72SJ59U+PaAFdh0QRINJJmm5inrulFDG1iG8LOK7ERc25wrM8njBR3pTQAPAUexsbDOtaozfg2buBonKE8PAkfo5b+NHRccRWSk8hp4XJMmyFUOEW55wZwfpWjHByqLNcAvLOT/CCKbrPtSkachtd93AXdg7eEsMvpd69x/zRAw9FN2A0JlcjvimHVeoQucBm5Gpj3Vgf8N/EUfvlC1th44wUJtT2cQtxSQ1WinWSinE4gMwcMsa0JtA/AHNnXbpjd1PI2s49GJ9KUE9YuTiAxU+JriVt/YRWS4AY81Rpo2OIANLZOa1SH6VnNtZfmPIYbyvJVembhFZXfAXLsgJZPXLS5j08xJtBBNz/jTPXaYIXt2TP3D5ayb8xRQNGlddlJ73FEUdueeH7d4feQQFVAzogJqRlRAzYgKqBlRATUjKqBmRAXUjKiAmhEVUDOiAmpGVEDNiAqoGVEBNSMqoGbkKUDXQvZ7fqlA18L2dT5PASvJX4TURBYsLXUsI3v5pa6jXelTYZyUL0alk/IQl6XkIeiylLgwyw+LtjBLEZcmWlSyNLEM4uLcGhfnKnRB0R7SFyHpu8Gn6F2ePi7Q5el7KV6stsfcU+q9ON+WesU8JGt/nfP0KmQczFEL+/7XRfIXq3URGZWG75LCvFCqAdyI2EiNi/9ktB2z8rEOMbO3kd+zvfeY81XADaQL0w1bT2O75ai+pAeW5peQl/Rc4WaZlw52V65SKGuCNOVwBht2qQPKu+cg8qrnqJkjNSdbEB6yUi466HK3wdF35IKnaeKL2sVlytxburH5mCDdWGPKfH/W/P5kzgN1ZXCRD6jDTxQ9s4PQnpbv6iLm6DfEz00AXyAR0ATiLypD3Kwj4GYd/bxY0cFuz7IS6xOSUGGuxib1knC3q9mXU1dI6Ouzb1Nuuxr9nkQHGfm2sHtSL1qgETdskuOBN2waBHHLsgCbkAyiOc0Efo845E+wzmldou4i264TP3pdFabI3UJTn+Xjc+aR9PIE8BFiNodifJPmeI7Tm5IoKprM20h1Jkjr3ZR4Zhmz0zU8uQiScAxhu9ycuLtXqG8L7iDOrA28SHUbt/az6ary4vaaodm4FXqJ6SKCdBktUoYK/zyydfGnhE1pP4zE869jU8tzJZ6hDaqJ3ZwQwpvHYFDHHDfvrhFK4CbgLLJn/yVkVJksF83nTnPPo/jZ57JFJ090wyUQJbg0JMslQ/tZw4vLWzBUEb+qTziMzJuWIVr/wEEHM1WMiBvY3ayWIf9Z8EGJ+zqM2B84gJ3Av+pBx7z51H/SCNnaNEC4xTluUn7ypLJws8oRnE9L1lUE54CfgccQux0iJO1iFfyl8zx33FGGvrGHCmMVS+hvrIZt4lztbPwjtxpRVaMYqpavGLYeoAidYdQsbURERERERERERERERMRSx/8OqQy1P1RzqgAAAABJRU5ErkJggg=="
-    "rectangle" = "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"
+    "freeform" = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAHI0lEQVR42u2dTYgcRRTHfzOzuzGBYEx0MYmiB0WTrEdjMChGs2oufqCHBFFR3JOIOehNUBBPORgUESIqeNGD0YgQUCEXxS/UgxoTExBEo4lJNkHX6O5O93jYV+yzqOrpnq/+mHrQzExPdW/V/736v3qvX81CkCBBggQJEiRIkCBBggQJEiRIkGGRWsn62KqaAhoF7lfdAbo+H2ZAH/ujQV8hr38BkTpfB+KggN6JBnQS2AFsAK6Uc78Dh4H3gLeAOZkRUfAkvQEfYA2wX2ZA0vE9sLngNFo68DcCvwnAETAvr7EcEdCU8y15nQpK6B78GnAxcEIBq63dKECfa6pzk0EJ3Vv/Bx7wm+p9ZCnCfD4OXCiKrAVIsy+Bb3aArY+/gTOe74zCnpZ7jQRYsyvgDbHkeYd1PwFcAqwE7gFOKVrS7Y4CS/oQI9SqPLNqYrHfKDD1THjScc1mYFa1jdUsWS1tRkW5tS4Mw3V9o8v7FjL+uACYdjjbP4GLrEGPyjWfW4oys+A+hyOui5LrGawdKwhc4blvJRSwEjjrUMC0DLyu2hp+P+DwGbHMjIPAbuBOYJVnxrmsWAM6CbwGfCH9mJb77gUeAMaqsuqqAedJdGtTUCwgGuAN+KtFYa6lqX2cAvYBO4H1CVTTGNYg0HT+fWtFY8D9A7hBtb9crFIry44XdABnL2e/BHYBtwDLrb5sBI4NWxBoMpt3qwG2LOcaC+gHgBnrOw1u03E+tkDTxy/AO8BDwPXDGgQaWpmSQUWOwdvARW0+NxPu1fTMjlaCYisbBGrwXQO0gbMtPFYAvQ185lHOvOfekXXfeJiCQLOcfNAxpVsqKIsc58135vwedd/1Qil7hWJcgDVTOO9OgsCxsswAYyXXinVFluX6aMe27llZ3WhfomW5ONtdwA+ONEfk8Q1Zg8BYxnFZGeIDDf60g8PN+5PAi8AhGZy24J+BV4AJK5uqg66Gw9mvBx6XZempNj4gaxDYknxWoZ1xWvCnpY255lJgixzrgGWOZawvxmh4eHkVcAfwkmf2ZQkCzfVbi6yANOBHFvhjKZavWQI+X0riUJdBYAz8qwK9wlFQow34ejVzr+WkDXANBXovHF1NFFwXSoo7DALN6zFgqZViySWtYK+FDfjXpAB/asBLOfN37vfkldIEgUZpr+ZFP0lp21GV7fzWM8i8wNcGswQ4kqAEX9Cn45OrB00/adO2KyX/UjTw7QzoJpXviVMGgXPyfuegrT9N2vZd4BHgU0d+JVaWlCf4Nk1OtbH+pCBw4OCnTdu6pu18gcC3lXA7cDpFqlsHgb1aGKQGP0vtjh29mmn7vLXayVvMamtMZUVjR9+TgsC+g99J7Y5rJuxRll+U3ImZAVutvpoxzYjhLU0ZBPbN+jup3dEDennQlpNxSfqMNT7T76+6CAIzOVWfdcSS67hVOjXiaHNOokQXuKbS+aj6m0Wq84+lzzdawZQpFP6ExefJEQOuyO5V7U4L+KmAaVtdHHDa6reZ2XflmefpVe1OUdO2BtQt1hLZKGEGWJtXmqHXtTstFnL0RcoapuH/vhZjpS1YcrVrWkmsluL2cwn3KlLKNg3/R3n2uVe1OxELadt1qn3eNFR4/td/eB+dp211XuVjFks5IN9ay0Lzv82R3aRtXcebKqLMSxG583+WzGenaVu7jX7APgu8AIznFGGamMV+zGgUsbso+SpX2taXG489mc9mQvR8AniMxceQ9QH4h1Lwv4svddq2Xe1Ou/KS2FLEd8C2AdFSKfjf1+nbWCxkTardmQMelZnzEe7aSpci9g/AP5SC/5OUMC6dP6gcr692x8h2sXKfIgbpH0rD/0lKMO+TanfqFqePCd+f8PiDQfiH0vF/JxGtK22r24+Lhc9m8A87ekRLpeT/dmmKtLU7tuIm+P/jzXb+4UPgOovLs4JUWv7v5wzalsE/zLFQDLC2Q/9Qav7vR4zRjX94KqN/qAT/99uxp/EP85Z/2N7G/5jz5oHQTVXg/37T0oTkjJL8w7zlHzY5/IOrkOw5D/9/PQz8n1URkyw+4DGgtfMPVznuOwm8LonDf3BvN9rFYiX10Ivm9FHgYeDXlP7hrKxylgultSsks0slRwP8fv/wbIb44UeltKRNe+b7GcKPQHlpaaSNf0hy1PZscRWS6c/hR6BSKiKLfwg/AtVn/3CYdAXD4Ueg+uQfzhfHewb307pK7/8t0rJ1Awu/MRo7otxK7v8tEi2NsJAOP0lvCsn6vv+3Spo1AC7Dvc21k0KyYPkd0FEvCskKv/+36E55HxXZ/1s2qcT+37JTUGn3/1ZpNQSdFZLltv+3qr4gSyFZbvt/q66EtIVkuez/HRYlZCkkGyj4tSFRQqTerwGukM/HRQHnHG2D9DFf5FJSPa+ODeMyVf+3Jp2SCBIkSJAgQYIECRIkSJAgQYIEqbL8B3EcjSYXfA28AAAAAElFTkSuQmCC"
+    "oval" = "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"
+    "rectangle" = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAABw0lEQVR42u3bTUoDMQBA4Zfp1J2CgrcQ0QO4cyF4S2/g3ou4EUEENy78QQXbxsVksIgg7aTtmHkfFFdlbF4mk4oBSZIkSZIkSZIkSZKkEoUNv78k8b/FczJnGMTdVD4MeNYH4AmYrStAlV4XwFm6cDXwALfAOfCw6uWoDbYHfKQL+Wpep2lsRosMaN2h/CuwNfAliLQCBGCyzJvrDheu5gY+bHI3sOGHbfgxFmsL4O4og9wBIvA8d1vGwmZ+BLZzjludceDb7dhx+lni0hOBS+AEmC76wF3XHfAIvBS8anz2eQkCGKfZUtoSVM0trb0OEOcGvqQAcRWfZ6jfYHt1W8kABpABDCADGEAGMIAMYAAZwAAygAFkAAPIAAaQAQwgAxhABjCADGAAZVKvKGp7ZCcWOFl7/d/RkeZswKzAydp+pkkfA7SzYge4yv1L9sxRzuU79x1Q0xzfGYLQxwDQnJ0qfeMScs7YLuv9b0YMz9KnZ+oOt99WejAN/aT8lOZc3HhdAQLwDtwAh+7kqYA34O6PlSHbg6Td3+8DBwMf/JgC3APXBX73KX9XFDpe0D9lfN8JM4dBkiRJkiRJkiRJkiSp9QWexYaAl1n83wAAAABJRU5ErkJggg=="
     "pixelate" = "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"
     "blur" = "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"
     "black" = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAABLklEQVR4nO3bQUrDQBiG4b+tB6g38eDeo1s34jFcdWfURSYUBBExMx8jzwOh7Sb/pG/SrqYKAAAAAAAAAACAXR0GzjoOnreXj6p6Ty+CTkbckYda76KHqrpv72d4ErZ1vlbVU92uYzqn9nqp9QJmOy5frmNXdz1O+o1rVS3t6HIxO9vWee05ZGSAY92++BkCVK3rPPYc0PXk/EyAMAHCBAgTIEyAMAHCBAgTIEyAMAHCBAgTIEyAMAHCBAgTIEyAMAHCBAgTIEyAMAHCBAgTIEyAMAHCBAgTIEyAMAHCBAgbuUFjqaq39jrDXqttnUvPISMDnNu8kTP/YlvnecSQnra7/bGqnmvdczvDT9+2zpf2eYanlt8auV/3NHjeXrr/DwAAAAAAAAAAAADwP3wC3V5LI/al5bMAAAAASUVORK5CYII="
     "eyedropper" = "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAAAsTAAALEwEAmpwYAAACsElEQVR4nO2bTW4TQRCFSwkcAU+/V2sCAlZYSHCKIJEQJH4kYM0ZAtwDgVhE/FwAwQ2SHZwhBCQ2WSQs4mBUYUbuGHtsx/a4e3qeVBtrPOqvXne5etwj0qhRozqo3W6ft5CEtETyLoCPJH+Q7JL8Q3IPwAdVXbdrpI4C0Cb5LYceGgC+ArgudZJz7g6Aw1HwXhwAWJU6SFXXSR5NAF/MhN/OuRuSIjy95RBtTSC5MQ18EXlhTMt5np4F7yVF59mLPUnRefbiOIpmSecDf5IAETkniU37rlcDvkuiznfzBLyTEJRl2dUqnS9CVddk0QLwnGTHOfegKueDaYTwD74Y1EkSKoI/tA3UQuGzLLs2APRo3vB2f9tASQhS1bUKgP3oALgvIUmrS0J48KYq1nwDjwDhOfh3ftZF0O61IZE43zGnZlgTwnReS+C9a6ZNQrzwM0hC/PBTJKE+8GdIQv3gJ0hCfeHHSEL94Uc0Tae20qnBd4NLAod3ePdmfL//PrMttoTovDujOxN2jJuzJwoU3rumSMJmKtN+Y5wHqrV3PhgBuL0o5xcukisk95N03gTgS/9gk3De5Jy7kp/A8gf8WFKANwF42Tfgz5IKvInkjj9o59xDSQXeOXfB/lf3Bn3carWyWhc8X6r6qG/g25IKvInklj94qwdS92lf5p6q3pQUnNcBT2QA/BKR5VHfJfkkaucBXB5wHrcUIMuyltWLAQ1TXPAmkm/HAFgmeSvvEXb6finihTeR/FnW9RmQLYeSR1ZF7Md4Unupr+3t+Ot+zMNM9v1PtoGSGMXeGxhF8XtmBwwBPC2BtyWwDeCF1RCJWQDeDAEctL63rDW2Iih1EclL9qbFiGkeX3GbRABWS5JwEMzJq3mK5AqA1wB281qwC+CVql5c9NgaNWrUqJFMr7/GqKf+LELoegAAAABJRU5ErkJggg=="
     "info" = "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"
+    "zoom" = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAHU0lEQVR42u2c36tUVRTHP2fmqmXqNfshhS9RGEWFEmlSZqZmTz1GECRGRi+F5JNP17+gHoLAHxVaEUVERlFoP7jQLwxLsrDSXrLMtPSqiOmdOaeHWYvZLvc5M+Md750f6wubM2fmnLPPXt+9fuy19x5wOBwOh8PhcDgcDofD4Rg3JF32bpkTcOneoyTHDEhzhF2SkgXXOQFjQFmO1chvM817noxcp6Sl3aodyQQKPhTadOAu4D5gEXAlcJO55zDwF7AXGAa+Bf4oeKajwNQoVgCvAAcDs9JsOQFsBx4HJhutcBSYGxX8DiPQKjAKVKSkplTle70mvHcv8AQwKVKXIxDI9cCbEaGnkR5uCYj9XjFkfAMsNP6h7zEgx5XAoUDwlRyBjsrvWQu/K5GZHNc6CecLf00grNGI8CoRgY8Ax4DjUrIm7qsE2rIp0L6kn83OmkA41UiP1vPDwLvSe5cAV0s0pGUBsFqc9j5DRGqee86Q0HeaEBN+aoQWOtA1wOwWnj8FeNg4cqsNoxFN6Cvhr8gRvgrqHDBkQsiymC01G2EJfwvxKPBnDgmqCRuMSexZqKpfKyYlNb1dBfQrcI/xFa2YCCVEY/7rgI8jJKRBlLWsHzRBG/d2RBhKxC5gVgPBJzmlyNEj5sY6eq33ADDYy/5AhX9/gfB/E4fabnNQCup/J1L/qDFF5V41PwCfmwhHzdA54O4mBTBNiJppjgMN6i/JdQcM8foORyW6SnpNC1SgSyNRTqUFR6gkvi9jgH/k+K8cFzcgUL9fJu8Qe4+hXnTI2vBtRuU1Rt8neZpGgyIlYDgnAfdAExqkgt1qBK/vsl8ir57RAG3IYJBqSE3jn2yy1ykBn5oIRkPZpU0QoE72lkieSbViUaf4glIbn3GnhIMp9ZmtMnAEeE++q7ZAarNRkIXW/7NoUlhvKu/7kOk8XU2ANmJJ0Mjw+KXYcp1KjDlOW5IGjrbR9VrXdjnPzLsulmsmfEqzHY5IG7HQNDIL7HleD05zzis5dZ2mnp5u5p2+kmeVTYe7HbgCOBVoa9cSkMlzrjIEaC/cHdhgggZPB16XY2YImmcEpr+9RC1LijEpzwF7gl6tde2nlkm9JvguAy6TcHXCCWiX+ZklggknUrKg8eG14T2jtD4VGSsrIk5VzdNwJBrKOiU10a5YOG+JiIakefeMSE+0GlAqMFlZRANGC0xRpYGZohcIoECNSw3GD+UIAc0GDUkTuZ1Si+/blQQk1CfEm9GMsBemEQJaddpFwswLfSd1Uv5mrMI/Q21pCYEwM2AGcENOzJ2IA9ZE2sWEoQPB0T47A6ZSX1+UBO92hvqaoqybNSATAZyhlv+/NWhQKs+/IydCOQksN++g1zwvkVAaRFMJsA74XggLe/YeoxG6Wm6ODA4z85z/qE3idIwpakce6EWTB9LjqxcRbezIiVwWttixVuU8Z7eYoJ4YCRPkb+w4AOBe4PIgRRBzwlomBccYpsnvk819SY6DfdCcq4Z8IR2kJ3JB2qhdYlbKgcpXxQYvzamvmlOygroaXa/mZza1iXsiI+GdnWJ+2kGACvuQ5H1ikc+6Fhub5pSsSZOYAU+LxlSNA/5bBmcdMxZopzN/jAunA/XzI034Au0QX+eMeJc3eIbef6MM8sI1Q+qTtnTCCJic0HCsz5kiEcncQDPU9h+ViOhIYCbICR/nc/7+gDDaOZ6Tv0mC6Ggn9VmxMufPDc+jlqou9ZIGhD1qFReuTFAt2BlcW2pzR9L1RRsi9evnrZ3U+y+FNpVEC74rMEWbIqTFTEk5UpKCa6G2ws4uedTzUxIQJPTwHgJt2HzqK5ljq+Leop6+HrhIgSRmELeBC7Ox4eq4Z3q598dM0VojgNjquJURgealIpIg7RAKcS71VXHVHOG/EZDdF4t0VUCxlWr2/GVxzo3yPhZzqC0xGWlQx4fAeqkH+mSldGhnNwW90a5QCFdP7BCtWUBthYXFVMk1rRZneoL8ldHa8z8S03NWzjcGHaQvSLCaYPcIxISXScg6DHwWlN8p3pARLsbNgA9E+ErGWfpw40aoCUPGPKTEtx+lFE8/VhoIXsPN9ZL1DNcpnet3ElYCvxgiivaDhaUaIccKfgR4VuraYnp+0caNvnDMGjIOSsh4OCLICsW7IvM26p2ltnXpZhMEbGzgoPuOhDB8nC1E/JRjamIZT1sOApuB20wdsSDAScgZQJWprdUcAj4RB3w6x/Yfo5b2foFaqnmGeU6pQRDQcSQkE0yEzhmEGBTB5v1XxEhEq7KC5J7WsUlSFRXTAfR8M/AUffifE+EGvFILGtRsb+0KTejEqMkm4sYygnUSOnRg6CQ4CU6Ck+AkOAlOgpPgJDgJToKT4CQ4CQ4noUtJwEmYOBK2Udv47f9VOs4k6Ocfqe17TpyA8SNBhb+L+jomF/44kqDC179g8z8NH0cSXgN+oL6HwYU/jiTojN00F35nEOKYQE1wOBwOh8PhcDgcDofD4XA4HA6HoxvwPxw133OFtv21AAAAAElFTkSuQmCC"
+    "panel_expand" = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAELElEQVR42u2dvW4TQRSFv3WchBSEQIAUIBAdNaLkHehoeIDACyConFSIN+AFoKCCd6AhiYCKFkGLFIkfifzYXgrfUQbLa+/as//nSKMom3g9c87cOzN37u6AIAiCIAiCIAiCUCiinP+/rYhDi9QV+flwFqX4u6/mut1YSEYf+DWFw9QCuA+eAx4BD4BbwKo4nopj4CvwBngJHM0SYRI69vM6sGcfVsle9oxDn9OZFhBZWQXeA3eAE40DmQfhPrACfATumWXE45YwSZUlYAhse+Sv2P9GBZQmDMAd4+zEONw2TpfS3iAC9oGBKSl3Ml/pG4d7SR2smzDwrgM3TMm4YNP9ab0lqqHb6QAXvLo7r3ETOG+zo/8G5KQpZRdYLrjykZF/FzgsQfxF3c4QuAQcABtjdV9O4rpbwV70Y2weXScMsnaaKi6qlj1/WScLiOfxGlUUwJ+qxTXq/fE89e1oyl4uJIAEkACCBJAAggQorL0dCVBeW4dWOhKg2FWqC7G/sOJCw6UH/LotIb8P9IAndv0vsGPtzxy/ybvCMIrqHVrFhuQfN3ffcWjfTaDe6e6xY/c/tRLbNdcJo5x4y9yuJgnQYRQce+6R70gJLcLcAnQb7HpcRsd9uxZ7jffdElVyR02zAIBNRhvjsdfz47HfF7UEuaAZIlwFPk0QIZQ7kgBT4DIRriRYQggRJMCCIizqjiRARhFCuyMJULI7kgAlu6NGCbDJWXpfXumPbv2zBXzmLIttXktolADrBa99LnKWAT6YU4TGrIQjcw1L5J8ZF1v7T4CHwDvgtheudpaS64q5WyHiYZRXeUBxuaEun/OYUTr+pATapLBFv4nh6IhRXmWVQ9pOBLfB07j9gLgCljjpuu+O1oBnIUTQpnzJqKIFRBW1yoHxtQPsNtUFFf2AxvggvDGD/F0rjRuEy3hAw5+GbgFvbRYWe655nHx/Gpqr+bdtIbY/YyHWy2shplCEQhGlBeNC7pJJgBzI76UkXwKU2PMlQAXIlwAluR0JkCHUorQUykvMupwz+RIgoR2RLeq+2L1PArudIAI0NRrqQhtHjHa6XMPjKbGdSqSpNzU9vYfS00ubBXXHRAjldoII0IY3IPruZs0I2LXpaelupw0CuEBbB3jqjX2DKlSuTe8A9Z+OHFalUm17CeuwahXSprwEkACCBJAAggRoJ6qaGVe390hHk8IMdRXAj9nXabXt6l5rAYp8QCN0vd2ri6MQAvTnUTOACRf9gEZoK3Av73Zt8i3jNI0AbiPjN/Cd0XZeTMr33gcSYqNBY6zrSN+AP0x4HXPSAQ4x8IpyooZ1PzPAx8A4fJ3UkXWESX6dKNURJrPWB9eAD+gkjEIP8WFsEFkFHqNjrNIi0zFWOsgtPDId5JZ2ZiL/nxNnOswz35WxIAiCIAiCIAiCUDX8A158x9XvmkSZAAAAAElFTkSuQmCC"
+    "panel_collapse" = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAEe0lEQVR42u2dzY7cRBSFP7udkETKJCRhNcoE3oAFO8Q2W1YgeILME4zY9cwmUp6ANyCRYM8TsJos2EEQJNJskcI/hIx7zMK3RMVpd9s9XXbZPkcqTU+31V0+p+6tW7eqXCAIgiAIgiAIgiB0iiTw9VNFsW2RMpEfhrOkwee+mjv2xUI9cuD3FRw2FiAFzoDLwD7wEfAO8IY4Xol/gWfAV8DnwD8el42R2t/bwGNTUKV9eWwc+pyutYDEyiXgG+Bd4KX6gdadcA5cBL4F3gdeeMK81tJ9zMxc9j3yL9q1YxAg6aCkxtmpcXjPOJ21qeAxsDAl5U42K7lxeOzx+gqymqhnB9gzJYuKaf1maiYDdAspcK3DujuvsQdctejolaioLqTMgAuVyidG/nvA8yXixO52zoAb1jFe9+6pC1yo4zrboBX9XIlzh4RFbI0m21DNZN0AI0ILKCpWPVgB/FCqGFDrL2Ksb6qQXQJIAEECSABBAkiASOqTSoD+6nJmJZUA3Y5SXQr8gRWXuh39/EMWCfk5MAcO7P2/gSOrX3T5m9CEQJk1fG437txCYe/dqFx7nt9yDeDQvv/USmHvsSUrqLuv0PMBrXnrSoA68t1vORHu8/9s3CgFSCNwO3N77Xy+X8FPgCt0m7sfdSfsk39oJa90uLlZxxPgA+BXhpX6jrYPWOV2Cu//AvieNcs51Ae0E8Anf15Dfr6E/FnghjUJAdq0/CcByJ+0AE3Izz3y9wKQP1kB2ridkORPUoA2bueHwORHLUAW6Gb9UHO+JNRc2G//BNwFTry0QxJQgOjHEue1gCZux+V2vgN2O76/nTFbQJOW70a0J8CnlAu83rLrksANy62Mi8oKtinAOvJ99d8Evqbc/LHoiBR/bWg07mhbAqQrcjvLcNXK5JFtifyCciLlwMvlNGmRffZzo0vGFWrP/ViAm8P9jHJD2mEDFzSIkHBIfcCZfdeRN/haJcIfwF89dsLJ2ATwB1erRHBu6hfgQxuIXeo4DO1jg4YGYrEOxELkgtok4X4E3vasMeSuxQS4OcVk3LxBMu7OVJNxoQRoawmhM6KakKHfOQFNSTZ0R6FE0KQ8mpTvfWVcG0vQshTCLE1sK8LulkSQABuK8NRGrQnnX4sapQB9LE8v1qQtfDyiXKruUgmjR1/L031L0PL0jgSoE6Gw1356YrQC9L1DpuqOLlsFj8wdjX53TAyPoHRjADep46KexRR8fkzPAPV3R06iw41NgEkRzxZHmYIEkACCBJAAggSYRhjqrzYYCqLdoLGJAC5ZNrRHVrq6D1qAhHJDxYzhPrp4EBs08kprcZW+Rrm0b+gP7+7aHZ3WWV+2pJIJ5eLZE+CWvTfzKn1dXWdjuIZ6AvzJkmde1B3gUAAPWZ6VHPoz/bvEwjj8otKQX3Mty6IcHWFyPnfX6AiTdeOD25SnP+g0jM3KMRsc4uN/Vpgl7AMfo2OsmsAdY/Ul5TFWL1hxjJUOcts+Wh3k1jSGlv8PxJkO8ww78hYEQRAEQRAEQRBiw3+mUHW2m+Ug7wAAAABJRU5ErkJggg=="
+    "copy" = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAADp0lEQVR42u2cwWoUMRzGf5lORbGtij5Iq3jswYsHH8SjF8GDvoNH7z6CIIIg3kREUQ+e9AlELbXipdvZeNiEHcad3SmdSTLZ7wdhaRs6k3zJ/598mxkQQgghhBBCCCGEEEIIIQbHrPn1V2FzFn9jJPdoch6BF4DzbqSZxEa9BX7nGAKMKw+Bu8DFBEORBSrgOfAA+JVLSPJh55FrzBjKS6BwZfQJ3wDbwHfgxJVpwuXYiXBzqLxVRpjam8A515hm7LcJDJLmjLXAzlAXLCM00rrRNZZlqXH5IBsB2jraAkdOHBN4Nvjrbbf0iclNgGbHG7fk2wux9FsiwDNg3434IPuUMqGpbt1y70/Ee5iEvmBKAuAStIkQgopa6FtrAWxjJxrjutkIYFp+Nh32CiZQp0dnKAE2FizdbIc4Owk4Gjdc2LE5ClDRbrRdahnhBrg68KwMarTFEGCZ0eYTa1HbWTaF+RxgH7DIaCuWbA5Hw5iNNj8QX7vfn9SEssCtRht7XX71NfKnbid5z914taThq1YjIcoEuA3ccB0++hAkoy2BHHBWo81EEKXKSYC2TqwbbT4JmyV1+kzC0Yy2FHbCdaPtOnAIXAY+uk9b64ShzLhoRltKVoQ32o5qybmtzlBm3IQECekFeaNts0OdPkNQNKMtNQFOswztc9UUzWgLuQ8QEkACCAkgAYQEkABCAkgAIQEkgJAAEkCsoExwQBT0b0dDux1ddKizFgJYZl/G9H0+x/+/tpMPfzvUyVoAP+p2gFcDdsJuy4x4wuyr0kV11moGlMy+sw0luP/cW1InWwHa4vuQR0SKlo6tH9BdVGfQh8hjPaTnT083p3qM0wrFivxRDjkwigij/pDZEREvQqhnfu2STl5UTlznfwM+MD9+mSR+il4BDpifkPMNP3B/83WvAS9I//DuF+YPaRe5hCAD/ATuuMZtBQgxU+CxW+X403k+tt8HPvH/QyUV8JbZeaLBRn+sHOBnzPuA1/3RCIX+Pt4A7zoImOUqKETS9R3YdiBsy93HoseqpkPH/dj7gCqQ2KuScBXwfqKtgoQESI8ysNh9O52nGWRrfTh3KKezC9GczhQECOV0dmE3xbBbBrzOfiJtNrkLEMPp7JoLgjqdMQRIzelclRvKBAZGb/i3zD5l/iB0lWjxLwX5yvx1CmbsAvhGyOlMJCGFcDrPYoHUnc6sXtI9pulcpNBZQ+aElJmS+evphRBCCCGEEEIIIYQQQgghBPAPlM4RjvwKObMAAAAASUVORK5CYII="
+    "moon" = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAFbElEQVR42u2cTYgcRRTHf90TF7Nh3TVKFDQedEk0JuCuJHqJGEHQiyBZvKkkEDyIePLiRUkuikLuGxDiweDRqx8gCuJBc1ARBRFFJVmM0QRBk53u9lCvmErZO9sf1TPTPe8PzXzQM939f/U+61WBQqFQKBQKhUKhUCgUCoWiICI5Wv0AbUHsEJ4Bqby2Gr0WDJCevKY5xC8A2+S7RDUg7H3FHqm3AQeA+4H9Qv4uYA04CFyQ81qvFZOklTPAE8B7wGUh1z8OOiZKEWDUW+KPAl97ZPeBdeCKfH6xJaa0VaP+cY/4vhyp8zkDPpHztyh9YcifA055xCeeBlhn+y+wrKanPuzoXQLODiE+80b/aTU94cjfD1wUYtc3IN6O/hT4B9jt+QxFAPL7Q8h3hfOOjv4wNt8lP9mEfHtOAhxyEjRFhXICwL4K5GfA96I9kVJZvaywDfiqoNnxzc/rGnrWNz1vFXC4eRqQAg+r/a9H/lMVyLcJ2B/ATY42KUqWGG7GFM6Sgnbfj/0/7GLoGY/oGinwPLBD3pe5rq1ufiHvNfYvSX6EKRv/5djyrIIGPNtFBxyP4P8z4DlgXsgva7/t+T95GqEoQFwkZmfNKSVkJY9EnPYBjYCqlRteqhD55EVA812MgJo0QdbZHhYSo5ra1EnnGzf4vymwiCk1q+kYgwAAnsRML4boWIhUAOXMD8BjgcizPkQFUHCkppL57qt5HduENQvsVCdc7j/vBrZXjP390X89cIsKoJytXnK0IQQW1ASVw67A/uQ+1YByhO0NRJj9/b1dLEU0pQEhEycrgAcxs2kJOh+wKVkLwO9eOaHOkWKqostdS+qa1ICQZeNESH+ka36gSSecNaBZK56fUQGMCD0R6JI4487MjLXpIRJMXekIOjW5qanYjpmCDOWE3d7QNUx3ROsX6DWhAXZkXsZ0sYW01zar3gG8INfSEvcQoX5Mue63olqQYNaD3SrXilUD8s3Qzw1FQ5mYoNco3+IyVQL4tsGIKAGeBh4VDVNT5BEEZjKmaPdzlU6JDDgvPkEXa+Ro1U7g78CRUF7D1meOALRG5JihGPiyAUecJ4RTjvapJjh1oDep3hNU9LD/vZpjBqfeDzxA+W7oOkJ4F7jRGQRRQG1upRmaAb5r0BnnCeGsCJ6agmj9OrRRmiFfCOvAcYmQXK3cMsRZ25He49pS+ixmZU7rnLxV23swa3urtKbXCVEzqRu9Aty+wf3FQ7LpOUxL/I+0eE8Ke8NnRqgF7gya/XwJs7r+CLCH/A6LWeAOTDffScnkM+A3BnsWRU3Y6aYFkAIPAR+NYRRZYbjXTIA/JVN3WyYXMc1kW73fvyxljx4t3RTKPvzpEWtBnkYUyUf6mO1w+hJAzLQ9ybM3vxu4yrVbz2RjEoYrEHu4PsoOkme6klfYB3h1jFpQZVVm3JWkzoZ41wGfN1yeCDHfcBG4q8GK8VjD0jvlAUeRIZcl/6q8X+lqScM+0IqjBemECMCSf9JLJDtbqDs2QULwC3qd35ElTwjJmEf+qhe1TU3J+lhOBDLqbHnVMZFTNaljhXCUwcasoyzauTZ/amfUrBCWGeyc2JRvcE3dBcz2OVNNvi+EOeAEg51x7WhNA5ga18ecYbCCR3ffykl49mJ21rrC//eM6LPxvhNumWE9x6e8j2lloatxfoiMuecJ4g3gF4bvpDgsqbsEvO0RPzEdddEEa0PklH9vwMxKHRJfsQezXGmr97tEnPkPwDfAp8AHwK9eSSSZpBE36WYpFlPiYl6Esuh9fx44h+nMzsvAk0lU+TYV8yLHzoc8XwVQ4b7zpghd269QKBQKhUKhUCgUCoVCoVAoFAqFwuA/cp9gBTN36BIAAAAASUVORK5CYII="
+    "sun" = "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"
 }
 
 $script:IconImageCache = @{}
@@ -2076,23 +2238,23 @@ function Update-ThemedIcons([System.Drawing.Color]$normalColor, [System.Drawing.
 $logo = New-Object System.Windows.Forms.PictureBox
 $logo.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::Zoom
 $logo.Image = Get-AppIconImage
-$logo.Location = New-Object System.Drawing.Point(22,17)
-$logo.Size = New-Object System.Drawing.Size(46,46)
+$logo.Location = New-Object System.Drawing.Point(10,11)
+$logo.Size = New-Object System.Drawing.Size(40,40)
 $logo.Tag = "logo"
 $top.Controls.Add($logo)
 
 $lblAppTitle = New-Object System.Windows.Forms.Label
-$lblAppTitle.Text = "Video | Image Redactor"
-$lblAppTitle.Location = New-Object System.Drawing.Point(82,14)
-$lblAppTitle.Size = New-Object System.Drawing.Size(300,28)
-$lblAppTitle.Font = New-UIFont 15 ([System.Drawing.FontStyle]::Bold)
+$lblAppTitle.Text = "TinyRedactionTool"
+$lblAppTitle.Location = New-Object System.Drawing.Point(62,7)
+$lblAppTitle.Size = New-Object System.Drawing.Size(260,26)
+$lblAppTitle.Font = New-UIFont 14 ([System.Drawing.FontStyle]::Bold)
 $lblAppTitle.Tag = "heading"
 $top.Controls.Add($lblAppTitle)
 
 $lblAppSub = New-Object System.Windows.Forms.Label
 $lblAppSub.Text = "Simple. Private. Secure."
-$lblAppSub.Location = New-Object System.Drawing.Point(84,43)
-$lblAppSub.Size = New-Object System.Drawing.Size(300,22)
+$lblAppSub.Location = New-Object System.Drawing.Point(64,33)
+$lblAppSub.Size = New-Object System.Drawing.Size(260,20)
 $lblAppSub.Font = New-UIFont 9.2
 $lblAppSub.Tag = "muted"
 $top.Controls.Add($lblAppSub)
@@ -2103,13 +2265,15 @@ $top.Controls.Add($lblAppSub)
 # construction time and kept flush via Anchor="Top,Right" - the same
 # established pattern already proven reliable for $btnTheme itself.
 $btnTheme = New-Object System.Windows.Forms.Button
-$btnTheme.Text = [char]0x263E
-$btnTheme.Size = New-Object System.Drawing.Size(44,34)
-$btnTheme.Location = New-Object System.Drawing.Point(($form.ClientSize.Width - 75),24)
+$btnTheme.Text = ""
+$btnTheme.Size = New-Object System.Drawing.Size($script:UiIconButtonSize,$script:UiIconButtonSize)
+$btnTheme.Location = New-Object System.Drawing.Point(($form.ClientSize.Width - $script:UiGap - $script:UiIconButtonSize),15)
 $btnTheme.Anchor = "Top,Right"
 $btnTheme.Tag = "button"
-Style-FlatButton $btnTheme
+$btnTheme.Image = Get-ThemedIconImage "moon" ([System.Drawing.Color]::FromArgb(32,32,32))
+Style-FlatButton $btnTheme $false 8
 $top.Controls.Add($btnTheme)
+$script:appToolTip.SetToolTip($btnTheme, "Switch to Dark Mode")
 
 # A small circular "i" info button replaces the old
 # always-on privacy/credit text: clicking it opens the About dialog (see
@@ -2118,8 +2282,8 @@ $top.Controls.Add($btnTheme)
 # in the same right-hand cluster.
 $btnInfo = New-Object System.Windows.Forms.Button
 $btnInfo.Text = ""
-$btnInfo.Size = New-Object System.Drawing.Size(34,34)
-$btnInfo.Location = New-Object System.Drawing.Point(($form.ClientSize.Width - 119),24)
+$btnInfo.Size = New-Object System.Drawing.Size($script:UiIconButtonSize,$script:UiIconButtonSize)
+$btnInfo.Location = New-Object System.Drawing.Point(($form.ClientSize.Width - (2 * $script:UiIconButtonSize) - (2 * $script:UiGap)),15)
 $btnInfo.Anchor = "Top,Right"
 Style-FlatButton $btnInfo $false 999
 $top.Controls.Add($btnInfo)
@@ -2134,8 +2298,9 @@ $script:appToolTip.SetToolTip($btnInfo, "About TinyRedactionTool")
 # reads left-to-right as: title -> Open/Change button -> file name/path.
 $btnOpen = New-Object System.Windows.Forms.Button
 $btnOpen.Text = "Open Video | Image"
-$btnOpen.Size = New-Object System.Drawing.Size(170,34)
-$btnOpen.Location = New-Object System.Drawing.Point(400,24)
+$btnOpen.Size = New-Object System.Drawing.Size($script:OpenButtonWidth,$script:CompactButtonHeight)
+$btnOpen.Location = New-Object System.Drawing.Point(330,17)
+$btnOpen.Font = New-UIFont 8.3
 Style-FlatButton $btnOpen $true
 $top.Controls.Add($btnOpen)
 
@@ -2147,7 +2312,7 @@ $top.Controls.Add($btnOpen)
 $lblFile = New-Object System.Windows.Forms.Label
 $lblFile.Text = "No Video | Image Loaded"
 $lblFile.AutoEllipsis = $true
-$lblFile.Location = New-Object System.Drawing.Point(590,18)
+$lblFile.Location = New-Object System.Drawing.Point(($btnOpen.Right + 14),11)
 $lblFile.Size = New-Object System.Drawing.Size(400,22)
 $lblFile.Font = New-UIFont 9.6 ([System.Drawing.FontStyle]::Bold)
 $lblFile.Tag = "heading"
@@ -2156,7 +2321,7 @@ $top.Controls.Add($lblFile)
 $lblHint = New-Object System.Windows.Forms.Label
 $lblHint.Text = "Open a file to begin."
 $lblHint.AutoEllipsis = $true
-$lblHint.Location = New-Object System.Drawing.Point(590,40)
+$lblHint.Location = New-Object System.Drawing.Point(($btnOpen.Right + 14),33)
 $lblHint.Size = New-Object System.Drawing.Size(400,20)
 $lblHint.Font = New-UIFont 8.4
 $lblHint.Tag = "muted"
@@ -2167,16 +2332,18 @@ $top.Controls.Add($lblHint)
 # icon rail is most of where the extra preview space comes from.
 $main = New-Object System.Windows.Forms.TableLayoutPanel
 $main.Dock = "None"
-$main.Location = New-Object System.Drawing.Point(0,132)
-$main.Size = New-Object System.Drawing.Size($form.ClientSize.Width,([Math]::Max(1,$form.ClientSize.Height - 132)))
+$main.Location = New-Object System.Drawing.Point(0,$script:HeaderHeight)
+$main.Size = New-Object System.Drawing.Size($form.ClientSize.Width,([Math]::Max(1,$form.ClientSize.Height - $script:HeaderHeight)))
 $main.Anchor = "Top,Bottom,Left,Right"
 $main.ColumnCount = 3
 $main.RowCount = 1
 $main.Padding = New-Object System.Windows.Forms.Padding(0)
 $main.Margin = New-Object System.Windows.Forms.Padding(0)
-[void]$main.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Absolute,60)))
+[void]$main.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Absolute,$script:ToolbarWidth)))
 [void]$main.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent,100)))
-[void]$main.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Absolute,390)))
+# v1.4 preview starts with the inspector collapsed; its slim host contains
+# only the persistent restore button until the user opens Redaction Area.
+[void]$main.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Absolute,$script:InspectorCollapsedWidth)))
 $form.Controls.Add($main)
 
 # Header must stay visually above the workspace; geometry keeps the two from overlapping.
@@ -2192,6 +2359,11 @@ $top.BringToFront()
 # logic carries over unchanged - only their container and skin change.
 $toolbar = New-Object System.Windows.Forms.Panel
 $toolbar.Dock = "Fill"
+# TableLayoutPanel gives child controls a default 3px Margin. In the compact
+# 38px toolbar column that silently reduced the usable width below the 34px
+# icon-button width and clipped the buttons on their right edge. The toolbar
+# itself must occupy the entire column; UiGap provides the intended spacing.
+$toolbar.Margin = New-Object System.Windows.Forms.Padding(0)
 $toolbar.Padding = New-Object System.Windows.Forms.Padding(0)
 $toolbar.Tag = "toolbar"
 $main.Controls.Add($toolbar,0,0)
@@ -2199,8 +2371,8 @@ $main.Controls.Add($toolbar,0,0)
 $lblToolsHeading = New-Object System.Windows.Forms.Label
 $lblToolsHeading.Text = "Tools"
 $lblToolsHeading.TextAlign = "MiddleCenter"
-$lblToolsHeading.Location = New-Object System.Drawing.Point(0,10)
-$lblToolsHeading.Size = New-Object System.Drawing.Size(60,16)
+$lblToolsHeading.Location = New-Object System.Drawing.Point(0,4)
+$lblToolsHeading.Size = New-Object System.Drawing.Size($script:ToolbarWidth,14)
 $lblToolsHeading.Font = New-UIFont 7.2 ([System.Drawing.FontStyle]::Bold)
 $lblToolsHeading.Tag = "muted"
 $toolbar.Controls.Add($lblToolsHeading)
@@ -2220,7 +2392,7 @@ function New-ToolbarIconButton($parent, [string]$iconName, [int]$x, [int]$y, [st
     $b.Image = Get-ThemedIconImage $iconName ([System.Drawing.Color]::Black)
     $b.Cursor = [System.Windows.Forms.Cursors]::Hand
     $b.Location = New-Object System.Drawing.Point($x,$y)
-    $b.Size = New-Object System.Drawing.Size(40,40)
+    $b.Size = New-Object System.Drawing.Size($script:UiIconButtonSize,$script:UiIconButtonSize)
     $b.Tag = "choice"
     Enable-RoundedPaint $b 10
     $parent.Controls.Add($b)
@@ -2229,18 +2401,19 @@ function New-ToolbarIconButton($parent, [string]$iconName, [int]$x, [int]$y, [st
     return $b
 }
 
-$rbRectangle = New-ToolbarIconButton $toolbar "rectangle" 10 32 "Rectangle Selection"
+$rbRectangle = New-ToolbarIconButton $toolbar "rectangle" $script:UiGap 22 "Rectangle Selection"
 $rbRectangle.Checked = $true
-$rbOval = New-ToolbarIconButton $toolbar "oval" 10 76 "Oval Selection"
-$rbFreeform = New-ToolbarIconButton $toolbar "freeform" 10 120 "Freeform Selection"
+$rbOval = New-ToolbarIconButton $toolbar "oval" $script:UiGap 60 "Oval Selection"
+$rbFreeform = New-ToolbarIconButton $toolbar "freeform" $script:UiGap 98 "Freeform Selection"
+$rbZoom = New-ToolbarIconButton $toolbar "zoom" $script:UiGap 136 "Zoom Tool - left click in, right click out, mouse wheel zooms around pointer"
 
-Add-Rule $toolbar 10 166 40 | Out-Null
+Add-Rule $toolbar $script:UiGap 176 ($script:ToolbarWidth - (2 * $script:UiGap)) | Out-Null
 
 $lblStyleHeading = New-Object System.Windows.Forms.Label
 $lblStyleHeading.Text = "Style"
 $lblStyleHeading.TextAlign = "MiddleCenter"
-$lblStyleHeading.Location = New-Object System.Drawing.Point(0,176)
-$lblStyleHeading.Size = New-Object System.Drawing.Size(60,16)
+$lblStyleHeading.Location = New-Object System.Drawing.Point(0,184)
+$lblStyleHeading.Size = New-Object System.Drawing.Size($script:ToolbarWidth,14)
 $lblStyleHeading.Font = New-UIFont 7.2 ([System.Drawing.FontStyle]::Bold)
 $lblStyleHeading.Tag = "muted"
 $toolbar.Controls.Add($lblStyleHeading)
@@ -2249,33 +2422,36 @@ $toolbar.Controls.Add($lblStyleHeading)
 # auto-group by immediate parent" behavior doesn't lump these in with the
 # Rectangle/Oval/Freeform tool buttons sitting directly on $toolbar.
 $modeRow = New-Object System.Windows.Forms.Panel
-$modeRow.Location = New-Object System.Drawing.Point(0,198)
-$modeRow.Size = New-Object System.Drawing.Size(60,136)
+$modeRow.Location = New-Object System.Drawing.Point(0,202)
+$modeRow.Size = New-Object System.Drawing.Size($script:ToolbarWidth,110)
 $toolbar.Controls.Add($modeRow)
 
-$rbModeBlack = New-ToolbarIconButton $modeRow "black" 10 0 "Coloured Box - secure opaque redaction"
+$rbModeBlack = New-ToolbarIconButton $modeRow "black" $script:UiGap 0 "Coloured Box - secure opaque redaction"
 $rbModeBlack.Checked = $true   # Secure opaque redaction is the default mode
-$rbModeBlur = New-ToolbarIconButton $modeRow "blur" 10 44 "Blur - visual obscuration only; use Coloured Box for secure redaction"
-$rbModePixelate = New-ToolbarIconButton $modeRow "pixelate" 10 88 "Pixelate - visual obscuration only; use Coloured Box for secure redaction"
+$rbModeBlur = New-ToolbarIconButton $modeRow "blur" $script:UiGap 38 "Blur - visual obscuration only; use Coloured Box for secure redaction"
+$rbModePixelate = New-ToolbarIconButton $modeRow "pixelate" $script:UiGap 76 "Pixelate - visual obscuration only; use Coloured Box for secure redaction"
 
 # CENTER -------------------------------------------------------------
 $center = New-Object System.Windows.Forms.Panel
 $center.Dock = "Fill"
-$center.Padding = New-Object System.Windows.Forms.Padding(16,16,16,16)
+# UiGap is the exact space between the left toolbar and preview. The right
+# padding is deliberately zero so, when Redaction Area is collapsed, the
+# preview stops exactly UiGap pixels before the persistent restore icon.
+$center.Padding = New-Object System.Windows.Forms.Padding($script:UiGap,$script:UiGap,0,2)
 $center.Tag = "workspace"
 $main.Controls.Add($center,1,0)
 
 # Playback / timeline panel at the bottom of the center column.
 $bottom = New-Object System.Windows.Forms.Panel
 $bottom.Dock = "Bottom"
-$bottom.Height = 214
+$bottom.Height = 156
 $bottom.Padding = New-Object System.Windows.Forms.Padding(0)
 $bottom.Tag = "workspace"
 $center.Controls.Add($bottom)
 
 $lblPos = New-Object System.Windows.Forms.Label
 $lblPos.Text = "Preview frame"
-$lblPos.Location = New-Object System.Drawing.Point(0,6)
+$lblPos.Location = New-Object System.Drawing.Point(0,1)
 $lblPos.Size = New-Object System.Drawing.Size(110,22)
 $lblPos.Font = New-UIFont 8.5
 $lblPos.Tag = "muted"
@@ -2283,26 +2459,16 @@ $bottom.Controls.Add($lblPos)
 
 $lblPosValue = New-Object System.Windows.Forms.Label
 $lblPosValue.Text = "00:00:00.000"
-$lblPosValue.Location = New-Object System.Drawing.Point(112,4)
+$lblPosValue.Location = New-Object System.Drawing.Point(112,0)
 $lblPosValue.Size = New-Object System.Drawing.Size(110,24)
 $lblPosValue.Font = New-UIFont 9.1 ([System.Drawing.FontStyle]::Bold)
 $lblPosValue.Tag = "heading"
 $bottom.Controls.Add($lblPosValue)
 
-$btnRefresh = New-Object System.Windows.Forms.Button
-$btnRefresh.Text = "Load Frame"
-$btnRefresh.Location = New-Object System.Drawing.Point(420,3)
-$btnRefresh.Size = New-Object System.Drawing.Size(95,26)
-$btnRefresh.Anchor = "Top,Right"
-$btnRefresh.Enabled = $false
-$btnRefresh.Font = New-UIFont 7.8
-Style-FlatButton $btnRefresh
-$bottom.Controls.Add($btnRefresh)
-
 $lblFrameCount = New-Object System.Windows.Forms.Label
 $lblFrameCount.Text = "Frame 0 / 0"
 $lblFrameCount.TextAlign = "MiddleRight"
-$lblFrameCount.Location = New-Object System.Drawing.Point(520,6)
+$lblFrameCount.Location = New-Object System.Drawing.Point(520,1)
 $lblFrameCount.Size = New-Object System.Drawing.Size(170,24)
 $lblFrameCount.Anchor = "Top,Right"
 $lblFrameCount.Font = New-UIFont 8.5
@@ -2316,8 +2482,8 @@ $bottom.Controls.Add($lblFrameCount)
 # properties, so there's a single source of truth instead of two numbers
 # that could drift out of sync.
 $seekBar = New-Object System.Windows.Forms.Panel
-$seekBar.Location = New-Object System.Drawing.Point(0,34)
-$seekBar.Size = New-Object System.Drawing.Size(690,45)
+$seekBar.Location = New-Object System.Drawing.Point(0,20)
+$seekBar.Size = New-Object System.Drawing.Size(690,28)
 # No Anchor here - same reasoning as $btnCancelRedaction below: $bottom
 # hasn't been through a real WinForms layout pass yet at construction time,
 # so an Anchor="Top,Left,Right" set now would capture a wrong baseline width
@@ -2361,7 +2527,7 @@ $seekBar.Add_Paint({
     $e.Graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
 
     $w = $sender.ClientSize.Width
-    $trackY = 20
+    $trackY = 12
     $trackH = 4
     $trackColor = if ($sender.Enabled) { $script:seekTrackColor } else { $script:seekTrackDisabledColor }
     $accentColor = if ($sender.Enabled) { $script:seekAccentColor } else { $script:seekTrackDisabledColor }
@@ -2402,16 +2568,15 @@ $seekBar.Add_MouseUp({
 })
 
 $scrubberMarkers = New-Object System.Windows.Forms.Panel
-# Sits in its own row clear of the seek bar's own rectangle (0,34)-(width,79)
-# rather than overlapping its bottom few pixels, so the red redaction-range
-# marks can never end up rendered behind/under the seek bar itself.
-$scrubberMarkers.Location = New-Object System.Drawing.Point(10,82)
-$scrubberMarkers.Size = New-Object System.Drawing.Size(670,10)
-# No Anchor - same Anchor-baseline-timing issue as $seekBar just above (and
-# $btnCancelRedaction further down). It's kept 10px narrower than $seekBar
-# on each side by design (inset from the seek bar's own edges); Update-
-# PolishedLayout preserves that same inset explicitly instead of leaving it
-# to two independently-anchored controls to (not) stay in sync.
+# Sits in its own compact row directly below the seek bar, keeping the red
+# redaction-range marks clear of the seek track itself.
+$scrubberMarkers.Location = New-Object System.Drawing.Point(10,48)
+$scrubberMarkers.Size = New-Object System.Drawing.Size(670,8)
+# No Anchor - same Anchor-baseline-timing issue as $seekBar just above.
+# It stays 10px inset on each side and Update-PolishedLayout resizes it from
+# the live bottom-panel width. Parent + child invalidation there also clears
+# the OLD bounds whenever this strip shrinks, preventing stale red range
+# pixels from being left behind after panel/window layout changes.
 $scrubberMarkers.Tag = "marker"
 $bottom.Controls.Add($scrubberMarkers)
 $scrubberMarkers.BringToFront()
@@ -2435,8 +2600,8 @@ function New-IconButton([string]$iconName, [int]$w, [int]$h, [int]$radius = 10) 
 # Update-PolishedLayout (WinForms anchoring alone can't express "centered").
 $btnStartRedaction = New-Object System.Windows.Forms.Button
 $btnStartRedaction.Text = "Begin Redaction"
-$btnStartRedaction.Size = New-Object System.Drawing.Size(132,40)
-$btnStartRedaction.Location = New-Object System.Drawing.Point(0,100)
+$btnStartRedaction.Size = New-Object System.Drawing.Size($script:CompactButtonWidth,$script:CompactButtonHeight)
+$btnStartRedaction.Location = New-Object System.Drawing.Point(0,69)
 $btnStartRedaction.Enabled = $false
 $btnStartRedaction.Font = New-UIFont 9.2 ([System.Drawing.FontStyle]::Bold)
 Style-FlatButton $btnStartRedaction $true
@@ -2444,8 +2609,8 @@ $bottom.Controls.Add($btnStartRedaction)
 
 $btnAddRedaction = New-Object System.Windows.Forms.Button
 $btnAddRedaction.Text = "Create Redaction"
-$btnAddRedaction.Size = New-Object System.Drawing.Size(132,40)
-$btnAddRedaction.Location = New-Object System.Drawing.Point(0,100)
+$btnAddRedaction.Size = New-Object System.Drawing.Size($script:CompactButtonWidth,$script:CompactButtonHeight)
+$btnAddRedaction.Location = New-Object System.Drawing.Point(0,69)
 $btnAddRedaction.Enabled = $false
 $btnAddRedaction.Visible = $false
 $btnAddRedaction.Font = New-UIFont 9.2 ([System.Drawing.FontStyle]::Bold)
@@ -2469,8 +2634,8 @@ $script:appToolTip.SetToolTip($btnNextFrame, "Next Frame")
 
 $btnEndRedaction = New-Object System.Windows.Forms.Button
 $btnEndRedaction.Text = "End Redaction"
-$btnEndRedaction.Size = New-Object System.Drawing.Size(132,40)
-$btnEndRedaction.Location = New-Object System.Drawing.Point(0,100)
+$btnEndRedaction.Size = New-Object System.Drawing.Size($script:CompactButtonWidth,$script:CompactButtonHeight)
+$btnEndRedaction.Location = New-Object System.Drawing.Point(0,69)
 $btnEndRedaction.Enabled = $false
 $btnEndRedaction.Font = New-UIFont 9.2 ([System.Drawing.FontStyle]::Bold)
 Style-FlatButton $btnEndRedaction
@@ -2478,8 +2643,8 @@ $bottom.Controls.Add($btnEndRedaction)
 
 $btnCancelRedaction = New-Object System.Windows.Forms.Button
 $btnCancelRedaction.Text = "Cancel Redaction"
-$btnCancelRedaction.Location = New-Object System.Drawing.Point(560,110)
-$btnCancelRedaction.Size = New-Object System.Drawing.Size(130,30)
+$btnCancelRedaction.Location = New-Object System.Drawing.Point(560,69)
+$btnCancelRedaction.Size = New-Object System.Drawing.Size($script:CompactButtonWidth,$script:CompactButtonHeight)
 # No Anchor here - Update-PolishedLayout repositions this button by hand on
 # every resize (see the comment there for why trusting Anchor's own math
 # caused it to overlap End Redaction / Next Frame).
@@ -2497,7 +2662,7 @@ $bottom.Controls.Add($btnCancelRedaction)
 # stay aligned with the row, but its X never needs to move.
 $lblStrength = New-Object System.Windows.Forms.Label
 $lblStrength.Text = "Blur Strength: 5"
-$lblStrength.Location = New-Object System.Drawing.Point(0,100)
+$lblStrength.Location = New-Object System.Drawing.Point(0,62)
 $lblStrength.Size = New-Object System.Drawing.Size(170,18)
 $lblStrength.Font = New-UIFont 8.0
 $lblStrength.Tag = "muted"
@@ -2508,8 +2673,12 @@ $sliderStrength.Minimum = 1
 $sliderStrength.Maximum = 10
 $sliderStrength.Value = $redactionStrength
 $sliderStrength.TickStyle = [System.Windows.Forms.TickStyle]::None
-$sliderStrength.Location = New-Object System.Drawing.Point(0,118)
-$sliderStrength.Size = New-Object System.Drawing.Size(170,30)
+# TrackBar defaults to AutoSize=True, which makes WinForms ignore our compact
+# Height and allows the control's real bounds to overlap the status rows below.
+# Force the requested height so the redaction/status text can never be covered.
+$sliderStrength.AutoSize = $false
+$sliderStrength.Location = New-Object System.Drawing.Point(0,79)
+$sliderStrength.Size = New-Object System.Drawing.Size(170,28)
 $script:appToolTip.SetToolTip($sliderStrength, "How strong the Blur/Pixelate effect is")
 $bottom.Controls.Add($sliderStrength)
 $sliderStrength.BringToFront()
@@ -2546,14 +2715,14 @@ function Update-StrengthSliderVisibility {
 # one style is ever selected at a time.
 $lblColor = New-Object System.Windows.Forms.Label
 $lblColor.Text = "Box Colour"
-$lblColor.Location = New-Object System.Drawing.Point(0,100)
+$lblColor.Location = New-Object System.Drawing.Point(0,62)
 $lblColor.Size = New-Object System.Drawing.Size(170,18)
 $lblColor.Font = New-UIFont 8.0
 $lblColor.Tag = "muted"
 $bottom.Controls.Add($lblColor)
 
 $swatchColor = New-Object System.Windows.Forms.Panel
-$swatchColor.Location = New-Object System.Drawing.Point(0,118)
+$swatchColor.Location = New-Object System.Drawing.Point(0,79)
 $swatchColor.Size = New-Object System.Drawing.Size(60,30)
 $swatchColor.Cursor = [System.Windows.Forms.Cursors]::Hand
 $swatchColor.BackColor = $redactionColor
@@ -2574,8 +2743,12 @@ $swatchColor.Add_Paint({
 $btnEyedropper = New-Object System.Windows.Forms.Button
 $btnEyedropper.Text = ""
 $btnEyedropper.Size = New-Object System.Drawing.Size(30,30)
-$btnEyedropper.Location = New-Object System.Drawing.Point(70,118)
+$btnEyedropper.Location = New-Object System.Drawing.Point(70,79)
 Style-FlatButton $btnEyedropper
+# This is an icon-only affordance beside the colour swatch, not a separate
+# boxed field. Suppress the rounded-button outline so its left border cannot
+# appear as a stray vertical separator between the swatch and eyedropper.
+$btnEyedropper.FlatAppearance.BorderSize = 0
 $bottom.Controls.Add($btnEyedropper)
 Register-ThemedIcon $btnEyedropper "eyedropper"
 $script:appToolTip.SetToolTip($btnEyedropper, "Pick a colour from the loaded frame")
@@ -2642,18 +2815,21 @@ $swatchColor.Add_Click({
 $btnEyedropper.Add_Click({
     if (-not $previewImage) { return }
     $script:eyedropperActive = -not $script:eyedropperActive
-    $picture.Cursor = if ($script:eyedropperActive) { [System.Windows.Forms.Cursors]::Cross } else { [System.Windows.Forms.Cursors]::Default }
+    if ($script:eyedropperActive) {
+        $picture.Cursor = [System.Windows.Forms.Cursors]::Cross
+    } else {
+        Update-PreviewCursor
+    }
     Set-RedactionButtonColor $btnEyedropper $(if ($script:eyedropperActive) { "red" } else { "grey" })
 })
 
 $lblPending = New-Object System.Windows.Forms.Label
 $lblPending.Text = "No redaction in progress."
-$lblPending.TextAlign = "MiddleCenter"
-# Y=158 sits clear below the button row's tallest member (Play/Pause, which
-# runs from y=100 to y=152) - it previously started at y=146, inside that
-# band, which is what let this text render underneath/behind the buttons.
-$lblPending.Location = New-Object System.Drawing.Point(0,158)
-$lblPending.Size = New-Object System.Drawing.Size(690,18)
+$lblPending.TextAlign = "MiddleLeft"
+# Compact status row: left-aligned with Box Colour / Ready. so panel
+# collapse/restore cannot make the message appear to jump horizontally.
+$lblPending.Location = New-Object System.Drawing.Point(0,114)
+$lblPending.Size = New-Object System.Drawing.Size(690,16)
 $lblPending.Anchor = "Top,Left,Right"
 $lblPending.Font = New-UIFont 8.0
 $lblPending.Tag = "muted"
@@ -2661,16 +2837,16 @@ $bottom.Controls.Add($lblPending)
 
 $status = New-Object System.Windows.Forms.Label
 $status.Text = "Ready."
-$status.Location = New-Object System.Drawing.Point(0,178)
-$status.Size = New-Object System.Drawing.Size(690,18)
+$status.Location = New-Object System.Drawing.Point(0,132)
+$status.Size = New-Object System.Drawing.Size(690,16)
 $status.Anchor = "Top,Left,Right"
 $status.Font = New-UIFont 8.2
 $status.Tag = "muted"
 $bottom.Controls.Add($status)
 
 $progress = New-Object System.Windows.Forms.ProgressBar
-$progress.Location = New-Object System.Drawing.Point(0,198)
-$progress.Size = New-Object System.Drawing.Size(690,6)
+$progress.Location = New-Object System.Drawing.Point(0,150)
+$progress.Size = New-Object System.Drawing.Size(690,5)
 $progress.Anchor = "Top,Left,Right"
 $progress.Style = "Marquee"
 $progress.Visible = $false
@@ -2679,7 +2855,7 @@ $bottom.Controls.Add($progress)
 # Video preview between file card and timeline
 $previewPanel = New-Object System.Windows.Forms.Panel
 $previewPanel.Dock = "Fill"
-$previewPanel.Padding = New-Object System.Windows.Forms.Padding(0,14,0,14)
+$previewPanel.Padding = New-Object System.Windows.Forms.Padding(0)
 $previewPanel.Tag = "workspace"
 $center.Controls.Add($previewPanel)
 $previewPanel.BringToFront()
@@ -2693,8 +2869,72 @@ $previewPanel.Controls.Add($pictureFrame)
 $picture = New-Object System.Windows.Forms.PictureBox
 $picture.Dock = "Fill"
 $picture.BackColor = [System.Drawing.Color]::FromArgb(22,26,32)
-$picture.SizeMode = "Zoom"
+$picture.SizeMode = "Normal"
+# PictureBox is normally non-selectable. Slice 4 makes it programmatically
+# focusable (without putting it in normal Tab navigation) so WinForms routes
+# MouseWheel messages to the preview while the Zoom tool is active.
+$picture.TabStop = $false
+try {
+    $setStyleMethod = [System.Windows.Forms.Control].GetMethod(
+        "SetStyle",
+        [System.Reflection.BindingFlags]::Instance -bor [System.Reflection.BindingFlags]::NonPublic
+    )
+    if ($setStyleMethod) {
+        [void]$setStyleMethod.Invoke($picture, @([System.Windows.Forms.ControlStyles]::Selectable, $true))
+    }
+} catch {}
 $pictureFrame.Controls.Add($picture)
+
+# Slice 4 visible zoom HUD. It is a child of the preview itself so it remains
+# pinned inside the viewport regardless of the Redaction Area width. The HUD
+# stays hidden until media is actually loaded.
+$zoomHud = New-Object System.Windows.Forms.Panel
+$zoomHud.Size = New-Object System.Drawing.Size(144,56)
+$zoomHud.Visible = $false
+$zoomHud.Tag = "zoomhud"
+$picture.Controls.Add($zoomHud)
+
+$lblZoomIndicator = New-Object System.Windows.Forms.Label
+$lblZoomIndicator.Text = "Fit"
+$lblZoomIndicator.TextAlign = "MiddleCenter"
+$lblZoomIndicator.Font = New-UIFont 8.0 ([System.Drawing.FontStyle]::Bold)
+$lblZoomIndicator.Location = New-Object System.Drawing.Point(4,2)
+$lblZoomIndicator.Size = New-Object System.Drawing.Size(136,18)
+$lblZoomIndicator.Tag = "zoomindicator"
+$zoomHud.Controls.Add($lblZoomIndicator)
+
+$btnZoomOut = New-Object System.Windows.Forms.Button
+$btnZoomOut.Text = [char]0x2212
+$btnZoomOut.Location = New-Object System.Drawing.Point(4,22)
+$btnZoomOut.Size = New-Object System.Drawing.Size(32,28)
+$btnZoomOut.Font = New-UIFont 12.0 ([System.Drawing.FontStyle]::Regular)
+Style-FlatButton $btnZoomOut $false 7
+$zoomHud.Controls.Add($btnZoomOut)
+$script:appToolTip.SetToolTip($btnZoomOut, "Zoom out")
+
+$btnZoomFit = New-Object System.Windows.Forms.Button
+$btnZoomFit.Text = "Fit"
+$btnZoomFit.Location = New-Object System.Drawing.Point(40,22)
+$btnZoomFit.Size = New-Object System.Drawing.Size(64,28)
+$btnZoomFit.Font = New-UIFont 8.2 ([System.Drawing.FontStyle]::Bold)
+Style-FlatButton $btnZoomFit $false 7
+$zoomHud.Controls.Add($btnZoomFit)
+$script:appToolTip.SetToolTip($btnZoomFit, "Fit media to preview")
+
+$btnZoomIn = New-Object System.Windows.Forms.Button
+$btnZoomIn.Text = "+"
+$btnZoomIn.Location = New-Object System.Drawing.Point(108,22)
+$btnZoomIn.Size = New-Object System.Drawing.Size(32,28)
+$btnZoomIn.Font = New-UIFont 12.0 ([System.Drawing.FontStyle]::Regular)
+Style-FlatButton $btnZoomIn $false 7
+$zoomHud.Controls.Add($btnZoomIn)
+$script:appToolTip.SetToolTip($btnZoomIn, "Zoom in")
+
+# Slice 3 r2 requires a full synchronous repaint whenever the preview viewport
+# changes size, otherwise stale pixels from the old Fit rectangle can survive.
+# Slice 4 attaches that Resize handler later, after its Zoom HUD helper functions
+# have been defined, so construction-time resize events cannot call undefined
+# PowerShell functions.
 
 # $btnOpen now lives in the header ($top) itself - see its creation right
 # after $lblAppSub, further up this file - rather than floating over the
@@ -2702,29 +2942,122 @@ $pictureFrame.Controls.Add($picture)
 # video's own display area.
 
 # RIGHT PANEL --------------------------------------------------------
+# A host panel owns the inspector so the entire Redaction Area column can
+# collapse to a slim restore strip without destroying/recreating any controls.
+$rightHost = New-Object System.Windows.Forms.Panel
+$rightHost.Dock = "Fill"
+$rightHost.Padding = New-Object System.Windows.Forms.Padding(0)
+$rightHost.Tag = "inspectorhost"
+$main.Controls.Add($rightHost,2,0)
+
 $right = New-Object System.Windows.Forms.Panel
 $right.Dock = "Fill"
-$right.Padding = New-Object System.Windows.Forms.Padding(18,16,18,16)
+$right.Padding = New-Object System.Windows.Forms.Padding(10,8,10,8)
 $right.AutoScroll = $true
 $right.Tag = "inspector"
-$main.Controls.Add($right,2,0)
+$rightHost.Controls.Add($right)
+
+# One persistent panel-toggle button lives in the host rather than having
+# separate expand/collapse buttons in different parents. The right edge of
+# $rightHost never moves when its column changes width, so pinning one button
+# to that edge keeps the control at the exact same screen position whether
+# the Redaction Area is open or collapsed.
+$btnRightPanelToggle = New-Object System.Windows.Forms.Button
+$btnRightPanelToggle.Text = ""
+$btnRightPanelToggle.Size = New-Object System.Drawing.Size($script:UiIconButtonSize,$script:UiIconButtonSize)
+$btnRightPanelToggle.Tag = "button"
+$btnRightPanelToggle.Image = Get-ThemedIconImage "panel_expand" ([System.Drawing.Color]::FromArgb(32,32,32))
+Style-FlatButton $btnRightPanelToggle $false 8
+$rightHost.Controls.Add($btnRightPanelToggle)
+$btnRightPanelToggle.BringToFront()
+$script:appToolTip.SetToolTip($btnRightPanelToggle, "Collapse Redaction Area")
+
+# v1.4 UI preview opens with Redaction Area collapsed by default.
+$script:rightPanelCollapsed = $true
+$right.Visible = $false
+
+function Position-RightPanelToggle {
+    if (-not $btnRightPanelToggle -or -not $rightHost) { return }
+    $x = [Math]::Max(0, $rightHost.ClientSize.Width - $btnRightPanelToggle.Width - $script:UiGap)
+    $btnRightPanelToggle.Location = New-Object System.Drawing.Point($x,$script:UiGap)
+    $btnRightPanelToggle.BringToFront()
+}
+
+function Update-RightPanelToggleAppearance {
+    $iconColor = if ($script:isDarkMode) {
+        [System.Drawing.Color]::FromArgb(240,240,240)
+    } else {
+        [System.Drawing.Color]::FromArgb(32,32,32)
+    }
+    if ($script:rightPanelCollapsed) {
+        # When collapsed, show the icon that indicates opening/restoring the pane.
+        $btnRightPanelToggle.Image = Get-ThemedIconImage "panel_collapse" $iconColor
+        $script:appToolTip.SetToolTip($btnRightPanelToggle, "Restore Redaction Area")
+    }
+    else {
+        # When open, show the icon that indicates collapsing/hiding the pane.
+        $btnRightPanelToggle.Image = Get-ThemedIconImage "panel_expand" $iconColor
+        $script:appToolTip.SetToolTip($btnRightPanelToggle, "Collapse Redaction Area")
+    }
+    $btnRightPanelToggle.Invalidate()
+}
+
+$rightHost.Add_Resize({
+    Position-RightPanelToggle
+})
+
+function Set-RightPanelCollapsed([bool]$collapsed) {
+    $script:rightPanelCollapsed = $collapsed
+    $right.Visible = -not $collapsed
+    if ($collapsed) {
+        $main.ColumnStyles[2].Width = $script:InspectorCollapsedWidth
+    }
+    else {
+        $main.ColumnStyles[2].Width = $script:InspectorExpandedWidth
+    }
+
+    # Perform the table-layout change first, then place the persistent toggle
+    # against the host's final right edge. The button therefore never jumps
+    # sideways when the column collapses/restores.
+    $form.PerformLayout()
+    Update-PolishedLayout
+    Position-RightPanelToggle
+    Update-RightPanelToggleAppearance
+
+    # The timeline controls are manually resized by Update-PolishedLayout.
+    # Invalidating the whole bottom region (children included) is important:
+    # when a child shrinks, pixels from its OLD bounds otherwise remain on the
+    # newly-exposed parent surface until some unrelated repaint occurs. Those
+    # stale pixels were the "randomly redrawing" redaction-line artefacts seen
+    # in the UI-preview test recording.
+    $bottom.Invalidate($true)
+    $seekBar.Invalidate()
+    $scrubberMarkers.Invalidate()
+    $picture.Invalidate()
+}
+
+$btnRightPanelToggle.Add_Click({
+    Set-RightPanelCollapsed (-not $script:rightPanelCollapsed)
+})
 
 # Keep top-level geometry deterministic. WinForms Dock ordering can otherwise
 # let a Fill control occupy the header area depending on z-order.
 function Update-PolishedLayout {
-    $topH = 82
+    $topH = $script:HeaderHeight
     $headerH = $topH
 
     $top.Location = New-Object System.Drawing.Point(0,0)
     $top.Size = New-Object System.Drawing.Size($form.ClientSize.Width,$topH)
 
-    # $lblFile/$lblHint sit between the fixed-position Open/Change button and
-    # the right-hand cluster (info button / theme toggle). There's no single
-    # Anchor setting for "stretch, but stop short of that other anchored
-    # control", so their width is recomputed by hand here, from the same
-    # right-cluster offset $btnInfo's own Location uses.
-    $rightClusterX = $form.ClientSize.Width - 119
-    $fileInfoW = [Math]::Max(60, $rightClusterX - 590 - 20)
+    # Keep the header action icons on the same UiGap edge grid as the
+    # Redaction Area collapse/restore button.
+    $themeX = [Math]::Max(0, $form.ClientSize.Width - $script:UiGap - $btnTheme.Width)
+    $btnTheme.Location = New-Object System.Drawing.Point($themeX,15)
+    $infoX = [Math]::Max(0, $themeX - $script:UiGap - $btnInfo.Width)
+    $btnInfo.Location = New-Object System.Drawing.Point($infoX,15)
+
+    # File labels stretch only through the remaining header space.
+    $fileInfoW = [Math]::Max(60, $infoX - $lblFile.Left - 10)
     $lblFile.Size = New-Object System.Drawing.Size($fileInfoW,22)
     $lblHint.Size = New-Object System.Drawing.Size($fileInfoW,20)
 
@@ -2734,39 +3067,50 @@ function Update-PolishedLayout {
         [Math]::Max(1, $form.ClientSize.Height - $headerH)
     )
 
-    # Center the Begin/Prev/Play/Next/End redaction control cluster under the
-    # preview. $bottom Docks "Bottom" inside $center (which Fills the middle
-    # grid column), so its width tracks the live window width -- read it here
-    # rather than assuming a fixed design width.
+    # Center the transport/redaction cluster in the space between the
+    # left-side colour/strength utility and the right-side Cancel/Export pair.
     $rowW = $bottom.ClientSize.Width
     if ($rowW -gt 0) {
-        # Same fix as $btnCancelRedaction below: $seekBar/$scrubberMarkers used
-        # to carry Anchor="Top,Left,Right" instead of this, which captured a
-        # wrong baseline width before $bottom's first real layout pass and then
-        # never tracked its true live width afterwards - in windowed mode the
-        # seek bar's rendered width didn't match the actual preview window,
-        # and since the red range markers are drawn proportionally to their
-        # own ClientSize.Width (see Get-MarkerX), that same mismatch offset
-        # them too. Setting both widths by hand from the live $rowW here fixes
-        # both at once, in either windowed or maximized state, and keeps the
-        # markers' original 10px-inset-per-side relationship to the seek bar.
+        $oldSeekWidth = $seekBar.Width
+        $oldMarkerWidth = $scrubberMarkers.Width
         $seekBar.Width = $rowW
         $scrubberMarkers.Width = [Math]::Max(0, $rowW - 20)
 
+        if ($oldSeekWidth -ne $seekBar.Width -or $oldMarkerWidth -ne $scrubberMarkers.Width) {
+            $bottom.Invalidate($true)
+            $seekBar.Invalidate()
+            $scrubberMarkers.Invalidate()
+        }
+
         $gap = 10
-        $wBeginEnd = 132
+        $wBeginEnd = $script:CompactButtonWidth
         $wPrevNext = 44
         $wPlay = 52
         $totalW = ($wBeginEnd * 2) + ($wPrevNext * 2) + $wPlay + ($gap * 4)
-        $x = [Math]::Max(0, [int](($rowW - $totalW) / 2))
 
-        $rowTop = 100
+        # The two compact action buttons live flush-right, Export immediately
+        # to the right of Cancel, using the same UiGap edge spacing. Export is
+        $cancelW = $script:CompactButtonWidth
+        $exportW = $script:ExportButtonWidth
+        $actionGap = $script:UiGap
+        $exportX = [Math]::Max(0, $rowW - $script:UiGap - $exportW)
+        $cancelX = [Math]::Max(0, $exportX - $actionGap - $cancelW)
+
+        # wider than the other compact action buttons so its label remains on one line.
+        # Reserve enough room at the left for the colour picker or strength
+        # slider, then center the transport cluster in the remaining middle.
+        $clusterZoneLeft = 180
+        $clusterZoneRight = [Math]::Max($clusterZoneLeft, $cancelX - $gap)
+        $clusterZoneW = [Math]::Max(0, $clusterZoneRight - $clusterZoneLeft)
+        $x = $clusterZoneLeft + [Math]::Max(0, [int](($clusterZoneW - $totalW) / 2))
+
+        $rowTop = 58
         $yPlay = $rowTop
         $yPrevNext = $rowTop + [int](($wPlay - $wPrevNext) / 2)
-        $yBeginEnd = $rowTop + [int](($wPlay - 40) / 2)
+        $yCompact = $rowTop + [int](($wPlay - $script:CompactButtonHeight) / 2)
 
-        $btnStartRedaction.Location = New-Object System.Drawing.Point($x,$yBeginEnd)
-        $btnAddRedaction.Location = New-Object System.Drawing.Point($x,$yBeginEnd)
+        $btnStartRedaction.Location = New-Object System.Drawing.Point($x,$yCompact)
+        $btnAddRedaction.Location = New-Object System.Drawing.Point($x,$yCompact)
         $x += $wBeginEnd + $gap
 
         $btnPrevFrame.Location = New-Object System.Drawing.Point($x,$yPrevNext)
@@ -2778,21 +3122,10 @@ function Update-PolishedLayout {
         $btnNextFrame.Location = New-Object System.Drawing.Point($x,$yPrevNext)
         $x += $wPrevNext + $gap
 
-        $clusterRight = $x + $wPrevNext
-        $btnEndRedaction.Location = New-Object System.Drawing.Point($x,$yBeginEnd)
+        $btnEndRedaction.Location = New-Object System.Drawing.Point($x,$yCompact)
 
-        # Cancel Redaction is positioned by hand rather than trusted to its
-        # own Anchor="Top,Right" math: at the point it's constructed, $bottom
-        # hasn't been through a real WinForms layout pass yet, so the anchor
-        # can capture a wrong baseline margin and the button can end up
-        # overlapping End Redaction / Next Frame instead of sitting clear of
-        # them. Recomputing its X here on every resize (and clamping it to
-        # never sit closer than $gap to the centered cluster) fixes that for
-        # good, regardless of what the anchor itself thinks.
-        $cancelW = 130
-        $yCancel = $rowTop + [int](($wPlay - 30) / 2)
-        $cancelX = [Math]::Max($clusterRight + $gap, $rowW - $cancelW - 20)
-        $btnCancelRedaction.Location = New-Object System.Drawing.Point($cancelX,$yCancel)
+        $btnCancelRedaction.Location = New-Object System.Drawing.Point($cancelX,$yCompact)
+        $btnExport.Location = New-Object System.Drawing.Point($exportX,$yCompact)
     }
 }
 
@@ -2801,13 +3134,18 @@ $form.Add_SizeChanged({
 })
 
 $form.Add_Shown({
+    # Start compact: Redaction Area is collapsed by default in v1.4.
+    Set-RightPanelCollapsed $true
     Update-PolishedLayout
-    # Keep the inspector at its true top and put keyboard focus somewhere harmless.
     $right.AutoScrollPosition = New-Object System.Drawing.Point(0,0)
     $form.ActiveControl = $btnOpen
 })
 
-Add-SectionTitle $right "Redaction Area" 0 2 330 | Out-Null
+$lblRedactionAreaTitle = Add-SectionTitle $right "Redaction Area" 0 $script:UiGap 280
+
+# The Redaction Area collapse/restore control is hosted by $rightHost above.
+# Keeping a single persistent button there prevents it moving when this panel
+# is hidden and lets the supplied panel-direction glyphs remain easy to see.
 
 # Redaction Area: a row of 4 small read-only "chip" fields (X/Y/W/H),
 # matching the mockup's numeric-field look, shown whenever there's a
@@ -2895,84 +3233,173 @@ function Update-SecurityModeNote {
 # Coloured Box they transform source pixels rather than replacing them. Warn
 # when either mode is selected; the suppression checkbox is shared by both
 # modes and lasts only for the current application session.
+# Compact themed warning/consent dialog used by the Blur/Pixelate, audio,
+# and network-location warnings. It deliberately follows stock MessageBox
+# proportions much more closely than the earlier oversized custom forms,
+# while retaining TinyRedactionTool theming and optional session suppression.
+#
+# Returns an object with:
+#   Accepted   - primary action chosen
+#   Suppress   - "Don't show again this session" checked
+function Show-CompactWarningDialog(
+    [string]$WindowTitle,
+    [string]$Heading,
+    [string]$Body,
+    [string]$PrimaryText = "OK",
+    [string]$SecondaryText = "",
+    [bool]$ShowSuppression = $true
+) {
+    $isDark = $script:isDarkMode
+    $cBg     = if ($isDark) { [System.Drawing.Color]::FromArgb(20,26,33) } else { [System.Drawing.Color]::FromArgb(223,238,245) }
+    $cText   = if ($isDark) { [System.Drawing.Color]::FromArgb(241,245,249) } else { [System.Drawing.Color]::FromArgb(18,27,42) }
+    $cMuted  = if ($isDark) { [System.Drawing.Color]::FromArgb(180,190,201) } else { [System.Drawing.Color]::FromArgb(78,91,110) }
+    $cAccent = if ($isDark) { [System.Drawing.Color]::FromArgb(70,150,255) } else { [System.Drawing.Color]::FromArgb(18,113,255) }
+    $cButton = if ($isDark) { [System.Drawing.Color]::FromArgb(28,36,45) } else { [System.Drawing.Color]::FromArgb(240,248,251) }
+    $cBorder = if ($isDark) { [System.Drawing.Color]::FromArgb(53,65,79) } else { [System.Drawing.Color]::FromArgb(190,209,218) }
+
+    # Keep close to a stock WinForms MessageBox footprint. Height is derived
+    # from the wrapped message so the longer network warnings grow only when
+    # they genuinely need to.
+    $dlgW = 450
+    $margin = 14
+    $iconW = 34
+    $textX = $margin + $iconW + 10
+    $textW = $dlgW - $textX - $margin
+
+    $dlg = New-Object System.Windows.Forms.Form
+    $dlg.Text = $WindowTitle
+    $dlg.StartPosition = "CenterParent"
+    $dlg.FormBorderStyle = "FixedDialog"
+    $dlg.MaximizeBox = $false
+    $dlg.MinimizeBox = $false
+    $dlg.ShowInTaskbar = $false
+    $dlg.BackColor = $cBg
+    $dlg.Font = New-UIFont 8.7
+    $dlg.AutoScaleMode = "Dpi"
+
+    $icon = New-Object System.Windows.Forms.PictureBox
+    $icon.Image = [System.Drawing.SystemIcons]::Warning.ToBitmap()
+    $icon.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::CenterImage
+    $icon.Location = New-Object System.Drawing.Point($margin,16)
+    $icon.Size = New-Object System.Drawing.Size($iconW,$iconW)
+    $dlg.Controls.Add($icon)
+
+    # PowerShell variable names are case-insensitive. Do not call this control
+    # $heading because the function parameter is $Heading; doing so coerces the
+    # Label into the typed string parameter and makes .Text assignments fail.
+    $headingLabel = New-Object System.Windows.Forms.Label
+    $headingLabel.Text = $Heading
+    $headingLabel.Font = New-UIFont 9.0 ([System.Drawing.FontStyle]::Bold)
+    $headingLabel.ForeColor = $cText
+    $headingLabel.BackColor = [System.Drawing.Color]::Transparent
+    $headingLabel.Location = New-Object System.Drawing.Point($textX,14)
+    $headingLabel.Size = New-Object System.Drawing.Size($textW,20)
+    $dlg.Controls.Add($headingLabel)
+
+    $message = New-Object System.Windows.Forms.Label
+    $message.Text = $Body
+    $message.Font = New-UIFont 8.4
+    $message.ForeColor = $cMuted
+    $message.BackColor = [System.Drawing.Color]::Transparent
+    $message.AutoSize = $true
+    $message.MaximumSize = New-Object System.Drawing.Size($textW,0)
+
+    # Let WinForms measure its own wrapped text, then freeze the size. This is
+    # more reliable than hand-counting lines across DPI/font combinations.
+    $pref = $message.GetPreferredSize((New-Object System.Drawing.Size($textW,0)))
+    $message.AutoSize = $false
+    $message.Location = New-Object System.Drawing.Point($textX,38)
+    $message.Size = New-Object System.Drawing.Size($textW,([Math]::Max(36,$pref.Height + 2)))
+    $dlg.Controls.Add($message)
+
+    $y = $message.Bottom + 6
+
+    $dontShow = $null
+    if ($ShowSuppression) {
+        $dontShow = New-Object System.Windows.Forms.CheckBox
+        $dontShow.Text = "Don't show again this session"
+        $dontShow.Font = New-UIFont 8.2
+        $dontShow.ForeColor = $cText
+        $dontShow.BackColor = $cBg
+        $dontShow.Location = New-Object System.Drawing.Point($textX,$y)
+        $dontShow.Size = New-Object System.Drawing.Size(235,22)
+        $dlg.Controls.Add($dontShow)
+        $y = $dontShow.Bottom + 8
+    }
+    else {
+        $y += 4
+    }
+
+    $buttonH = 28
+    $primaryW = if ($PrimaryText.Length -gt 8) { 88 } else { 74 }
+    $secondaryW = if ($SecondaryText.Length -gt 8) { 88 } else { 74 }
+    $buttonGap = 8
+
+    $primary = New-Object System.Windows.Forms.Button
+    $primary.Text = $PrimaryText
+    $primary.Size = New-Object System.Drawing.Size($primaryW,$buttonH)
+    $primary.Location = New-Object System.Drawing.Point(($dlgW - $margin - $primaryW),$y)
+    $primary.DialogResult = [System.Windows.Forms.DialogResult]::OK
+    Style-FlatButton $primary $true 7
+    $primary.BackColor = $cAccent
+    $primary.ForeColor = [System.Drawing.Color]::White
+    $primary.FlatAppearance.BorderColor = $cAccent
+    $dlg.Controls.Add($primary)
+
+    $secondary = $null
+    if (-not [string]::IsNullOrWhiteSpace($SecondaryText)) {
+        $secondary = New-Object System.Windows.Forms.Button
+        $secondary.Text = $SecondaryText
+        $secondary.Size = New-Object System.Drawing.Size($secondaryW,$buttonH)
+        $secondary.Location = New-Object System.Drawing.Point(($primary.Left - $buttonGap - $secondaryW),$y)
+        $secondary.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+        Style-FlatButton $secondary $false 7
+        # Explicitly theme the secondary button so Enable-RoundedPaint draws
+        # the complete rounded outline instead of exposing fragments of the
+        # native WinForms flat-button border.
+        $secondary.BackColor = $cButton
+        $secondary.ForeColor = $cText
+        $secondary.FlatAppearance.BorderSize = 1
+        $secondary.FlatAppearance.BorderColor = $cBorder
+        $dlg.Controls.Add($secondary)
+        $dlg.CancelButton = $secondary
+    }
+    else {
+        $dlg.CancelButton = $primary
+    }
+
+    $dlg.AcceptButton = $primary
+    $dlg.ClientSize = New-Object System.Drawing.Size($dlgW,($primary.Bottom + 12))
+
+    $result = $dlg.ShowDialog($form)
+    $accepted = ($result -eq [System.Windows.Forms.DialogResult]::OK)
+    $suppress = ($dontShow -and $dontShow.Checked)
+
+    if ($icon.Image) { $icon.Image.Dispose() }
+    $dlg.Dispose()
+
+    return [pscustomobject]@{
+        Accepted = $accepted
+        Suppress = $suppress
+    }
+}
+
 function Show-VisualObscurationWarning {
     if ($script:suppressVisualObscurationWarning -or $script:visualObscurationWarningOpen) { return }
 
     $script:visualObscurationWarningOpen = $true
     try {
-        $isDark = $script:isDarkMode
-        $cBg     = if ($isDark) { [System.Drawing.Color]::FromArgb(20,26,33) } else { [System.Drawing.Color]::White }
-        $cText   = if ($isDark) { [System.Drawing.Color]::FromArgb(241,245,249) } else { [System.Drawing.Color]::FromArgb(18,27,42) }
-        $cMuted  = if ($isDark) { [System.Drawing.Color]::FromArgb(180,190,201) } else { [System.Drawing.Color]::FromArgb(78,91,110) }
-        $cAccent = if ($isDark) { [System.Drawing.Color]::FromArgb(70,150,255) } else { [System.Drawing.Color]::FromArgb(18,113,255) }
+        $result = Show-CompactWarningDialog `
+            "Visual obscuration warning" `
+            "Blur and Pixelate are not secure redaction" `
+            "Blur and Pixelate obscure content, but don't destroy it. The original detail can potentially be reconstructed with the right tools. For information that must not be recoverable, use a Black/Coloured Box instead." `
+            "OK" `
+            "" `
+            $true
 
-        $warn = New-Object System.Windows.Forms.Form
-        $warn.Text = "Visual obscuration warning"
-        $warn.StartPosition = "CenterParent"
-        $warn.FormBorderStyle = "FixedDialog"
-        $warn.MaximizeBox = $false
-        $warn.MinimizeBox = $false
-        $warn.ShowInTaskbar = $false
-        $warn.BackColor = $cBg
-        $warn.ClientSize = New-Object System.Drawing.Size(540,250)
-        $warn.Font = New-UIFont 9.0
-        $warn.AutoScaleMode = "Dpi"
-
-        $icon = New-Object System.Windows.Forms.PictureBox
-        $icon.Image = [System.Drawing.SystemIcons]::Warning.ToBitmap()
-        $icon.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::CenterImage
-        $icon.Location = New-Object System.Drawing.Point(24,28)
-        $icon.Size = New-Object System.Drawing.Size(40,40)
-        $warn.Controls.Add($icon)
-
-        $title = New-Object System.Windows.Forms.Label
-        $title.Text = "Blur and Pixelate are not secure redaction"
-        $title.Font = New-UIFont 11 ([System.Drawing.FontStyle]::Bold)
-        $title.ForeColor = $cText
-        $title.BackColor = [System.Drawing.Color]::Transparent
-        $title.Location = New-Object System.Drawing.Point(78,24)
-        $title.Size = New-Object System.Drawing.Size(430,28)
-        $warn.Controls.Add($title)
-
-        $message = New-Object System.Windows.Forms.Label
-        $message.Text = "Blur and Pixelate obscure content, but don't destroy it - the original detail can potentially be reconstructed with the right tools. For information that must not be recoverable, use a Black/Coloured Box instead."
-        $message.Font = New-UIFont 9.0
-        $message.ForeColor = $cMuted
-        $message.BackColor = [System.Drawing.Color]::Transparent
-        $message.Location = New-Object System.Drawing.Point(78,58)
-        $message.Size = New-Object System.Drawing.Size(430,96)
-        $warn.Controls.Add($message)
-
-        $dontShow = New-Object System.Windows.Forms.CheckBox
-        $dontShow.Text = "Don't show again this session"
-        $dontShow.Font = New-UIFont 8.8
-        $dontShow.ForeColor = $cText
-        $dontShow.BackColor = $cBg
-        $dontShow.Location = New-Object System.Drawing.Point(78,160)
-        $dontShow.Size = New-Object System.Drawing.Size(260,26)
-        $warn.Controls.Add($dontShow)
-
-        $ok = New-Object System.Windows.Forms.Button
-        $ok.Text = "OK"
-        $ok.Size = New-Object System.Drawing.Size(100,36)
-        $ok.Location = New-Object System.Drawing.Point(408,198)
-        $ok.DialogResult = [System.Windows.Forms.DialogResult]::OK
-        Style-FlatButton $ok $true
-        $ok.BackColor = $cAccent
-        $ok.ForeColor = [System.Drawing.Color]::White
-        $ok.FlatAppearance.BorderColor = $cAccent
-        $warn.Controls.Add($ok)
-
-        $warn.AcceptButton = $ok
-        $warn.CancelButton = $ok
-
-        [void]$warn.ShowDialog($form)
-        if ($dontShow.Checked) {
+        if ($result.Suppress) {
             $script:suppressVisualObscurationWarning = $true
         }
-
-        if ($icon.Image) { $icon.Image.Dispose() }
-        $warn.Dispose()
     }
     finally {
         $script:visualObscurationWarningOpen = $false
@@ -2997,91 +3424,19 @@ function Show-NetworkLocationWarning([ValidateSet("Source","Destination")][strin
         $messageText = "This save location is on a network or cloud-synced drive — the exported file will be transmitted over the network (and potentially to the cloud) once written here. Choose a local folder if this file must not leave this computer."
     }
 
-    # Avoid accidental re-entry while a modal warning is already open.
     if ($script:networkLocationWarningOpen) { return $false }
     $script:networkLocationWarningOpen = $true
 
     try {
-        $isDark = $script:isDarkMode
-        $cBg     = if ($isDark) { [System.Drawing.Color]::FromArgb(20,26,33) } else { [System.Drawing.Color]::White }
-        $cText   = if ($isDark) { [System.Drawing.Color]::FromArgb(241,245,249) } else { [System.Drawing.Color]::FromArgb(18,27,42) }
-        $cMuted  = if ($isDark) { [System.Drawing.Color]::FromArgb(180,190,201) } else { [System.Drawing.Color]::FromArgb(78,91,110) }
-        $cAccent = if ($isDark) { [System.Drawing.Color]::FromArgb(70,150,255) } else { [System.Drawing.Color]::FromArgb(18,113,255) }
+        $result = Show-CompactWarningDialog `
+            $titleText `
+            $headingText `
+            $messageText `
+            "Continue" `
+            "Cancel" `
+            $true
 
-        $warn = New-Object System.Windows.Forms.Form
-        $warn.Text = $titleText
-        $warn.StartPosition = "CenterParent"
-        $warn.FormBorderStyle = "FixedDialog"
-        $warn.MaximizeBox = $false
-        $warn.MinimizeBox = $false
-        $warn.ShowInTaskbar = $false
-        $warn.BackColor = $cBg
-        $warn.ClientSize = New-Object System.Drawing.Size(570,285)
-        $warn.Font = New-UIFont 9.0
-        $warn.AutoScaleMode = "Dpi"
-
-        $icon = New-Object System.Windows.Forms.PictureBox
-        $icon.Image = [System.Drawing.SystemIcons]::Warning.ToBitmap()
-        $icon.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::CenterImage
-        $icon.Location = New-Object System.Drawing.Point(24,28)
-        $icon.Size = New-Object System.Drawing.Size(40,40)
-        $warn.Controls.Add($icon)
-
-        $title = New-Object System.Windows.Forms.Label
-        $title.Text = $headingText
-        $title.Font = New-UIFont 11 ([System.Drawing.FontStyle]::Bold)
-        $title.ForeColor = $cText
-        $title.BackColor = [System.Drawing.Color]::Transparent
-        $title.Location = New-Object System.Drawing.Point(78,24)
-        $title.Size = New-Object System.Drawing.Size(460,30)
-        $warn.Controls.Add($title)
-
-        $message = New-Object System.Windows.Forms.Label
-        $message.Text = $messageText
-        $message.Font = New-UIFont 9.0
-        $message.ForeColor = $cMuted
-        $message.BackColor = [System.Drawing.Color]::Transparent
-        $message.Location = New-Object System.Drawing.Point(78,62)
-        $message.Size = New-Object System.Drawing.Size(460,120)
-        $warn.Controls.Add($message)
-
-        $dontShow = New-Object System.Windows.Forms.CheckBox
-        $dontShow.Text = "Don't show again this session"
-        $dontShow.Font = New-UIFont 8.8
-        $dontShow.ForeColor = $cText
-        $dontShow.BackColor = $cBg
-        $dontShow.Location = New-Object System.Drawing.Point(78,186)
-        $dontShow.Size = New-Object System.Drawing.Size(270,26)
-        $warn.Controls.Add($dontShow)
-
-        $cancel = New-Object System.Windows.Forms.Button
-        $cancel.Text = "Cancel"
-        $cancel.Size = New-Object System.Drawing.Size(100,36)
-        $cancel.Location = New-Object System.Drawing.Point(326,230)
-        $cancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
-        Style-FlatButton $cancel $false
-        $warn.Controls.Add($cancel)
-
-        $continue = New-Object System.Windows.Forms.Button
-        $continue.Text = "Continue"
-        $continue.Size = New-Object System.Drawing.Size(110,36)
-        $continue.Location = New-Object System.Drawing.Point(436,230)
-        $continue.DialogResult = [System.Windows.Forms.DialogResult]::OK
-        Style-FlatButton $continue $true
-        $continue.BackColor = $cAccent
-        $continue.ForeColor = [System.Drawing.Color]::White
-        $continue.FlatAppearance.BorderColor = $cAccent
-        $warn.Controls.Add($continue)
-
-        $warn.AcceptButton = $continue
-        $warn.CancelButton = $cancel
-
-        $result = $warn.ShowDialog($form)
-        $accepted = ($result -eq [System.Windows.Forms.DialogResult]::OK)
-
-        # Suppression only takes effect after an affirmative Continue. Ticking
-        # the box and then cancelling must not silently suppress a later warning.
-        if ($accepted -and $dontShow.Checked) {
+        if ($result.Accepted -and $result.Suppress) {
             if ($kind -eq "Source") {
                 $script:suppressNetworkSourceWarning = $true
             }
@@ -3090,9 +3445,7 @@ function Show-NetworkLocationWarning([ValidateSet("Source","Destination")][strin
             }
         }
 
-        if ($icon.Image) { $icon.Image.Dispose() }
-        $warn.Dispose()
-        return $accepted
+        return $result.Accepted
     }
     finally {
         $script:networkLocationWarningOpen = $false
@@ -3158,14 +3511,14 @@ $lvRedactions.Add_SelectedIndexChanged({
 $btnRemoveRedaction = New-Object System.Windows.Forms.Button
 $btnRemoveRedaction.Text = "Remove Selected"
 $btnRemoveRedaction.Location = New-Object System.Drawing.Point(0,378)
-$btnRemoveRedaction.Size = New-Object System.Drawing.Size(155,34)
+$btnRemoveRedaction.Size = New-Object System.Drawing.Size($script:CompactButtonWidth,$script:CompactButtonHeight)
 Style-FlatButton $btnRemoveRedaction
 $right.Controls.Add($btnRemoveRedaction)
 
 $btnClearRedactions = New-Object System.Windows.Forms.Button
 $btnClearRedactions.Text = "Clear All"
-$btnClearRedactions.Location = New-Object System.Drawing.Point(170,378)
-$btnClearRedactions.Size = New-Object System.Drawing.Size(155,34)
+$btnClearRedactions.Location = New-Object System.Drawing.Point(140,378)
+$btnClearRedactions.Size = New-Object System.Drawing.Size($script:CompactButtonWidth,$script:CompactButtonHeight)
 Style-FlatButton $btnClearRedactions
 $right.Controls.Add($btnClearRedactions)
 
@@ -3223,27 +3576,42 @@ $chkAudio.Size = New-Object System.Drawing.Size(220,26)
 $chkAudio.Font = New-UIFont 8.8
 $right.Controls.Add($chkAudio)
 $chkAudio.Add_CheckedChanged({
-    if ($chkAudio.Checked) {
-        $answer = [System.Windows.Forms.MessageBox]::Show(
-            "TinyRedactionTool does not inspect or redact audio. Audio information will remain in the exported file.`r`n`r`nInclude the primary audio track anyway?",
-            "Audio is not redacted",
-            "YesNo",
-            "Warning"
-        )
-        if ($answer -ne [System.Windows.Forms.DialogResult]::Yes) {
+    if (-not $chkAudio.Checked) { return }
+    if ($script:suppressAudioWarning) { return }
+    if ($script:audioWarningOpen) { return }
+
+    $script:audioWarningOpen = $true
+    try {
+        $result = Show-CompactWarningDialog `
+            "Audio is not redacted" `
+            "Audio will remain in the exported file" `
+            "TinyRedactionTool does not inspect or redact audio. Include the primary audio track anyway?" `
+            "Yes" `
+            "No" `
+            $true
+
+        if (-not $result.Accepted) {
             $chkAudio.Checked = $false
         }
+        elseif ($result.Suppress) {
+            $script:suppressAudioWarning = $true
+        }
+    }
+    finally {
+        $script:audioWarningOpen = $false
     }
 })
 
 $btnExport = New-Object System.Windows.Forms.Button
 $btnExport.Text = "Export Redacted Video"
-$btnExport.Location = New-Object System.Drawing.Point(0,566)
-$btnExport.Size = New-Object System.Drawing.Size(325,44)
+$btnExport.Location = New-Object System.Drawing.Point(0,69)
+$btnExport.Size = New-Object System.Drawing.Size($script:ExportButtonWidth,$script:CompactButtonHeight)
 $btnExport.Enabled = $false
-$btnExport.Font = New-UIFont 10 ([System.Drawing.FontStyle]::Bold)
+$btnExport.Font = New-UIFont 7.8 ([System.Drawing.FontStyle]::Bold)
 Style-FlatButton $btnExport $true
-$right.Controls.Add($btnExport)
+# Export now sits beside Cancel in the compact transport/action row instead
+# of consuming a full-width row in Redaction Area.
+$bottom.Controls.Add($btnExport)
 
 # ---------- theme engine ----------
 $script:isDarkMode = $false
@@ -3260,15 +3628,19 @@ $script:colorRedBorder   = [System.Drawing.Color]::FromArgb(220,38,38)
 # border colors, so Update-RedactionButtons (and anything else that needs
 # the "inactive/grey" look) can match the active theme without duplicating
 # the light/dark color logic.
-$script:cButtonCurrent = [System.Drawing.Color]::FromArgb(251,252,254)
+$script:cButtonCurrent = [System.Drawing.Color]::FromArgb(240,248,251)
 $script:cTextCurrent   = [System.Drawing.Color]::FromArgb(18,27,42)
-$script:cBorderCurrent = [System.Drawing.Color]::FromArgb(218,224,232)
+$script:cBorderCurrent = [System.Drawing.Color]::FromArgb(190,209,218)
 
 function Apply-Theme {
     if ($script:isDarkMode) {
-        $cBg       = [System.Drawing.Color]::FromArgb(14,18,23)
-        $cWorkspace= [System.Drawing.Color]::FromArgb(16,21,27)
-        $cPanel    = [System.Drawing.Color]::FromArgb(20,26,33)
+        # v1.4 Dark Mode: use the lighter neutral dark (#141A21) as the
+        # common application/workspace/panel base, matching the unified
+        # Day Mode treatment. Buttons/cards/inputs retain their existing
+        # slightly lighter fills so controls remain visually distinct.
+        $cBg       = [System.Drawing.Color]::FromArgb(20,26,33) # #141A21
+        $cWorkspace= [System.Drawing.Color]::FromArgb(20,26,33) # #141A21
+        $cPanel    = [System.Drawing.Color]::FromArgb(20,26,33) # #141A21
         $cCard     = [System.Drawing.Color]::FromArgb(24,31,39)
         $cInput    = [System.Drawing.Color]::FromArgb(27,35,44)
         $cText     = [System.Drawing.Color]::FromArgb(241,245,249)
@@ -3278,28 +3650,36 @@ function Apply-Theme {
         $cAccent2  = [System.Drawing.Color]::FromArgb(18,79,153)
         $cButton   = [System.Drawing.Color]::FromArgb(28,36,45)
         $cPreview  = [System.Drawing.Color]::FromArgb(5,8,12)
-        $btnTheme.Text = [char]0x2600
+        $cIconNormal = [System.Drawing.Color]::FromArgb(240,240,240) # #F0F0F0
+        $btnTheme.Text = ""
+        $btnTheme.Image = Get-ThemedIconImage "sun" $cIconNormal
+        $script:appToolTip.SetToolTip($btnTheme, "Switch to Light Mode")
     }
     else {
-        $cBg       = [System.Drawing.Color]::FromArgb(246,248,251)
-        $cWorkspace= [System.Drawing.Color]::FromArgb(249,250,252)
-        $cPanel    = [System.Drawing.Color]::White
-        $cCard     = [System.Drawing.Color]::FromArgb(250,251,253)
-        $cInput    = [System.Drawing.Color]::White
+        # v1.4 Day Mode: a deliberate cool off-white instead of pure white.
+        $cBg       = [System.Drawing.Color]::FromArgb(223,238,245) # #DFEEF5
+        $cWorkspace= [System.Drawing.Color]::FromArgb(223,238,245) # #DFEEF5 - unified with the main Day background
+        $cPanel    = [System.Drawing.Color]::FromArgb(223,238,245) # #DFEEF5
+        $cCard     = [System.Drawing.Color]::FromArgb(240,247,250)
+        $cInput    = [System.Drawing.Color]::FromArgb(248,252,254)
         $cText     = [System.Drawing.Color]::FromArgb(18,27,42)
-        $cMuted    = [System.Drawing.Color]::FromArgb(99,112,132)
-        $cBorder   = [System.Drawing.Color]::FromArgb(218,224,232)
+        $cMuted    = [System.Drawing.Color]::FromArgb(82,101,115)
+        $cBorder   = [System.Drawing.Color]::FromArgb(190,209,218)
         $cAccent   = [System.Drawing.Color]::FromArgb(18,113,255)
-        $cAccent2  = [System.Drawing.Color]::FromArgb(224,238,255)
-        $cButton   = [System.Drawing.Color]::FromArgb(251,252,254)
+        $cAccent2  = [System.Drawing.Color]::FromArgb(205,230,244)
+        $cButton   = [System.Drawing.Color]::FromArgb(240,248,251)
         $cPreview  = [System.Drawing.Color]::FromArgb(22,26,32)
-        $btnTheme.Text = [char]0x263E
+        $cIconNormal = [System.Drawing.Color]::FromArgb(32,32,32) # #202020
+        $btnTheme.Text = ""
+        $btnTheme.Image = Get-ThemedIconImage "moon" $cIconNormal
+        $script:appToolTip.SetToolTip($btnTheme, "Switch to Dark Mode")
     }
 
     $form.BackColor = $cBg
     $top.BackColor = $cPanel
     $toolbar.BackColor = $cPanel
     $center.BackColor = $cWorkspace
+    $rightHost.BackColor = $cPanel
     $right.BackColor = $cPanel
     $bottom.BackColor = $cWorkspace
     $previewPanel.BackColor = $cWorkspace
@@ -3312,7 +3692,7 @@ function Apply-Theme {
     $script:seekAccentColor = $cAccent
     $seekBar.Invalidate()
 
-    foreach ($ctl in @($form,$top,$toolbar,$center,$right,$bottom,$previewPanel)) {
+    foreach ($ctl in @($form,$top,$toolbar,$center,$rightHost,$right,$bottom,$previewPanel)) {
         foreach ($child in $ctl.Controls) {
             if ($child.Tag -eq "heading") {
                 $child.ForeColor = $cText
@@ -3338,7 +3718,7 @@ function Apply-Theme {
     # than carry its own theme-driven tile color.
     $logo.BackColor = $cPanel
 
-    foreach ($b in @($btnTheme,$btnPrevFrame,$btnNextFrame,$btnRefresh,$btnEndRedaction,$btnCancelRedaction,$btnRemoveRedaction,$btnClearRedactions)) {
+    foreach ($b in @($btnTheme,$btnRightPanelToggle,$btnPrevFrame,$btnNextFrame,$btnEndRedaction,$btnCancelRedaction,$btnRemoveRedaction,$btnClearRedactions,$btnZoomOut,$btnZoomFit,$btnZoomIn)) {
         $b.BackColor = $cButton
         $b.ForeColor = $cText
         $b.FlatAppearance.BorderColor = $cBorder
@@ -3350,7 +3730,7 @@ function Apply-Theme {
         $b.FlatAppearance.BorderColor = $cAccent
     }
 
-    foreach ($r in @($rbRectangle,$rbOval,$rbFreeform,$rbModeBlack,$rbModeBlur,$rbModePixelate)) {
+    foreach ($r in @($rbRectangle,$rbOval,$rbFreeform,$rbZoom,$rbModeBlack,$rbModeBlur,$rbModePixelate)) {
         if ($r.Checked) {
             $r.BackColor = if ($script:isDarkMode) { [System.Drawing.Color]::FromArgb(19,56,97) } else { $cAccent2 }
             $r.ForeColor = $cAccent
@@ -3362,8 +3742,12 @@ function Apply-Theme {
         }
     }
     $modeRow.BackColor = $cPanel
+    $zoomHud.BackColor = $cPanel
+    $lblZoomIndicator.BackColor = [System.Drawing.Color]::Transparent
+    $lblZoomIndicator.ForeColor = $cText
     Update-StrengthSliderVisibility
-    Update-ThemedIcons $cText $cAccent
+    Update-ThemedIcons $cIconNormal $cAccent
+    Update-RightPanelToggleAppearance
 
     # Redaction Area X/Y/W/H chip fields. Fill/border colors are read live
     # by Enable-RoundedFieldPaint's Paint handler (see that function), so
@@ -3388,6 +3772,14 @@ function Apply-Theme {
         $c.BackColor = $cInput
         $c.ForeColor = $cText
     }
+
+    # Keep the eyedropper icon on the same base colour as its surrounding
+    # panel and without a visible button border. Its glyph itself is still
+    # tinted by Update-ThemedIcons for the active Day/Dark theme.
+    $btnEyedropper.BackColor = $cPanel
+    $btnEyedropper.ForeColor = $cText
+    $btnEyedropper.FlatAppearance.BorderSize = 0
+        $btnEyedropper.Invalidate()
 
     $chkAudio.BackColor = $cPanel
     $chkAudio.ForeColor = $cText
@@ -3460,19 +3852,19 @@ function Add-CenteredAboutLabel($panel, [string]$text, $font, [System.Drawing.Co
 }
 
 # Builds and shows the About/info dialog: app name, copyright, the no-
-# telemetry/no-network statement, license text, and a clickable link to the
-# GitHub repo. Content and heading levels match the markdown the user
-# supplied 1:1; everything is centered per that spec.
+# telemetry/no-network statement, license text, and a selectable GitHub URL.
+# v2.0 deliberately does not launch the URL. A copy icon places it on the
+# clipboard and shows a brief inline status message instead.
 function Show-AboutDialog {
     $isDark = $script:isDarkMode
-    $cBg     = if ($isDark) { [System.Drawing.Color]::FromArgb(20,26,33) } else { [System.Drawing.Color]::White }
+    $cBg     = if ($isDark) { [System.Drawing.Color]::FromArgb(20,26,33) } else { [System.Drawing.Color]::FromArgb(223,238,245) }
     $cText   = if ($isDark) { [System.Drawing.Color]::FromArgb(241,245,249) } else { [System.Drawing.Color]::FromArgb(18,27,42) }
     $cMuted  = if ($isDark) { [System.Drawing.Color]::FromArgb(158,170,184) } else { [System.Drawing.Color]::FromArgb(99,112,132) }
     $cAccent = if ($isDark) { [System.Drawing.Color]::FromArgb(70,150,255) } else { [System.Drawing.Color]::FromArgb(18,113,255) }
     $cBorder = if ($isDark) { [System.Drawing.Color]::FromArgb(53,65,79) } else { [System.Drawing.Color]::FromArgb(218,224,232) }
 
-    $dlgWidth = 480
-    $contentWidth = $dlgWidth - 60
+    $dlgWidth = 430
+    $contentWidth = $dlgWidth - 40
 
     $dlg = New-Object System.Windows.Forms.Form
     $dlg.Text = "About TinyRedactionTool"
@@ -3482,64 +3874,166 @@ function Show-AboutDialog {
     $dlg.MinimizeBox = $false
     $dlg.ShowInTaskbar = $false
     $dlg.BackColor = $cBg
-    $dlg.ClientSize = New-Object System.Drawing.Size($dlgWidth, 480)
+    $dlg.ClientSize = New-Object System.Drawing.Size($dlgWidth, 300)
     $dlg.Font = New-UIFont 9.0
     $dlg.AutoScaleMode = "Dpi"
 
     $panel = New-Object System.Windows.Forms.Panel
-    $panel.Location = New-Object System.Drawing.Point(30,20)
+    $panel.Location = New-Object System.Drawing.Point(20,14)
     $panel.Size = New-Object System.Drawing.Size($contentWidth, 1)
     $panel.AutoSize = $false
     $dlg.Controls.Add($panel)
 
     $script:aboutY = 0
+    $aboutEmphasis = if ($isDark) { $cText } else { [System.Drawing.Color]::Black }
 
-    Add-CenteredAboutLabel $panel "TinyRedactionTool" (New-UIFont 20 ([System.Drawing.FontStyle]::Bold)) $cText $contentWidth 0 14 | Out-Null
-    Add-CenteredAboutLabel $panel "Copyright (C) 2026 David McCabe" (New-UIFont 12 ([System.Drawing.FontStyle]::Bold)) $cText $contentWidth 0 14 | Out-Null
-    Add-CenteredAboutLabel $panel "All media processing is performed locally. TinyRedactionTool contains no telemetry and never uploads media. Files in locally synchronised folders may still be uploaded by other software outside TinyRedactionTool's control." (New-UIFont 8.5 ([System.Drawing.FontStyle]::Bold)) $cMuted $contentWidth 0 16 | Out-Null
-    Add-CenteredAboutLabel $panel "Open-source, GPL-licensed. Source available on GitHub." (New-UIFont 9.0) $cText $contentWidth 0 10 | Out-Null
-    Add-CenteredAboutLabel $panel "TinyRedactionTool is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any later version." (New-UIFont 9.0) $cText $contentWidth 0 10 | Out-Null
-    Add-CenteredAboutLabel $panel "SPDX-License-Identifier: GPL-2.0-or-later" (New-UIFont 8.7) $cMuted $contentWidth 0 6 | Out-Null
-    Add-CenteredAboutLabel $panel "The full GNU GPL version 2 text is provided in the repository's LICENSE file." (New-UIFont 8.7) $cMuted $contentWidth 0 16 | Out-Null
+    Add-CenteredAboutLabel $panel "TinyRedactionTool v2.0.0" (New-UIFont 15.5 ([System.Drawing.FontStyle]::Bold)) $cText $contentWidth 0 6 | Out-Null
+    Add-CenteredAboutLabel $panel "Copyright (C) 2026 David McCabe" (New-UIFont 9.5 ([System.Drawing.FontStyle]::Bold)) $cText $contentWidth 0 5 | Out-Null
+    Add-CenteredAboutLabel $panel "Local media processing. No telemetry or media uploads." (New-UIFont 8.5 ([System.Drawing.FontStyle]::Bold)) $aboutEmphasis $contentWidth 0 0 | Out-Null
+    Add-CenteredAboutLabel $panel "Licensed under GPL-2.0-or-later. Source available on GitHub." (New-UIFont 8.5) $cMuted $contentWidth -4 0 | Out-Null
 
-    $link = New-Object System.Windows.Forms.LinkLabel
-    $link.Text = "Github: https://github.com/mccabedd/tinyredactiontool/"
-    $link.Font = New-UIFont 9.0
-    $link.LinkColor = $cAccent
-    $link.ActiveLinkColor = $cAccent
-    $link.VisitedLinkColor = $cAccent
-    $link.TextAlign = "TopCenter"
-    $link.BackColor = [System.Drawing.Color]::Transparent
-    $link.Location = New-Object System.Drawing.Point(0, $script:aboutY)
-    $link.Size = New-Object System.Drawing.Size($contentWidth, 20)
-    $link.LinkArea = New-Object System.Windows.Forms.LinkArea(8, 46)
-    $link.Add_LinkClicked({
-        param($sender,$e)
-        $psi = New-Object System.Diagnostics.ProcessStartInfo
-        $psi.FileName = "https://github.com/mccabedd/tinyredactiontool/"
-        $psi.UseShellExecute = $true
-        [System.Diagnostics.Process]::Start($psi) | Out-Null
-    })
-    $panel.Controls.Add($link)
-    $script:aboutY += $link.Height + 20
+    $repoUrl = "https://github.com/mccabedd/tinyredactiontool/"
+
+    # Keep the URL and copy affordance as one compact centred group instead
+    # of pinning the icon to the far-right edge of the dialog.
+    $urlBox = New-Object System.Windows.Forms.TextBox
+    $urlBox.Text = $repoUrl
+    $urlBox.ReadOnly = $true
+    $urlBox.TabStop = $false
+    $urlBox.SelectionStart = 0
+    $urlBox.SelectionLength = 0
+    $urlBox.BorderStyle = [System.Windows.Forms.BorderStyle]::None
+    $urlBox.BackColor = $cBg
+    $urlBox.ForeColor = $cText
+    $urlBox.Font = New-UIFont 9.0
+
+    $urlTextSize = [System.Windows.Forms.TextRenderer]::MeasureText($repoUrl, $urlBox.Font)
+    $urlBoxWidth = $urlTextSize.Width + 2
+    $copyGap = 6
+    $copySize = 24
+    $urlGroupWidth = $urlBoxWidth + $copyGap + $copySize
+
+    $urlRow = New-Object System.Windows.Forms.Panel
+    $urlRow.Location = New-Object System.Drawing.Point(
+        [int](($contentWidth - $urlGroupWidth) / 2),
+        ([Math]::Max(0, $script:aboutY - 4))
+    )
+    $urlRow.Size = New-Object System.Drawing.Size($urlGroupWidth, 28)
+    $urlRow.BackColor = [System.Drawing.Color]::Transparent
+    $panel.Controls.Add($urlRow)
+
+    $urlBox.Location = New-Object System.Drawing.Point(0,5)
+    $urlBox.Size = New-Object System.Drawing.Size($urlBoxWidth,20)
+    $urlRow.Controls.Add($urlBox)
+
+    # Use an icon-only PictureBox rather than a tiny styled Button. This keeps
+    # the copy glyph visually clean and lets SizeMode=Zoom scale the RGBA icon
+    # properly without WinForms button-image clipping/chrome.
+    $btnCopyUrl = New-Object System.Windows.Forms.PictureBox
+    $btnCopyUrl.Size = New-Object System.Drawing.Size($copySize,$copySize)
+    $btnCopyUrl.Location = New-Object System.Drawing.Point(($urlBoxWidth + $copyGap),2)
+    $btnCopyUrl.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::Zoom
+    $btnCopyUrl.Cursor = [System.Windows.Forms.Cursors]::Hand
+    $btnCopyUrl.BackColor = [System.Drawing.Color]::Transparent
+    $copyIconColor = if ($isDark) { [System.Drawing.Color]::FromArgb(240,240,240) } else { [System.Drawing.Color]::FromArgb(32,32,32) }
+    $btnCopyUrl.Image = Get-ThemedIconImage "copy" $copyIconColor
+    $urlRow.Controls.Add($btnCopyUrl)
+
+    $copyStatus = New-Object System.Windows.Forms.Label
+    $copyStatus.Text = ""
+    $copyStatus.TextAlign = "TopCenter"
+    $copyStatus.Font = New-UIFont 8.2
+    $copyStatus.ForeColor = $cMuted
+    $copyStatus.BackColor = [System.Drawing.Color]::Transparent
+    $copyStatus.Location = New-Object System.Drawing.Point(0, ($script:aboutY + 24))
+    $copyStatus.Size = New-Object System.Drawing.Size($contentWidth, 16)
+    $panel.Controls.Add($copyStatus)
+
+    $copyNoticeTimer = New-Object System.Windows.Forms.Timer
+    $copyNoticeTimer.Interval = 1500
+    $copyNoticeTimer.Add_Tick({
+        $copyNoticeTimer.Stop()
+        $copyStatus.Text = ""
+    }.GetNewClosure())
+
+    $btnCopyUrl.Add_Click({
+        $copied = $false
+        for ($attempt = 0; $attempt -lt 3 -and -not $copied; $attempt++) {
+            try {
+                [System.Windows.Forms.Clipboard]::SetText($repoUrl)
+                $copied = $true
+            }
+            catch {
+                Start-Sleep -Milliseconds 60
+            }
+        }
+
+        $copyNoticeTimer.Stop()
+        if ($copied) {
+            $copyStatus.Text = "URL has been copied to Clipboard"
+            $copyStatus.ForeColor = $cMuted
+        }
+        else {
+            $copyStatus.Text = "Could not copy URL to Clipboard"
+            $copyStatus.ForeColor = [System.Drawing.Color]::FromArgb(200,70,70)
+        }
+        $copyNoticeTimer.Start()
+    }.GetNewClosure())
+
+    # Use a dialog-local ToolTip for the PictureBox copy affordance.
+    # The shared application ToolTip is not reliable on this nested control
+    # inside a modal dialog on some WinForms/PowerShell 5.1 setups.
+    $aboutToolTip = New-Object System.Windows.Forms.ToolTip
+    $aboutToolTip.ShowAlways = $true
+    $aboutToolTip.InitialDelay = 350
+    $aboutToolTip.ReshowDelay = 100
+    $aboutToolTip.AutoPopDelay = 3000
+
+    $btnCopyUrl.Add_MouseEnter({
+        $aboutToolTip.Show(
+            "Copy GitHub URL",
+            $btnCopyUrl,
+            0,
+            ($btnCopyUrl.Height + 2),
+            3000
+        )
+    }.GetNewClosure())
+
+    $btnCopyUrl.Add_MouseLeave({
+        $aboutToolTip.Hide($btnCopyUrl)
+    }.GetNewClosure())
+
+    $script:aboutY += 40
 
     $btnClose = New-Object System.Windows.Forms.Button
     $btnClose.Text = "Close"
-    $btnClose.Size = New-Object System.Drawing.Size(110,36)
-    $btnClose.Location = New-Object System.Drawing.Point((($contentWidth - 110) / 2), $script:aboutY)
+    $btnClose.Size = New-Object System.Drawing.Size(90,30)
+    $btnClose.Location = New-Object System.Drawing.Point((($contentWidth - 90) / 2), $script:aboutY)
     $btnClose.DialogResult = [System.Windows.Forms.DialogResult]::OK
     Style-FlatButton $btnClose $true
     $btnClose.BackColor = $cAccent
     $btnClose.ForeColor = [System.Drawing.Color]::White
     $btnClose.FlatAppearance.BorderColor = $cAccent
     $panel.Controls.Add($btnClose)
-    $script:aboutY += $btnClose.Height + 10
+    $script:aboutY += $btnClose.Height + 6
 
     $panel.Size = New-Object System.Drawing.Size($contentWidth, $script:aboutY)
-    $dlg.ClientSize = New-Object System.Drawing.Size($dlgWidth, ($script:aboutY + 40))
+    $dlg.ClientSize = New-Object System.Drawing.Size($dlgWidth, ($script:aboutY + 24))
     $dlg.AcceptButton = $btnClose
+    $dlg.Add_Shown({
+        $urlBox.SelectionStart = 0
+        $urlBox.SelectionLength = 0
+        $btnClose.Select()
+    }.GetNewClosure())
 
     $dlg.ShowDialog($form) | Out-Null
+    if ($copyNoticeTimer) {
+        $copyNoticeTimer.Stop()
+        $copyNoticeTimer.Dispose()
+    }
+    if ($aboutToolTip) {
+        $aboutToolTip.Dispose()
+    }
     $dlg.Dispose()
 }
 
@@ -3552,8 +4046,14 @@ $rbModePixelate.Add_CheckedChanged({
     if ($rbModePixelate.Checked) { Show-VisualObscurationWarning }
 })
 
-foreach ($r in @($rbRectangle,$rbOval,$rbFreeform,$rbModeBlack,$rbModeBlur,$rbModePixelate)) {
-    $r.Add_CheckedChanged({ Apply-Theme })
+foreach ($r in @($rbRectangle,$rbOval,$rbFreeform,$rbZoom,$rbModeBlack,$rbModeBlur,$rbModePixelate)) {
+    $r.Add_CheckedChanged({
+        Apply-Theme
+        # Apply-Theme paints the generic accent/neutral palette first.
+        # Immediately restore the semantic Begin/End state colours so
+        # switching Shape/Zoom/Style cannot turn a valid green/red action blue.
+        Update-RedactionButtons
+    })
 }
 
 Apply-Theme
@@ -3561,23 +4061,378 @@ Apply-Theme
 # ----------------------------
 # Geometry mapping
 # ----------------------------
+# v2.0.0 viewport transform. Slice 4 now exposes manual zoom through the same
+# renderer/projection layer established in Slice 3. Navigation, playback, media
+# timing and export remain on their proven paths.
+function Get-FitZoomFactor {
+    if (-not $picture -or $videoWidth -le 0 -or $videoHeight -le 0) { return 1.0 }
+
+    $viewportWidth = [double]$picture.ClientSize.Width
+    $viewportHeight = [double]$picture.ClientSize.Height
+    if ($viewportWidth -le 0.0 -or $viewportHeight -le 0.0) { return 1.0 }
+
+    return [double][Math]::Min(
+        $viewportWidth / [double]$videoWidth,
+        $viewportHeight / [double]$videoHeight
+    )
+}
+
+function Get-ViewportTransform {
+    if (-not $picture -or $videoWidth -le 0 -or $videoHeight -le 0) { return $null }
+
+    $viewportWidth = [double]$picture.ClientSize.Width
+    $viewportHeight = [double]$picture.ClientSize.Height
+    if ($viewportWidth -le 0.0 -or $viewportHeight -le 0.0) { return $null }
+
+    $fitScale = Get-FitZoomFactor
+    if ($zoomMode -eq "Fit") {
+        # Preserve the exact integer Fit geometry previously produced by
+        # PictureBox SizeMode=Zoom. Slice 3 draws the bitmap itself through
+        # this transform, so there is still no intentional visible change.
+        $displayWidth = [double][int]([double]$videoWidth * [double]$fitScale)
+        $displayHeight = [double][int]([double]$videoHeight * [double]$fitScale)
+        if ($displayWidth -le 0.0 -or $displayHeight -le 0.0) { return $null }
+
+        $originX = [double][int](($viewportWidth - $displayWidth) / 2.0)
+        $originY = [double][int](($viewportHeight - $displayHeight) / 2.0)
+
+        # The legacy PictureBox mapping rounds width/height independently to
+        # whole screen pixels. Keep both effective axes here so Slice 2's
+        # overlay projection matches that renderer exactly, even where those
+        # two rounded ratios differ by a tiny fraction.
+        $scaleX = $displayWidth / [double]$videoWidth
+        $scaleY = $displayHeight / [double]$videoHeight
+        $scale = [Math]::Min($scaleX, $scaleY)
+    }
+    else {
+        $scale = [double]$zoomFactor
+        if ([double]::IsNaN($scale) -or [double]::IsInfinity($scale) -or $scale -le 0.0) {
+            $scale = [double]$fitScale
+        }
+        $scale = [Math]::Min([double]$maxZoomFactor, $scale)
+        if ($scale -le 0.0 -or [double]::IsNaN($scale) -or [double]::IsInfinity($scale)) { return $null }
+
+        $scaleX = $scale
+        $scaleY = $scale
+        $displayWidth = [double]$videoWidth * $scale
+        $displayHeight = [double]$videoHeight * $scale
+        $originX = (($viewportWidth - $displayWidth) / 2.0) + [double]$panOffsetX
+        $originY = (($viewportHeight - $displayHeight) / 2.0) + [double]$panOffsetY
+    }
+
+    if ($scale -le 0.0 -or [double]::IsNaN($scale) -or [double]::IsInfinity($scale)) { return $null }
+
+    return [pscustomobject]@{
+        Scale = $scale
+        ScaleX = [double]$scaleX
+        ScaleY = [double]$scaleY
+        FitScale = [double]$fitScale
+        OriginX = $originX
+        OriginY = $originY
+        DisplayWidth = $displayWidth
+        DisplayHeight = $displayHeight
+        MediaWidth = [double]$videoWidth
+        MediaHeight = [double]$videoHeight
+        ViewportWidth = $viewportWidth
+        ViewportHeight = $viewportHeight
+    }
+}
+
+function MediaPoint-To-ViewPoint([System.Drawing.PointF]$point) {
+    $transform = Get-ViewportTransform
+    if (-not $transform) { return $null }
+
+    $viewX = [single]($transform.OriginX + ([double]$point.X * $transform.ScaleX))
+    $viewY = [single]($transform.OriginY + ([double]$point.Y * $transform.ScaleY))
+    return New-Object System.Drawing.PointF($viewX,$viewY)
+}
+
+function ViewPoint-To-MediaPoint([System.Drawing.PointF]$point, [bool]$clamp = $false) {
+    $transform = Get-ViewportTransform
+    if (-not $transform) { return $null }
+
+    $mediaX = ([double]$point.X - $transform.OriginX) / $transform.ScaleX
+    $mediaY = ([double]$point.Y - $transform.OriginY) / $transform.ScaleY
+
+    if ($clamp) {
+        $mediaX = [Math]::Max(0.0, [Math]::Min($mediaX, $transform.MediaWidth - 1.0))
+        $mediaY = [Math]::Max(0.0, [Math]::Min($mediaY, $transform.MediaHeight - 1.0))
+    }
+
+    return New-Object System.Drawing.PointF([single]$mediaX, [single]$mediaY)
+}
+
+function MediaRect-To-ViewRect([System.Drawing.RectangleF]$rect) {
+    $transform = Get-ViewportTransform
+    if (-not $transform) { return $null }
+
+    $viewX = [single]($transform.OriginX + ([double]$rect.X * $transform.ScaleX))
+    $viewY = [single]($transform.OriginY + ([double]$rect.Y * $transform.ScaleY))
+    $viewW = [single]([double]$rect.Width * $transform.ScaleX)
+    $viewH = [single]([double]$rect.Height * $transform.ScaleY)
+    return New-Object System.Drawing.RectangleF($viewX,$viewY,$viewW,$viewH)
+}
+
+function MediaPoints-To-ViewPoints($points) {
+    $transform = Get-ViewportTransform
+    if (-not $transform) { return $null }
+
+    $output = New-Object System.Collections.Generic.List[System.Drawing.PointF]
+    foreach ($point in $points) {
+        $viewX = [single]($transform.OriginX + ([double]$point.X * $transform.ScaleX))
+        $viewY = [single]($transform.OriginY + ([double]$point.Y * $transform.ScaleY))
+        $output.Add((New-Object System.Drawing.PointF($viewX,$viewY)))
+    }
+    return $output.ToArray()
+}
+
+function Get-MediaViewRect {
+    $transform = Get-ViewportTransform
+    if (-not $transform) { return $null }
+
+    $viewX = [single]$transform.OriginX
+    $viewY = [single]$transform.OriginY
+    $viewW = [single]$transform.DisplayWidth
+    $viewH = [single]$transform.DisplayHeight
+    return New-Object System.Drawing.RectangleF($viewX,$viewY,$viewW,$viewH)
+}
+
+function Clamp-MediaPoint([System.Drawing.PointF]$point) {
+    if ($videoWidth -le 0 -or $videoHeight -le 0) { return $point }
+
+    $x = [Math]::Max(0.0, [Math]::Min([double]$point.X, [double]$videoWidth - 1.0))
+    $y = [Math]::Max(0.0, [Math]::Min([double]$point.Y, [double]$videoHeight - 1.0))
+    return New-Object System.Drawing.PointF([single]$x, [single]$y)
+}
+
+function Reset-ViewportState {
+    $script:zoomMode = "Fit"
+    $script:zoomFactor = 1.0
+    $script:panOffsetX = 0.0
+    $script:panOffsetY = 0.0
+    Update-ZoomHud
+}
+
+function Position-ZoomHud {
+    if (-not $zoomHud -or -not $picture -or $zoomHud.IsDisposed -or $picture.IsDisposed) { return }
+    $x = [Math]::Max($script:UiGap, $picture.ClientSize.Width - $zoomHud.Width - ($script:UiGap * 2))
+    $y = [Math]::Max($script:UiGap, $picture.ClientSize.Height - $zoomHud.Height - ($script:UiGap * 2))
+    $zoomHud.Location = New-Object System.Drawing.Point($x,$y)
+    $zoomHud.BringToFront()
+}
+
+function Update-ZoomHud {
+    if (-not $zoomHud -or -not $lblZoomIndicator) { return }
+
+    $hasMedia = [bool]($videoPath -and $previewImage -and $videoWidth -gt 0 -and $videoHeight -gt 0)
+    $zoomHud.Visible = $hasMedia
+    if (-not $hasMedia) { return }
+
+    $scale = if ($zoomMode -eq "Fit") { Get-FitZoomFactor } else { [double]$zoomFactor }
+    if ([double]::IsNaN($scale) -or [double]::IsInfinity($scale) -or $scale -le 0.0) { $scale = 1.0 }
+    $pct = [int][Math]::Round($scale * 100.0)
+    if ($pct -lt 1) { $pct = 1 }
+    $lblZoomIndicator.Text = if ($zoomMode -eq "Fit") { "Fit ($pct%)" } else { "$pct%" }
+
+    $btnZoomIn.Enabled = ($scale -lt ([double]$maxZoomFactor - 0.000001))
+    $btnZoomOut.Enabled = ($scale -gt ([double]$minZoomFactor + 0.000001))
+    $btnZoomFit.Enabled = ($zoomMode -ne "Fit")
+    Position-ZoomHud
+}
+
+function Clamp-ViewportPan([double]$minimumMaxX = 0.0, [double]$minimumMaxY = 0.0) {
+    # Pan is purely VIEW state. Bound each axis at the natural edge limit:
+    # when media is larger than the viewport it cannot be dragged past an edge
+    # into avoidable blank space; when media is smaller it may move within the
+    # available letterbox but cannot be dragged partly out of the viewport.
+    if ($zoomMode -ne "Manual" -or -not $picture -or $videoWidth -le 0 -or $videoHeight -le 0) {
+        if ($zoomMode -eq "Fit") {
+            $script:panOffsetX = 0.0
+            $script:panOffsetY = 0.0
+        }
+        return
+    }
+
+    $vw = [double]$picture.ClientSize.Width
+    $vh = [double]$picture.ClientSize.Height
+    $scale = [double]$zoomFactor
+    if ($vw -le 0.0 -or $vh -le 0.0 -or $scale -le 0.0) { return }
+
+    $displayWidth = [double]$videoWidth * $scale
+    $displayHeight = [double]$videoHeight * $scale
+    $maxPanX = [Math]::Max([Math]::Abs($displayWidth - $vw) / 2.0, [Math]::Abs($minimumMaxX))
+    $maxPanY = [Math]::Max([Math]::Abs($displayHeight - $vh) / 2.0, [Math]::Abs($minimumMaxY))
+
+    $script:panOffsetX = [Math]::Max(-$maxPanX, [Math]::Min($maxPanX, [double]$panOffsetX))
+    $script:panOffsetY = [Math]::Max(-$maxPanY, [Math]::Min($maxPanY, [double]$panOffsetY))
+}
+
+function Reset-ZoomPanGesture {
+    $script:zoomPanCandidate = $false
+    $script:zoomPanning = $false
+    $script:zoomPanStartPoint = New-Object System.Drawing.PointF(0,0)
+    $script:zoomPanStartOffsetX = 0.0
+    $script:zoomPanStartOffsetY = 0.0
+    if ($picture -and -not $picture.IsDisposed -and $picture.Capture) {
+        $picture.Capture = $false
+    }
+}
+
+function Test-CursorOverPreview {
+    if (-not $picture -or $picture.IsDisposed -or -not $picture.Visible) { return $false }
+    try {
+        $clientPoint = $picture.PointToClient([System.Windows.Forms.Cursor]::Position)
+        return $picture.ClientRectangle.Contains($clientPoint)
+    }
+    catch {
+        return $false
+    }
+}
+
+function Stop-SpacePanMode {
+    if (-not $script:spacePanActive) { return }
+    $script:spacePanActive = $false
+    Reset-ZoomPanGesture
+    Update-PreviewCursor
+}
+
+function Set-ZoomFit {
+    if (-not $previewImage) { return }
+    Reset-ZoomPanGesture
+    $script:zoomMode = "Fit"
+    $script:zoomFactor = 1.0
+    $script:panOffsetX = 0.0
+    $script:panOffsetY = 0.0
+    Update-ZoomHud
+    $picture.Refresh()
+}
+
+function Set-ZoomAroundViewPoint([double]$targetScale, [System.Drawing.PointF]$viewPoint) {
+    if (-not $previewImage -or $videoWidth -le 0 -or $videoHeight -le 0) { return }
+
+    $before = Get-ViewportTransform
+    if (-not $before) { return }
+
+    # Capture the canonical media point under the requested screen point BEFORE
+    # changing scale. The new pan offset is then solved so this same media point
+    # lands back on the exact same screen point after zooming.
+    $mediaX = ([double]$viewPoint.X - [double]$before.OriginX) / [double]$before.ScaleX
+    $mediaY = ([double]$viewPoint.Y - [double]$before.OriginY) / [double]$before.ScaleY
+
+    $targetScale = [Math]::Max([double]$minZoomFactor, [Math]::Min([double]$maxZoomFactor, $targetScale))
+    if ([double]::IsNaN($targetScale) -or [double]::IsInfinity($targetScale) -or $targetScale -le 0.0) { return }
+
+    $vw = [double]$picture.ClientSize.Width
+    $vh = [double]$picture.ClientSize.Height
+    if ($vw -le 0.0 -or $vh -le 0.0) { return }
+
+    $baseOriginX = ($vw - ([double]$videoWidth * $targetScale)) / 2.0
+    $baseOriginY = ($vh - ([double]$videoHeight * $targetScale)) / 2.0
+
+    $script:zoomMode = "Manual"
+    $script:zoomFactor = $targetScale
+    $script:panOffsetX = [double]$viewPoint.X - $baseOriginX - ($mediaX * $targetScale)
+    $script:panOffsetY = [double]$viewPoint.Y - $baseOriginY - ($mediaY * $targetScale)
+
+    Update-ZoomHud
+    $picture.Refresh()
+}
+
+function Step-ZoomAtViewPoint([int]$direction, [System.Drawing.PointF]$viewPoint) {
+    if (-not $previewImage -or $direction -eq 0) { return }
+    $currentScale = if ($zoomMode -eq "Fit") { Get-FitZoomFactor } else { [double]$zoomFactor }
+    if ($currentScale -le 0.0) { $currentScale = 1.0 }
+    if ($direction -gt 0 -and $currentScale -ge [double]$maxZoomFactor) { return }
+    if ($direction -lt 0 -and $currentScale -le [double]$minZoomFactor) { return }
+
+    $factor = [double]$zoomStepFactor
+    $target = if ($direction -gt 0) { $currentScale * $factor } else { $currentScale / $factor }
+    Set-ZoomAroundViewPoint $target $viewPoint
+}
+
+function Get-ViewportCenterPoint {
+    return New-Object System.Drawing.PointF(
+        [single]([double]$picture.ClientSize.Width / 2.0),
+        [single]([double]$picture.ClientSize.Height / 2.0))
+}
+
+function Initialize-ZoomCursor {
+    if ($script:zoomCursor) { return }
+    try {
+        # White outer glyph + slightly smaller black glyph gives the cursor a
+        # two-tone edge that remains legible over both bright and dark media.
+        $bmp = New-Object System.Drawing.Bitmap(32,32,[System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+        $g = [System.Drawing.Graphics]::FromImage($bmp)
+        $g.Clear([System.Drawing.Color]::Transparent)
+        $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+        $outer = Get-ThemedIconImage "zoom" ([System.Drawing.Color]::White)
+        $inner = Get-ThemedIconImage "zoom" ([System.Drawing.Color]::Black)
+        $g.DrawImage($outer, (New-Object System.Drawing.Rectangle(0,0,32,32)))
+        $g.DrawImage($inner, (New-Object System.Drawing.Rectangle(1,1,30,30)))
+        $hIcon = $bmp.GetHicon()
+        try {
+            $hCursor = [ZoomCursorNativeV1]::CreateCursorFromIcon($hIcon, 11, 11)
+            if ($hCursor -ne [IntPtr]::Zero) {
+                $script:zoomCursorHandle = $hCursor
+                $script:zoomCursor = [System.Windows.Forms.Cursor]::new($hCursor)
+            }
+        }
+        finally {
+            [ZoomCursorNativeV1]::DestroyIconHandle($hIcon)
+        }
+        $g.Dispose()
+        $bmp.Dispose()
+    }
+    catch {
+        $script:zoomCursor = $null
+        $script:zoomCursorHandle = [IntPtr]::Zero
+    }
+}
+
+function Update-PreviewCursor {
+    if (-not $picture) { return }
+    if ($eyedropperActive) { return }
+    if ($script:spacePanActive) {
+        # Space is a temporary viewport override only; the underlying drawing
+        # tool remains selected and resumes the instant Space is released.
+        $picture.Cursor = [System.Windows.Forms.Cursors]::Hand
+    }
+    elseif ($script:zoomToolActive) {
+        if ($script:zoomPanCandidate -or $script:zoomPanning) {
+            # WinForms has no standard closed-grab cursor; Hand is the closest
+            # familiar visual language while a pan gesture is in progress.
+            $picture.Cursor = [System.Windows.Forms.Cursors]::Hand
+        }
+        else {
+            Initialize-ZoomCursor
+            $picture.Cursor = if ($script:zoomCursor) { $script:zoomCursor } else { [System.Windows.Forms.Cursors]::Cross }
+        }
+    }
+    else {
+        $picture.Cursor = [System.Windows.Forms.Cursors]::Default
+    }
+}
+
+# Attach only AFTER the Slice 4 helper functions exist. The PictureBox can resize
+# several times while the form is still being built; wiring this earlier would
+# let construction-time Resize events call helpers PowerShell has not defined yet.
+# Refresh() deliberately preserves the Slice 3 r2 full-repaint fix.
+$picture.Add_Resize({
+    Position-ZoomHud
+    Update-ZoomHud
+    if ($picture -and -not $picture.IsDisposed) { $picture.Refresh() }
+})
+Position-ZoomHud
+Update-ZoomHud
+
+# Compatibility wrapper for older call sites. The displayed media rectangle
+# now comes from the same viewport transform that draws the preview itself.
 function Get-DisplayedImageRect {
-    if (-not $picture.Image) { return $null }
- 
-    $pbW = $picture.ClientSize.Width
-    $pbH = $picture.ClientSize.Height
-    $imgW = $picture.Image.Width
-    $imgH = $picture.Image.Height
- 
-    if ($pbW -le 0 -or $pbH -le 0 -or $imgW -le 0 -or $imgH -le 0) { return $null }
- 
-    $scale = [Math]::Min($pbW / $imgW, $pbH / $imgH)
-    $w = [int]($imgW * $scale)
-    $h = [int]($imgH * $scale)
-    $x = [int](($pbW - $w) / 2)
-    $y = [int](($pbH - $h) / 2)
- 
-    return New-Object System.Drawing.Rectangle($x,$y,$w,$h)
+    if (-not $previewImage) { return $null }
+    $viewRect = Get-MediaViewRect
+    if (-not $viewRect) { return $null }
+
+    return New-Object System.Drawing.Rectangle([int]$viewRect.X,[int]$viewRect.Y,[int]$viewRect.Width,[int]$viewRect.Height)
 }
  
 function Clamp-PointToImage([System.Drawing.Point]$pt) {
@@ -3589,22 +4444,51 @@ function Clamp-PointToImage([System.Drawing.Point]$pt) {
     return New-Object System.Drawing.Point($x,$y)
 }
  
+# Draft Rectangle/Oval geometry is already canonical MEDIA space.
+# Commit-time normalization is the only conversion left here.
 function Selection-To-VideoRect {
-    $imgRect = Get-DisplayedImageRect
-    if (-not $imgRect -or $selection.Width -lt 2 -or $selection.Height -lt 2) { return $null }
- 
-    $rawX = ($selection.X - $imgRect.X) * $videoWidth / $imgRect.Width
-    $rawY = ($selection.Y - $imgRect.Y) * $videoHeight / $imgRect.Height
-    $rawW = $selection.Width * $videoWidth / $imgRect.Width
-    $rawH = $selection.Height * $videoHeight / $imgRect.Height
- 
-    return Normalize-VideoRect $rawX $rawY $rawW $rawH
+    if (-not $selection -or $selection.Width -lt 0.01 -or $selection.Height -lt 0.01) { return $null }
+    return Normalize-VideoRect ([double]$selection.X) ([double]$selection.Y) ([double]$selection.Width) ([double]$selection.Height)
 }
  
+# Legacy-named view helpers now delegate to the v2 viewport transform. Keeping
+# these wrappers avoids disturbing the proven committed-redaction model while
+# making preview, committed overlays and draft overlays share one projection.
+# System.Drawing.Graphics.DrawRectangle has Rectangle/int and float-coordinate
+# overloads, but no RectangleF overload. Manual zoom intentionally projects
+# media rectangles to RectangleF so sub-pixel viewport positions are preserved.
+# Route rectangle outlines through this helper so Fit mode keeps the original
+# Rectangle overload while manual zoom uses the float-coordinate overload.
+function Draw-ViewportRectangleOutline($gfx, $pen, $rect) {
+    if ($null -eq $rect) { return }
+
+    if ($rect -is [System.Drawing.RectangleF]) {
+        $gfx.DrawRectangle($pen,
+            [single]$rect.X,
+            [single]$rect.Y,
+            [single]$rect.Width,
+            [single]$rect.Height)
+    }
+    else {
+        $gfx.DrawRectangle($pen, $rect)
+    }
+}
+
 function VideoRect-To-Display($vx, $vy, $vw, $vh) {
+    if ($zoomMode -ne "Fit") {
+        $transform = Get-ViewportTransform
+        if (-not $transform) { return $null }
+        return New-Object System.Drawing.RectangleF(
+            [single]([double]$transform.OriginX + ([double]$vx * [double]$transform.ScaleX)),
+            [single]([double]$transform.OriginY + ([double]$vy * [double]$transform.ScaleY)),
+            [single]([double]$vw * [double]$transform.ScaleX),
+            [single]([double]$vh * [double]$transform.ScaleY))
+    }
+
     $imgRect = Get-DisplayedImageRect
     if (-not $imgRect -or $videoWidth -le 0 -or $videoHeight -le 0) { return $null }
  
+    # Preserve r18's exact arithmetic order in Fit mode.
     $x = [int]($imgRect.X + ($vx * $imgRect.Width / $videoWidth))
     $y = [int]($imgRect.Y + ($vy * $imgRect.Height / $videoHeight))
     $w = [int]($vw * $imgRect.Width / $videoWidth)
@@ -3614,6 +4498,18 @@ function VideoRect-To-Display($vx, $vy, $vw, $vh) {
 }
  
 function VideoPoints-To-DisplayPoints($pts) {
+    if ($zoomMode -ne "Fit") {
+        $transform = Get-ViewportTransform
+        if (-not $transform) { return $null }
+        $outF = New-Object System.Collections.Generic.List[System.Drawing.PointF]
+        foreach ($p in $pts) {
+            $dx = [single]([double]$transform.OriginX + ([double]$p.X * [double]$transform.ScaleX))
+            $dy = [single]([double]$transform.OriginY + ([double]$p.Y * [double]$transform.ScaleY))
+            $outF.Add((New-Object System.Drawing.PointF($dx,$dy)))
+        }
+        return $outF.ToArray()
+    }
+
     $imgRect = Get-DisplayedImageRect
     if (-not $imgRect -or $videoWidth -le 0 -or $videoHeight -le 0) { return $null }
  
@@ -3627,6 +4523,12 @@ function VideoPoints-To-DisplayPoints($pts) {
 }
  
 function DisplayPoint-To-VideoPoint([System.Drawing.Point]$pt) {
+    if ($zoomMode -ne "Fit") {
+        $mp = ViewPoint-To-MediaPoint (New-Object System.Drawing.PointF([single]$pt.X,[single]$pt.Y)) $true
+        if (-not $mp) { return $null }
+        return @{ X = [int][Math]::Round($mp.X); Y = [int][Math]::Round($mp.Y) }
+    }
+
     $imgRect = Get-DisplayedImageRect
     if (-not $imgRect) { return $null }
  
@@ -3637,24 +4539,24 @@ function DisplayPoint-To-VideoPoint([System.Drawing.Point]$pt) {
     return @{ X = [int][Math]::Round($vx); Y = [int][Math]::Round($vy) }
 }
  
-# Converts a completed freeform click-path (display-space points) into a
-# video-space Polygon shape descriptor: absolute video-space vertex points
-# plus a normalized bounding box that fully contains every one of them.
-function Polygon-To-VideoShape($displayPoints) {
-    if ($displayPoints.Count -lt 3) { return $null }
- 
+# Converts a completed freeform draft that is ALREADY in canonical MEDIA space
+# into the existing committed Polygon descriptor. Vertices are rounded/clamped
+# only at this boundary so resizing the viewport can never alter draft geometry.
+function Polygon-To-VideoShape($mediaPoints) {
+    if ($mediaPoints.Count -lt 3) { return $null }
+
     $vpts = @()
-    foreach ($p in $displayPoints) {
-        $vp = DisplayPoint-To-VideoPoint $p
-        if (-not $vp) { return $null }
-        $vpts += ,$vp
+    foreach ($p in $mediaPoints) {
+        $cx = [Math]::Max(0.0, [Math]::Min([double]$p.X, [double]$videoWidth - 1.0))
+        $cy = [Math]::Max(0.0, [Math]::Min([double]$p.Y, [double]$videoHeight - 1.0))
+        $vpts += ,@{ X = [int][Math]::Round($cx); Y = [int][Math]::Round($cy) }
     }
- 
+
     $minX = ($vpts | ForEach-Object { $_.X } | Measure-Object -Minimum).Minimum
     $maxX = ($vpts | ForEach-Object { $_.X } | Measure-Object -Maximum).Maximum
     $minY = ($vpts | ForEach-Object { $_.Y } | Measure-Object -Minimum).Minimum
     $maxY = ($vpts | ForEach-Object { $_.Y } | Measure-Object -Maximum).Maximum
- 
+
     $bbox = Normalize-VideoRect $minX $minY ([Math]::Max(2, $maxX - $minX)) ([Math]::Max(2, $maxY - $minY))
     return @{ Shape = "Polygon"; X = $bbox.X; Y = $bbox.Y; W = $bbox.W; H = $bbox.H; Points = $vpts }
 }
@@ -3700,7 +4602,7 @@ function Draw-RedactionShape($gfx, $r, [System.Drawing.Color]$borderColor, [Syst
         $dr = VideoRect-To-Display $r.X $r.Y $r.W $r.H
         if ($dr) {
             $gfx.FillRectangle($brush, $dr)
-            $gfx.DrawRectangle($pen, $dr)
+            Draw-ViewportRectangleOutline $gfx $pen $dr
         }
     }
  
@@ -3880,11 +4782,13 @@ function Stop-Playback {
 # redaction is started/ended/cancelled, or a new file is loaded.
 function Reset-DrawingState {
     $script:dragging = $false
-    $script:selection = New-Object System.Drawing.Rectangle(0,0,0,0)
+    $script:dragStart = New-Object System.Drawing.PointF(0,0)
+    $script:selection = New-Object System.Drawing.RectangleF(0,0,0,0)
     $script:polygonActive = $false
-    $script:polygonPoints = New-Object System.Collections.Generic.List[System.Drawing.Point]
+    $script:polygonPoints = New-Object System.Collections.Generic.List[System.Drawing.PointF]
     $script:polygonMousePos = $null
     $script:movingShape = $false
+    $script:moveStart = New-Object System.Drawing.PointF(0,0)
     $script:moveOrigSelection = $null
     $script:moveOrigPolygonPoints = $null
     if ($picture) { $picture.Invalidate() }
@@ -4041,7 +4945,6 @@ function Load-PreviewFrame {
     }
 
     if ($previewImage) {
-        $picture.Image = $null
         $previewImage.Dispose()
         $script:previewImage = $null
     }
@@ -4052,7 +4955,12 @@ function Load-PreviewFrame {
     $img.Dispose()
     $ms.Dispose()
  
-    $picture.Image = $previewImage
+    # Slice 3 keeps the bitmap out of PictureBox.Image. The PictureBox is now
+    # only the viewport/canvas; its Paint handler draws $previewImage through
+    # Get-ViewportTransform before drawing overlays. Slice 4 keeps the current
+    # viewport state across frame changes and refreshes only the visible HUD.
+    Update-ZoomHud
+    Update-PreviewCursor
     $picture.Refresh()
     $script:loadedFrame = $currentFrame
     $picture.Invalidate()
@@ -4169,7 +5077,6 @@ $btnOpen.Add_Click({
         $seekBar.Enabled = $false
         $seekBar.Invalidate()
 
-        $btnRefresh.Enabled = $false
         $btnPrevFrame.Enabled = $false
         $btnNextFrame.Enabled = $false
         $btnPlayPause.Enabled = $false
@@ -4224,7 +5131,6 @@ $btnOpen.Add_Click({
         $seekBar.Enabled = $true
         $seekBar.Invalidate()
 
-        $btnRefresh.Enabled = $true
         $btnPrevFrame.Enabled = $true
         $btnNextFrame.Enabled = $true
         $btnPlayPause.Enabled = $true
@@ -4235,6 +5141,11 @@ $btnOpen.Add_Click({
         $timingStatus = if ($info.IsVfr) { "VFR timing verified" } else { "CFR timing verified" }
         $status.Text = "$videoWidth x $videoHeight   |   Duration: $(SecToText $videoDuration)   |   $([Math]::Round($fps,3)) avg fps   |   $timingStatus"
     }
+
+    # A successfully accepted new source is the zoom reset boundary. Slice 1
+    # keeps the existing PictureBox rendering path unchanged, but establishes
+    # the v2 viewport state ready for later zoom interaction slices.
+    Reset-ViewportState
 
     Apply-ModeLabels
     Reset-RedactionState
@@ -4289,18 +5200,40 @@ $btnPlayPause.Add_Click({
     }
 })
 
-$btnRefresh.Add_Click({
-    Stop-Playback
-    $script:loadedFrame = -1
-    Load-PreviewFrame
-})
-
 $btnPrevFrame.Add_Click({ Stop-Playback; Step-Frame -1 })
 $btnNextFrame.Add_Click({ Stop-Playback; Step-Frame 1 })
  
 $form.Add_KeyDown({
     param($sender,$e)
     if (-not $videoPath) { return }
+
+    if ($e.KeyCode -eq [System.Windows.Forms.Keys]::Space) {
+        # Once the temporary override is active, swallow keyboard auto-repeat
+        # even if the drag has moved the pointer outside the preview. Otherwise
+        # a repeated Space could accidentally activate whichever button still
+        # owns keyboard focus while the user is panning.
+        if ($script:spacePanActive) {
+            $e.Handled = $true
+            $e.SuppressKeyPress = $true
+            return
+        }
+
+        # Optional power-user pan: only borrow Space when a drawing tool is
+        # active and the pointer is actually over the preview. Do not steal an
+        # already-running Rectangle/Oval drag or shape-move gesture. Suppressing
+        # the key press also prevents Space from accidentally activating a
+        # focused toolbar/button control while it is serving as the pan modifier.
+        if (-not $script:zoomToolActive -and -not $eyedropperActive -and $previewImage -and
+            -not $dragging -and -not $movingShape -and (Test-CursorOverPreview)) {
+            Reset-ZoomPanGesture
+            $script:spacePanActive = $true
+            Update-PreviewCursor
+            $e.Handled = $true
+            $e.SuppressKeyPress = $true
+            return
+        }
+    }
+
     if ($e.KeyCode -eq [System.Windows.Forms.Keys]::Left) {
         Stop-Playback
         Step-Frame -1
@@ -4320,6 +5253,22 @@ $form.Add_KeyDown({
         }
     }
 })
+
+$form.Add_KeyUp({
+    param($sender,$e)
+    if ($e.KeyCode -eq [System.Windows.Forms.Keys]::Space -and $script:spacePanActive) {
+        Stop-SpacePanMode
+        $e.Handled = $true
+        $e.SuppressKeyPress = $true
+    }
+})
+
+# If the application loses focus while Space is down, Windows may never deliver
+# the matching KeyUp to this form. Clear the temporary override so the preview
+# cannot get stuck in hand/pan mode when the user Alt-Tabs away and returns.
+$form.Add_Deactivate({
+    Stop-SpacePanMode
+})
  
 function Set-ToolMode([string]$mode) {
     if ($script:toolMode -eq $mode) { return }
@@ -4328,22 +5277,74 @@ function Set-ToolMode([string]$mode) {
     Update-SelectionFields $null
     Update-RedactionButtons
 }
-$rbRectangle.Add_CheckedChanged({ if ($rbRectangle.Checked) { Set-ToolMode "Rectangle" } })
-$rbOval.Add_CheckedChanged({ if ($rbOval.Checked) { Set-ToolMode "Oval" } })
-$rbFreeform.Add_CheckedChanged({ if ($rbFreeform.Checked) { Set-ToolMode "Polygon" } })
+$rbRectangle.Add_CheckedChanged({
+    if ($rbRectangle.Checked) {
+        Reset-ZoomPanGesture
+        $script:zoomToolActive = $false
+        Set-ToolMode "Rectangle"
+        Update-PreviewCursor
+    }
+})
+$rbOval.Add_CheckedChanged({
+    if ($rbOval.Checked) {
+        Reset-ZoomPanGesture
+        $script:zoomToolActive = $false
+        Set-ToolMode "Oval"
+        Update-PreviewCursor
+    }
+})
+$rbFreeform.Add_CheckedChanged({
+    if ($rbFreeform.Checked) {
+        Reset-ZoomPanGesture
+        $script:zoomToolActive = $false
+        Set-ToolMode "Polygon"
+        Update-PreviewCursor
+    }
+})
+$rbZoom.Add_CheckedChanged({
+    if ($rbZoom.Checked) {
+        # Zoom is a VIEW tool, not a new redaction shape. Preserve the last
+        # drawing tool and any draft geometry while Zoom is temporarily active.
+        $script:zoomToolActive = $true
+        Update-PreviewCursor
+    }
+    elseif ($script:zoomToolActive) {
+        Reset-ZoomPanGesture
+        $script:zoomToolActive = $false
+        Update-PreviewCursor
+    }
+})
+
+$btnZoomFit.Add_Click({ Set-ZoomFit })
+$btnZoomIn.Add_Click({ Step-ZoomAtViewPoint 1 (Get-ViewportCenterPoint) })
+$btnZoomOut.Add_Click({ Step-ZoomAtViewPoint -1 (Get-ViewportCenterPoint) })
+
+$picture.Add_MouseEnter({
+    if ($script:zoomToolActive) {
+        # MouseWheel is delivered to the focused WinForms control. Give the
+        # preview focus only while Zoom is active so wheel zoom works without
+        # changing normal drawing-tool focus behaviour. KeyPreview on the form
+        # still preserves the existing keyboard shortcuts.
+        [void]$picture.Focus()
+        Update-PreviewCursor
+    }
+    elseif ($script:spacePanActive) {
+        Update-PreviewCursor
+    }
+})
  
 $picture.Add_MouseDown({
     param($sender,$e)
-    if (-not $picture.Image) { return }
+    if (-not $previewImage) { return }
 
-    # Eyedropper takes priority over everything else while armed: this click
-    # samples a color rather than drawing/placing a shape, then disarms
-    # itself either way (a stray click outside the image just cancels it).
+    # Eyedropper takes priority over everything else while armed. In Slice 3
+    # it uses the same inverse viewport transform as draft geometry.
     if ($eyedropperActive) {
         if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Left) {
-            $imgRect = Get-DisplayedImageRect
+            $imgRect = Get-MediaViewRect
+            $viewPtF = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
             $pt = New-Object System.Drawing.Point($e.X,$e.Y)
-            if ($imgRect -and $imgRect.Contains($pt) -and $previewImage) {
+            if ($imgRect -and $imgRect.Contains($viewPtF) -and $previewImage) {
                 $vp = DisplayPoint-To-VideoPoint $pt
                 if ($vp) {
                     $sampled = $previewImage.GetPixel($vp.X, $vp.Y)
@@ -4352,13 +5353,37 @@ $picture.Add_MouseDown({
             }
         }
         $script:eyedropperActive = $false
-        $picture.Cursor = [System.Windows.Forms.Cursors]::Default
+        Update-PreviewCursor
         Set-RedactionButtonColor $btnEyedropper "grey"
         return
     }
 
+    if ($script:zoomToolActive -or $script:spacePanActive) {
+        $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+        $mediaRect = Get-MediaViewRect
+        if (-not $mediaRect -or -not $mediaRect.Contains($viewPt)) { return }
+
+        if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Left) {
+            # Do NOT zoom on MouseDown. A left press may become a pan gesture;
+            # MouseUp performs click-to-zoom only for the real Zoom tool. When
+            # Space is the temporary override, a no-drag click is intentionally
+            # a no-op so the underlying drawing tool is never invoked by accident.
+            $script:zoomPanCandidate = $true
+            $script:zoomPanning = $false
+            $script:zoomPanStartPoint = $viewPt
+            $script:zoomPanStartOffsetX = [double]$panOffsetX
+            $script:zoomPanStartOffsetY = [double]$panOffsetY
+            $picture.Capture = $true
+            Update-PreviewCursor
+        }
+        elseif ($e.Button -eq [System.Windows.Forms.MouseButtons]::Right -and $script:zoomToolActive) {
+            Step-ZoomAtViewPoint -1 $viewPt
+        }
+        return
+    }
+
     if ($pendingRedaction) { return }
- 
+
     if ($toolMode -eq "Polygon" -and $e.Button -eq [System.Windows.Forms.MouseButtons]::Right) {
         # Right-click cancels an in-progress freeform path.
         if ($polygonActive -or $polygonPoints.Count -gt 0) {
@@ -4370,52 +5395,68 @@ $picture.Add_MouseDown({
         return
     }
     if ($e.Button -ne [System.Windows.Forms.MouseButtons]::Left) { return }
- 
+
     Stop-Playback
- 
-    $imgRect = Get-DisplayedImageRect
-    if (-not $imgRect) { return }
- 
-    $pt = New-Object System.Drawing.Point($e.X,$e.Y)
-    if (-not $imgRect.Contains($pt)) { return }
-    $clamped = Clamp-PointToImage $pt
- 
+
+    # From this point on, mouse input is converted to canonical MEDIA space
+    # immediately. No draft shape stores PictureBox/view coordinates anymore.
+    $viewRect = Get-MediaViewRect
+    if (-not $viewRect) { return }
+
+    $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+    if (-not $viewRect.Contains($viewPt)) { return }
+
+    $mediaPt = ViewPoint-To-MediaPoint $viewPt $true
+    if (-not $mediaPt) { return }
+
     if ($toolMode -eq "Polygon") {
-        if (-not $polygonActive -and $polygonPoints.Count -ge 3 -and (Test-PointInPolygon $clamped $polygonPoints)) {
+        if (-not $polygonActive -and $polygonPoints.Count -ge 3 -and (Test-PointInPolygon $mediaPt $polygonPoints)) {
             # Clicked inside the closed-but-uncommitted path: move the whole
-            # shape instead of starting a new one (see $movingShape).
+            # canonical media-space shape instead of starting a new one.
             $script:movingShape = $true
             $picture.Capture = $true
-            $script:moveStart = $clamped
-            $script:moveOrigPolygonPoints = New-Object System.Collections.Generic.List[System.Drawing.Point]
-            foreach ($pt in $polygonPoints) { [void]$script:moveOrigPolygonPoints.Add($pt) }
+            $script:moveStart = $mediaPt
+            $script:moveOrigPolygonPoints = New-Object System.Collections.Generic.List[System.Drawing.PointF]
+            foreach ($pt in $polygonPoints) {
+                [void]$script:moveOrigPolygonPoints.Add((New-Object System.Drawing.PointF([single]$pt.X,[single]$pt.Y)))
+            }
             $picture.Invalidate()
             return
         }
         if (-not $polygonActive) {
             # Starting fresh discards any previously closed-but-uncommitted path.
             $script:polygonActive = $true
-            $script:polygonPoints = New-Object System.Collections.Generic.List[System.Drawing.Point]
-            $script:polygonPoints.Add($clamped)
-            $script:polygonMousePos = $clamped
+            $script:polygonPoints = New-Object System.Collections.Generic.List[System.Drawing.PointF]
+            $script:polygonPoints.Add($mediaPt)
+            $script:polygonMousePos = $mediaPt
             Update-SelectionFields $null "Selection: freeform started (1 point). Click to add points; click the yellow start point to close (need at least 3)."
         }
         else {
-            # Shift snaps this new segment (from the previous vertex to here)
-            # to the nearest 0/45/90 degree angle, same modifier/behavior as
-            # the Rectangle/Oval square-and-circle constrain above.
+            # Shift snapping also happens in MEDIA space. Because the viewport
+            # scale is uniform, media-space 45-degree snapping is visually 45
+            # degrees on screen too.
             $constrainAngle = [bool]([System.Windows.Forms.Control]::ModifierKeys -band [System.Windows.Forms.Keys]::Shift)
             $lastPolyPt = $polygonPoints[$polygonPoints.Count - 1]
-            $clamped = Clamp-PointToImage (Get-AngleSnappedPoint $lastPolyPt $clamped $constrainAngle)
-            $dxs = $clamped.X - $polygonPoints[0].X
-            $dys = $clamped.Y - $polygonPoints[0].Y
-            $distToStart = [Math]::Sqrt(($dxs * $dxs) + ($dys * $dys))
-            if ($polygonPoints.Count -ge 3 -and $distToStart -le 10) {
+            $mediaPt = Clamp-MediaPoint (Get-AngleSnappedPoint $lastPolyPt $mediaPt $constrainAngle)
+
+            # Closing remains a screen-pixel interaction: the yellow start
+            # marker is 8 px across, so preserve the familiar 10 px close
+            # tolerance even though the stored vertices are media-space.
+            $candidateView = MediaPoint-To-ViewPoint $mediaPt
+            $startView = MediaPoint-To-ViewPoint $polygonPoints[0]
+            $distToStart = [double]::PositiveInfinity
+            if ($candidateView -and $startView) {
+                $dxs = [double]$candidateView.X - [double]$startView.X
+                $dys = [double]$candidateView.Y - [double]$startView.Y
+                $distToStart = [Math]::Sqrt(($dxs * $dxs) + ($dys * $dys))
+            }
+
+            if ($polygonPoints.Count -ge 3 -and $distToStart -le 10.0) {
                 $script:polygonActive = $false
                 Update-SelectionFields $null "Selection: freeform closed ($($polygonPoints.Count) points)."
             }
             else {
-                $script:polygonPoints.Add($clamped)
+                $script:polygonPoints.Add($mediaPt)
                 Update-SelectionFields $null "Selection: freeform, $($polygonPoints.Count) points (click the yellow start point to close)."
             }
         }
@@ -4423,53 +5464,87 @@ $picture.Add_MouseDown({
         $picture.Invalidate()
         return
     }
- 
-    if ($selection.Width -gt 1 -and $selection.Height -gt 1 -and $selection.Contains($clamped)) {
+
+    if ($selection.Width -gt 0.01 -and $selection.Height -gt 0.01 -and $selection.Contains($mediaPt)) {
         # Clicked inside the existing uncommitted Rectangle/Oval selection:
-        # move it instead of starting a new one (see $movingShape). This
-        # uses the bounding box for Oval too, which is a deliberate, common
-        # drawing-app simplification - clicking just inside a corner of an
-        # oval's box still grabs and moves it.
+        # move the canonical media-space shape instead of creating another.
+        # Oval deliberately keeps the existing bounding-box hit behaviour.
         $script:movingShape = $true
         $picture.Capture = $true
-        $script:moveStart = $clamped
-        $script:moveOrigSelection = $selection
+        $script:moveStart = $mediaPt
+        $script:moveOrigSelection = New-Object System.Drawing.RectangleF(
+            [single]$selection.X,[single]$selection.Y,[single]$selection.Width,[single]$selection.Height)
         $picture.Invalidate()
         return
     }
 
-    # Rectangle / Oval: drag-based, as before.
+    # Rectangle / Oval: the very first point is canonical MEDIA space.
     $script:dragging = $true
     $picture.Capture = $true
-    $script:dragStart = $clamped
-    $script:selection = New-Object System.Drawing.Rectangle($dragStart.X,$dragStart.Y,1,1)
+    $script:dragStart = $mediaPt
+    $script:selection = New-Object System.Drawing.RectangleF(
+        [single]$dragStart.X,[single]$dragStart.Y,[single]0.01,[single]0.01)
     $picture.Invalidate()
 })
- 
+
 $picture.Add_MouseMove({
     param($sender,$e)
 
+    if ($script:zoomToolActive -or $script:spacePanActive) {
+        if ($script:zoomPanCandidate) {
+            $dxView = [double]$e.X - [double]$script:zoomPanStartPoint.X
+            $dyView = [double]$e.Y - [double]$script:zoomPanStartPoint.Y
+
+            if (-not $script:zoomPanning) {
+                $distance = [Math]::Sqrt(($dxView * $dxView) + ($dyView * $dyView))
+                if ($distance -ge [double]$zoomPanDragThreshold) {
+                    $script:zoomPanning = $true
+                }
+            }
+
+            if ($script:zoomPanning -and $zoomMode -eq "Manual") {
+                $script:panOffsetX = [double]$script:zoomPanStartOffsetX + $dxView
+                $script:panOffsetY = [double]$script:zoomPanStartOffsetY + $dyView
+                Clamp-ViewportPan ([Math]::Abs([double]$script:zoomPanStartOffsetX)) ([Math]::Abs([double]$script:zoomPanStartOffsetY))
+                $picture.Refresh()
+            }
+            Update-PreviewCursor
+            return
+        }
+
+        Update-PreviewCursor
+        return
+    }
+
     if ($movingShape) {
-        $imgRect = Get-DisplayedImageRect
-        if (-not $imgRect) { return }
-        $rawPt = Clamp-PointToImage (New-Object System.Drawing.Point($e.X,$e.Y))
-        $dx = $rawPt.X - $moveStart.X
-        $dy = $rawPt.Y - $moveStart.Y
+        $mediaBounds = Get-DraftMediaBounds
+        if (-not $mediaBounds) { return }
+
+        $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+        $rawPt = ViewPoint-To-MediaPoint $viewPt $true
+        if (-not $rawPt) { return }
+
+        $dx = [double]$rawPt.X - [double]$moveStart.X
+        $dy = [double]$rawPt.Y - [double]$moveStart.Y
 
         if ($toolMode -eq "Polygon") {
             $origBounds = Get-PointsBoundingRect $moveOrigPolygonPoints
-            $clampedD = Get-ClampedTranslation $origBounds $dx $dy $imgRect
-            $newPoints = New-Object System.Collections.Generic.List[System.Drawing.Point]
+            $clampedD = Get-ClampedTranslation $origBounds $dx $dy $mediaBounds
+            $newPoints = New-Object System.Collections.Generic.List[System.Drawing.PointF]
             foreach ($origPt in $moveOrigPolygonPoints) {
-                [void]$newPoints.Add((New-Object System.Drawing.Point(($origPt.X + $clampedD.Dx), ($origPt.Y + $clampedD.Dy))))
+                [void]$newPoints.Add((New-Object System.Drawing.PointF(
+                    [single]([double]$origPt.X + [double]$clampedD.Dx),
+                    [single]([double]$origPt.Y + [double]$clampedD.Dy))))
             }
             $script:polygonPoints = $newPoints
         }
         else {
-            $clampedD = Get-ClampedTranslation $moveOrigSelection $dx $dy $imgRect
-            $script:selection = New-Object System.Drawing.Rectangle(
-                ($moveOrigSelection.X + $clampedD.Dx), ($moveOrigSelection.Y + $clampedD.Dy),
-                $moveOrigSelection.Width, $moveOrigSelection.Height)
+            $clampedD = Get-ClampedTranslation $moveOrigSelection $dx $dy $mediaBounds
+            $script:selection = New-Object System.Drawing.RectangleF(
+                [single]([double]$moveOrigSelection.X + [double]$clampedD.Dx),
+                [single]([double]$moveOrigSelection.Y + [double]$clampedD.Dy),
+                [single]$moveOrigSelection.Width,
+                [single]$moveOrigSelection.Height)
         }
         $picture.Invalidate()
         return
@@ -4477,53 +5552,113 @@ $picture.Add_MouseMove({
 
     if ($toolMode -eq "Polygon") {
         if ($polygonActive) {
-            $rawPt = Clamp-PointToImage (New-Object System.Drawing.Point($e.X,$e.Y))
+            $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+            $rawPt = ViewPoint-To-MediaPoint $viewPt $true
+            if (-not $rawPt) { return }
+
             if ($polygonPoints.Count -gt 0) {
                 $constrainAngle = [bool]([System.Windows.Forms.Control]::ModifierKeys -band [System.Windows.Forms.Keys]::Shift)
                 $lastPolyPt = $polygonPoints[$polygonPoints.Count - 1]
-                $rawPt = Clamp-PointToImage (Get-AngleSnappedPoint $lastPolyPt $rawPt $constrainAngle)
+                $rawPt = Clamp-MediaPoint (Get-AngleSnappedPoint $lastPolyPt $rawPt $constrainAngle)
             }
             $script:polygonMousePos = $rawPt
             $picture.Invalidate()
         }
         elseif (-not $pendingRedaction -and $polygonPoints.Count -ge 3) {
-            # Idle (not drawing, nothing pending): hint that the shape can be
-            # picked up and dragged by swapping to a move cursor over it.
-            $hoverPt = Clamp-PointToImage (New-Object System.Drawing.Point($e.X,$e.Y))
-            $picture.Cursor = if (Test-PointInPolygon $hoverPt $polygonPoints) { [System.Windows.Forms.Cursors]::SizeAll } else { [System.Windows.Forms.Cursors]::Default }
+            # Idle hover hit-testing is also media-space. Outside the displayed
+            # media, keep the normal cursor rather than clamping into an edge.
+            $viewRect = Get-MediaViewRect
+            $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+            if ($viewRect -and $viewRect.Contains($viewPt)) {
+                $hoverPt = ViewPoint-To-MediaPoint $viewPt $true
+                $picture.Cursor = if ($hoverPt -and (Test-PointInPolygon $hoverPt $polygonPoints)) {
+                    [System.Windows.Forms.Cursors]::SizeAll
+                } else {
+                    [System.Windows.Forms.Cursors]::Default
+                }
+            }
+            else {
+                $picture.Cursor = [System.Windows.Forms.Cursors]::Default
+            }
         }
         return
     }
- 
+
     if (-not $dragging) {
-        if (-not $pendingRedaction -and $selection.Width -gt 1 -and $selection.Height -gt 1) {
-            $hoverPt = Clamp-PointToImage (New-Object System.Drawing.Point($e.X,$e.Y))
-            $picture.Cursor = if ($selection.Contains($hoverPt)) { [System.Windows.Forms.Cursors]::SizeAll } else { [System.Windows.Forms.Cursors]::Default }
+        if (-not $pendingRedaction -and $selection.Width -gt 0.01 -and $selection.Height -gt 0.01) {
+            $viewRect = Get-MediaViewRect
+            $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+            if ($viewRect -and $viewRect.Contains($viewPt)) {
+                $hoverPt = ViewPoint-To-MediaPoint $viewPt $true
+                $picture.Cursor = if ($hoverPt -and $selection.Contains($hoverPt)) {
+                    [System.Windows.Forms.Cursors]::SizeAll
+                } else {
+                    [System.Windows.Forms.Cursors]::Default
+                }
+            }
+            else {
+                $picture.Cursor = [System.Windows.Forms.Cursors]::Default
+            }
         }
         return
     }
- 
-    $pt = New-Object System.Drawing.Point($e.X,$e.Y)
-    $p = Clamp-PointToImage $pt
- 
-    # Shift constrains Rectangle to a square / Oval to a circle, by forcing
-    # equal width/height while keeping the drag's original direction on each
-    # axis. Checked live (not just at drag-start) so toggling Shift mid-drag
-    # takes effect immediately.
+
+    $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+    $p = ViewPoint-To-MediaPoint $viewPt $true
+    if (-not $p) { return }
+
+    # Shift constrains Rectangle to a square / Oval to a circle. This now
+    # happens in MEDIA pixels, which is also the correct canonical geometry.
     $constrain = [bool]([System.Windows.Forms.Control]::ModifierKeys -band [System.Windows.Forms.Keys]::Shift)
-    $delta = Get-ConstrainedDelta ($p.X - $dragStart.X) ($p.Y - $dragStart.Y) $constrain
- 
-    $x = [Math]::Min($dragStart.X, $dragStart.X + $delta.Dx)
-    $y = [Math]::Min($dragStart.Y, $dragStart.Y + $delta.Dy)
-    $w = [Math]::Max(1, [Math]::Abs($delta.Dx))
-    $h = [Math]::Max(1, [Math]::Abs($delta.Dy))
- 
-    $script:selection = New-Object System.Drawing.Rectangle($x,$y,$w,$h)
+    $delta = Get-ConstrainedDelta ([double]$p.X - [double]$dragStart.X) ([double]$p.Y - [double]$dragStart.Y) $constrain
+
+    $x = [Math]::Min([double]$dragStart.X, ([double]$dragStart.X + [double]$delta.Dx))
+    $y = [Math]::Min([double]$dragStart.Y, ([double]$dragStart.Y + [double]$delta.Dy))
+    $w = [Math]::Max(0.01, [Math]::Abs([double]$delta.Dx))
+    $h = [Math]::Max(0.01, [Math]::Abs([double]$delta.Dy))
+
+    $script:selection = New-Object System.Drawing.RectangleF(
+        [single]$x,[single]$y,[single]$w,[single]$h)
     $picture.Invalidate()
 })
- 
+
+$picture.Add_MouseWheel({
+    param($sender,$e)
+    if (-not $script:zoomToolActive -or -not $previewImage -or $e.Delta -eq 0 -or $script:zoomPanCandidate) { return }
+
+    $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+    $mediaRect = Get-MediaViewRect
+    if (-not $mediaRect -or -not $mediaRect.Contains($viewPt)) { return }
+
+    Step-ZoomAtViewPoint $(if ($e.Delta -gt 0) { 1 } else { -1 }) $viewPt
+})
+
 $picture.Add_MouseUp({
     param($sender,$e)
+
+    if ($script:zoomToolActive -or $script:spacePanActive) {
+        if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Left -and $script:zoomPanCandidate) {
+            $wasPanning = [bool]$script:zoomPanning
+            $clickPoint = New-Object System.Drawing.PointF(
+                [single]$script:zoomPanStartPoint.X,
+                [single]$script:zoomPanStartPoint.Y)
+
+            $script:zoomPanCandidate = $false
+            $script:zoomPanning = $false
+            $picture.Capture = $false
+            Update-PreviewCursor
+
+            if (-not $wasPanning -and $script:zoomToolActive) {
+                Step-ZoomAtViewPoint 1 $clickPoint
+            }
+            elseif ($wasPanning) {
+                Clamp-ViewportPan ([Math]::Abs([double]$script:zoomPanStartOffsetX)) ([Math]::Abs([double]$script:zoomPanStartOffsetY))
+                $picture.Refresh()
+            }
+        }
+        return
+    }
+
     if ($movingShape) {
         $script:movingShape = $false
         $picture.Capture = $false
@@ -4628,7 +5763,7 @@ function Draw-RedactionShapeLiveEffect($gfx, $r, [System.Drawing.Color]$borderCo
         }
         else {
             $dr = VideoRect-To-Display $r.X $r.Y $r.W $r.H
-            if ($dr) { $gfx.FillRectangle($brush, $dr); $gfx.DrawRectangle($pen, $dr) }
+            if ($dr) { $gfx.FillRectangle($brush, $dr); Draw-ViewportRectangleOutline $gfx $pen $dr }
         }
         $brush.Dispose()
         $pen.Dispose()
@@ -4665,7 +5800,7 @@ function Draw-RedactionShapeLiveEffect($gfx, $r, [System.Drawing.Color]$borderCo
     }
     else {
         $gfx.DrawImage($patch, $dr)
-        $gfx.DrawRectangle($pen, $dr)
+        Draw-ViewportRectangleOutline $gfx $pen $dr
     }
 
     $patch.Dispose()
@@ -4674,6 +5809,32 @@ function Draw-RedactionShapeLiveEffect($gfx, $r, [System.Drawing.Color]$borderCo
 
 $picture.Add_Paint({
     param($sender,$e)
+
+    # Slice 3: the PictureBox no longer renders its Image property. Draw the
+    # current decoded/autorotated frame explicitly through the viewport
+    # transform first, then layer committed/pending/draft redactions on top.
+    # Fit geometry intentionally preserves r18's integer SizeMode=Zoom result.
+    if ($previewImage) {
+        $mediaViewRect = Get-MediaViewRect
+        if ($mediaViewRect -and $mediaViewRect.Width -gt 0.0 -and $mediaViewRect.Height -gt 0.0) {
+            if ($zoomMode -eq "Fit") {
+                $destRect = New-Object System.Drawing.Rectangle([int]$mediaViewRect.X,[int]$mediaViewRect.Y,[int]$mediaViewRect.Width,[int]$mediaViewRect.Height)
+                $e.Graphics.DrawImage(
+                    $previewImage,
+                    $destRect,
+                    0,
+                    0,
+                    $previewImage.Width,
+                    $previewImage.Height,
+                    [System.Drawing.GraphicsUnit]::Pixel
+                )
+            }
+            else {
+                $destRectF = New-Object System.Drawing.RectangleF([single]$mediaViewRect.X,[single]$mediaViewRect.Y,[single]$mediaViewRect.Width,[single]$mediaViewRect.Height)
+                $e.Graphics.DrawImage($previewImage, $destRectF)
+            }
+        }
+    }
 
     # Already-committed redactions: show each one's shape whenever the
     # current frame falls within its exact buffered frame range, so scrubbing
@@ -4712,85 +5873,110 @@ $picture.Add_Paint({
     }
     elseif ($toolMode -eq "Polygon") {
         if ($polygonPoints.Count -gt 0) {
-            $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::Red, 2)
-            for ($i = 0; $i -lt $polygonPoints.Count - 1; $i++) {
-                $e.Graphics.DrawLine($pen, $polygonPoints[$i], $polygonPoints[$i+1])
-            }
- 
-            if ($polygonActive -and $polygonMousePos) {
-                $dashPen = New-Object System.Drawing.Pen([System.Drawing.Color]::Red, 1)
-                $dashPen.DashStyle = [System.Drawing.Drawing2D.DashStyle]::Dash
-                $e.Graphics.DrawLine($dashPen, $polygonPoints[$polygonPoints.Count - 1], $polygonMousePos)
-                $dashPen.Dispose()
-            }
-            elseif (-not $polygonActive -and $polygonPoints.Count -ge 3) {
-                # Closed but not yet committed via Begin/Create Redaction.
-                if ($isImageMode) {
-                    $shapeData = Polygon-To-VideoShape $polygonPoints
-                    if ($shapeData) {
-                        $shapeData.Mode = Get-SelectedMode
-                        $shapeData.Strength = $redactionStrength
-                        $shapeData.Color = $redactionColor
-                        Draw-RedactionShapeLiveEffect $e.Graphics $shapeData ([System.Drawing.Color]::Red)
+            # Draft freeform vertices live in MEDIA space; project them into
+            # the current viewport for drawing only. Pen/marker sizes remain
+            # screen-pixel constants.
+            $dpts = MediaPoints-To-ViewPoints $polygonPoints
+            if ($dpts -and $dpts.Count -gt 0) {
+                $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::Red, 2)
+
+                for ($i = 0; $i -lt $dpts.Count - 1; $i++) {
+                    $e.Graphics.DrawLine($pen, $dpts[$i], $dpts[$i+1])
+                }
+
+                if ($polygonActive -and $polygonMousePos) {
+                    $mouseView = MediaPoint-To-ViewPoint $polygonMousePos
+                    if ($mouseView) {
+                        $dashPen = New-Object System.Drawing.Pen([System.Drawing.Color]::Red, 1)
+                        $dashPen.DashStyle = [System.Drawing.Drawing2D.DashStyle]::Dash
+                        $e.Graphics.DrawLine($dashPen, $dpts[$dpts.Count - 1], $mouseView)
+                        $dashPen.Dispose()
                     }
                 }
-                else {
-                    $brush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(55,255,0,0))
-                    $e.Graphics.FillPolygon($brush, $polygonPoints.ToArray())
-                    $e.Graphics.DrawPolygon($pen, $polygonPoints.ToArray())
-                    $brush.Dispose()
+                elseif (-not $polygonActive -and $polygonPoints.Count -ge 3) {
+                    # Closed but not yet committed via Begin/Create Redaction.
+                    if ($isImageMode) {
+                        $shapeData = Polygon-To-VideoShape $polygonPoints
+                        if ($shapeData) {
+                            $shapeData.Mode = Get-SelectedMode
+                            $shapeData.Strength = $redactionStrength
+                            $shapeData.Color = $redactionColor
+                            Draw-RedactionShapeLiveEffect $e.Graphics $shapeData ([System.Drawing.Color]::Red)
+                        }
+                    }
+                    elseif ($dpts.Count -ge 3) {
+                        $brush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(55,255,0,0))
+                        $e.Graphics.FillPolygon($brush, $dpts)
+                        $e.Graphics.DrawPolygon($pen, $dpts)
+                        $brush.Dispose()
+                    }
                 }
+
+                # Marker on the start point. Geometry moves with the media,
+                # while the marker itself remains a constant 8 screen pixels.
+                $startPt = $dpts[0]
+                $markerBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::Yellow)
+                $e.Graphics.FillEllipse($markerBrush, ($startPt.X - 4), ($startPt.Y - 4), 8, 8)
+                $e.Graphics.DrawEllipse($pen, ($startPt.X - 4), ($startPt.Y - 4), 8, 8)
+                $markerBrush.Dispose()
+                $pen.Dispose()
             }
- 
-            # Marker on the start point, so it's obvious where to click to close.
-            $startPt = $polygonPoints[0]
-            $markerBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::Yellow)
-            $e.Graphics.FillEllipse($markerBrush, ($startPt.X - 4), ($startPt.Y - 4), 8, 8)
-            $e.Graphics.DrawEllipse($pen, ($startPt.X - 4), ($startPt.Y - 4), 8, 8)
-            $markerBrush.Dispose()
-            $pen.Dispose()
         }
     }
-    elseif ($selection.Width -gt 0 -and $selection.Height -gt 0) {
-        if ($isImageMode) {
-            $vr = Selection-To-VideoRect
-            if ($vr) {
-                $shapeData = @{
-                    Shape = if ($toolMode -eq "Oval") { "Oval" } else { "Rectangle" }
-                    X = $vr.X; Y = $vr.Y; W = $vr.W; H = $vr.H
-                    Mode = Get-SelectedMode
-                    Strength = $redactionStrength
-                    Color = $redactionColor
+    elseif ($selection.Width -gt 0.0 -and $selection.Height -gt 0.0) {
+        $displaySelection = MediaRect-To-ViewRect $selection
+        if ($displaySelection) {
+            if ($isImageMode) {
+                $vr = Selection-To-VideoRect
+                if ($vr) {
+                    $shapeData = @{
+                        Shape = if ($toolMode -eq "Oval") { "Oval" } else { "Rectangle" }
+                        X = $vr.X; Y = $vr.Y; W = $vr.W; H = $vr.H
+                        Mode = Get-SelectedMode
+                        Strength = $redactionStrength
+                        Color = $redactionColor
+                    }
+                    Draw-RedactionShapeLiveEffect $e.Graphics $shapeData ([System.Drawing.Color]::Red)
                 }
-                Draw-RedactionShapeLiveEffect $e.Graphics $shapeData ([System.Drawing.Color]::Red)
-            }
-        }
-        else {
-            $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::Red, 2)
-            $brush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(55,255,0,0))
-            if ($toolMode -eq "Oval") {
-                $e.Graphics.FillEllipse($brush, $selection)
-                $e.Graphics.DrawEllipse($pen, $selection)
             }
             else {
-                $e.Graphics.FillRectangle($brush, $selection)
-                $e.Graphics.DrawRectangle($pen, $selection)
+                $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::Red, 2)
+                $brush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(55,255,0,0))
+                if ($toolMode -eq "Oval") {
+                    $e.Graphics.FillEllipse($brush, $displaySelection)
+                    $e.Graphics.DrawEllipse($pen, $displaySelection)
+                }
+                else {
+                    $e.Graphics.FillRectangle($brush, $displaySelection)
+                    Draw-ViewportRectangleOutline $e.Graphics $pen $displaySelection
+                }
+                $brush.Dispose()
+                $pen.Dispose()
             }
-            $brush.Dispose()
-            $pen.Dispose()
         }
     }
 })
  
 $scrubberMarkers.Add_Paint({
     param($sender,$e)
+
+    # Always clear this control explicitly before drawing the current model.
+    # The v1.4 preview resizes this marker strip whenever the window or
+    # Redaction Area changes width. Without an explicit clear, stale pixels
+    # from a previous paint can survive long enough to look like extra or
+    # differently-sized redaction ranges.
+    $e.Graphics.Clear($sender.BackColor)
+
     if ($videoDuration -le 0 -or $redactions.Count -eq 0) { return }
- 
-    $w = $scrubberMarkers.ClientSize.Width
-    $midY = [int]($scrubberMarkers.ClientSize.Height / 2)
+
+    $w = $sender.ClientSize.Width
+    if ($w -le 1) { return }
+    $midY = [int]($sender.ClientSize.Height / 2)
     $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::Red, 3)
+    $pen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
+    $pen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
     $brush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::Red)
- 
+
     foreach ($r in $redactions) {
         $x1 = Get-MarkerX $r.BufferedStart $videoDuration $w
         $x2 = Get-MarkerX $r.BufferedEnd $videoDuration $w
@@ -4798,11 +5984,11 @@ $scrubberMarkers.Add_Paint({
         $e.Graphics.FillEllipse($brush, ($x1 - 3), ($midY - 3), 6, 6)
         $e.Graphics.FillEllipse($brush, ($x2 - 3), ($midY - 3), 6, 6)
     }
- 
+
     $pen.Dispose()
     $brush.Dispose()
 })
- 
+
 $btnStartRedaction.Add_Click({
     if (-not $videoPath) { return }
     Stop-Playback
@@ -5275,6 +6461,14 @@ $form.Add_FormClosed({
     $playTimer.Stop()
     $previewTimer.Stop()
     if ($previewImage) { $previewImage.Dispose() }
+    if ($script:zoomCursor) {
+        try { $script:zoomCursor.Dispose() } catch {}
+        $script:zoomCursor = $null
+    }
+    if ($script:zoomCursorHandle -ne [IntPtr]::Zero) {
+        try { [ZoomCursorNativeV1]::DestroyCursorHandle($script:zoomCursorHandle) } catch {}
+        $script:zoomCursorHandle = [IntPtr]::Zero
+    }
     Remove-EmbeddedMediaTools
 })
  

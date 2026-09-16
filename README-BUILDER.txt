@@ -1,51 +1,65 @@
-﻿TinyRedactionTool Secure Custom Builder v1.3.8
+TinyRedactionTool Secure Custom Builder v2.0.0
 ================================================
 
-IMPORTANT
----------
-This builder is for the hardened TinyRedactionTool source that requires BOTH
-FFmpeg and FFprobe. Do not use the older v1.2.1 builder with the hardened app:
-v1.2.1 explicitly disabled FFprobe and embedded only FFmpeg.
+RELEASE SOURCE
+--------------
+This builder packages the frozen TinyRedactionTool v2.0.0 RC3 PowerShell source.
+The builder verifies the source before packaging and refuses any source whose
+SHA-256 is not:
 
-SECURITY-SENSITIVE BUILD BEHAVIOUR
-----------------------------------
-- Builds a private static ffmpeg.exe AND ffprobe.exe from one pinned FFmpeg
-  source revision.
-- FFmpeg networking is disabled at configure time.
-- FFplay, capture devices and hardware acceleration are disabled.
-- FFmpeg output encoders/muxers/filters are restricted to TinyRedactionTool's
-  requirements; broad native input decoding/demuxing remains for compatibility.
-- The exact SHA-256 of both produced binaries is injected into the application
-  source before PS2EXE packaging.
-- Both binaries are GZip-compressed and embedded inside one TinyRedactionTool.exe.
-- At runtime they are expanded into a unique per-run TEMP directory, hash-checked
-  before use, and cleaned up when the GUI closes.
-- TinyRedactionTool never searches PATH for FFmpeg or FFprobe.
+11698B006A1FF8759D7FF222246475FE9B0A091C5A4F61023AC4649ACBF2B4FB
 
-PINNED FFMPEG SOURCE
---------------------
-FFmpeg commit: fd7c73d01e976d2e332e85862ab63ab608710834
-This is the source revision corresponding to the 2026-09-10 Gyan git-master
-Windows build. Pinning the revision prevents a later rebuild from silently
-using different upstream source.
+The main window title remains "TinyRedactionTool". The About dialog reports
+"TinyRedactionTool v2.0.0".
+
+
+FINAL VERIFIED RELEASE BUILD
+----------------------------
+The final Windows standalone EXE built from this release source passed the
+packaged-runtime smoke checks on 2026-09-16.
+
+TinyRedactionTool.exe SHA-256:
+F2C76CA945209101BADA2D995056BE3B8B3CC3763FAFED08E3A29E394F397A4F
+
+This hash identifies the tested release executable. A later rebuild may differ
+if the non-fully-reproducible compiler environment changes.
+
+MEDIA TOOLS
+-----------
+Zoom/pan is a viewport-only feature and does not require a different FFmpeg or
+FFprobe build. This production builder therefore requires the exact approved
+media binaries already used by the production baseline:
+
+FFmpeg  SHA-256: 28612C0A94D50A29AABD0555C91E086D1CCDF13260757B83B4BBD53A0C2CDCE0
+FFprobe SHA-256: BB8CBA76F9D4F05DD608F319477A0604D8A8C289FB6A885B03919F07C4DC9855
+
+The existing capability, network-disable, exact-frame, VFR and timestamp
+round-trip smoke tests still run before packaging. Even if a clean rebuild
+produces binaries that pass those tests, the v2.0.0 release builder will refuse
+them unless the hashes above also match.
+
+IMPORTANT WHEN UPDATING AN EXISTING BUILD FOLDER
+------------------------------------------------
+Keep the existing ffmpeg-custom.exe, ffprobe-custom.exe and _CustomFFmpegBuild
+folder. Stage and verify this builder package first, then copy its files over the
+existing builder files. Do not delete the cached media tools merely because the
+application source changed.
 
 BUILD
 -----
-Double-click BUILD-TinyRedactionTool-CUSTOM.cmd and follow the console output.
-Do not distribute the result until the runtime security test plan has passed.
+1. Close TinyRedactionTool.exe if it is running.
+2. Double-click BUILD-TinyRedactionTool-CUSTOM.cmd.
+3. The builder validates the exact source and media-tool hashes, runs the media
+   smoke tests, injects the hashes into the packaged source, embeds both GZip
+   payloads and creates one TinyRedactionTool.exe.
+4. The output file version is 2.0.0.0.
+5. Record the final EXE SHA-256 printed by the builder.
 
+PS2EXE remains pinned to 1.0.18. The FFmpeg source/profile and MSYS2 pinning
+logic are unchanged from the hardened v1.3.8 builder.
 
-SUPPLY-CHAIN PINNING IN v1.3.8
---------------------------------
-- MSYS2 base archive is downloaded by fixed GitHub release-asset ID 560868716.
-- Expected size: 42915960 bytes.
-- Expected SHA-256: F6BBDE384F3331FB293C5051D5B9DBEC01C772BCCDCEEE83B78213801264D0BD
-- The archive is rejected and deleted if either check fails.
-- PS2EXE is pinned to version 1.0.18 and that exact version is imported.
-
-NOTE: MSYS2 packages installed by pacman are still obtained from the signed rolling MSYS2 repositories at build time. This builder therefore improves supply-chain pinning, but it does not claim bit-for-bit reproducibility of the complete compiler/library toolchain.
-
-
+HISTORICAL BUILDER NOTES
+------------------------
 v1.3.3 BUILDER FIX
 ------------------
 - Corrected the exact hash-slot uniqueness check used before injecting the

@@ -2,46 +2,161 @@
 
 TinyRedactionTool is a Windows desktop utility for **local redaction of still images and video**. It is designed for workflows that may involve sensitive information and therefore prefers fail-closed behaviour when media timing, export validation, or trusted-tool integrity cannot be established safely.
 
-The tool was created and audited using AI assistance.
-All files contained here are '**as is**'. Issues and pull requests are not monitored. Individual troubleshooting and support cannot be provided.
+The tool was created and audited using AI assistance.  
+All files contained here are **as is**. Issues and pull requests are not monitored. Individual troubleshooting and support cannot be provided.  
 You’re welcome to fork and adapt this project for your own use. If you do, please retain attribution or otherwise acknowledge the original project.
-
 
 <img src="images/screenshot.png" width="800">
 
-It supports:
+## Full feature list
 
-- Rectangle selections
-- Oval selections
-- Freeform/polygon selections
-- Black/Coloured Box redaction
-- Blur
-- Pixelate
-- CFR and native VFR video
-- Frame-by-frame navigation
-- Optional audio retention
-- Still-image and video export
-- A single-file compiled Windows EXE
+### Selection and redaction
+
+- Rectangle selection.
+- Oval selection.
+- Freeform/polygon selection.
+- Move an uncommitted Rectangle, Oval or closed Freeform selection before committing it.
+- Hold **Shift** while drawing a Rectangle/Oval to constrain it to a square/circle.
+- Hold **Shift** while adding Freeform points to snap the next segment to horizontal, vertical or 45-degree angles.
+- Opaque **Black/Coloured Box** redaction for permanent pixel replacement.
+- User-selectable box colour.
+- Eyedropper tool to sample a colour directly from the loaded frame/image.
+- **Blur** visual obscuration with adjustable strength.
+- **Pixelate** visual obscuration with adjustable strength.
+- Session-only warning suppression for Blur/Pixelate security warnings.
+- Video redactions use explicit **Begin Redaction** and **End Redaction** frame markers.
+- Automatic **2-frame temporal safety buffer** before and after each marked video range.
+- Automatic **1-pixel outward spatial safety margin** for secure opaque exports where media bounds allow it.
+- Redaction list showing shape, mode and marked range.
+- Remove selected redactions or clear all redactions.
+- Timeline markers show committed video redaction ranges.
+- Draft and committed redaction geometry is stored in canonical displayed-media coordinates rather than screen/control coordinates.
+
+### Zoom, pan and preview navigation
+
+- Dedicated Zoom tool in the left toolbar.
+- Pointer-centred **left-click zoom in**.
+- Pointer-centred **right-click zoom out**.
+- Pointer-centred **mouse-wheel zoom**.
+- Visible `−  Fit  +` zoom controls in the preview.
+- Live zoom indicator such as `Fit (43%)` or `200%`.
+- **100% = one displayed-media pixel per screen pixel**.
+- Manual zoom up to **800%**.
+- Drag with the Zoom tool to pan.
+- Hold **Space + drag** while Rectangle/Oval/Freeform is selected for temporary pan without changing drawing tools.
+- Fit mode preserves aspect ratio and permits letterboxing rather than stretching media.
+- Manual zoom/pan survives frame stepping, seeking, playback, pause, panel collapse/restore and window resize/maximise/restore.
+- Opening new media resets the viewport to Fit.
+- Redactions remain attached to the same media pixels at every zoom level and pan position.
+- Preview selection outlines remain approximately constant in screen-pixel thickness instead of scaling into oversized borders.
+
+### Video timing and playback
+
+- CFR video support.
+- Native **VFR (variable-frame-rate)** support without converting the source to a temporary CFR file.
+- FFprobe-backed per-frame timing map using real presentation timestamps.
+- Exact logical-frame Previous/Next navigation.
+- Left/Right arrow keyboard shortcuts for previous/next frame.
+- Click-and-drag timeline seeking mapped to presentation time.
+- Play/Pause preview playback.
+- Playback cadence follows actual per-frame presentation durations for VFR sources.
+- Current preview time and logical frame number display.
+- Redaction activation uses logical frame indexes rather than `frame / fps` arithmetic.
+- Exact-PTS preview extraction fails closed instead of silently substituting a neighbouring frame.
+- 90°, 180° and 270° rotation/orientation handling through the same autorotated displayed-media coordinate convention used for export.
+
+### Image and video export
+
+- Video export: **MP4, MOV, M4V, AVI, MKV, WebM**.
+- Image export: **PNG, JPG, GIF, WebP**.
+- H.264 output for MP4/MOV/M4V/AVI/MKV.
+- VP9 output for WebM.
+- High quality, Normal quality and Smaller file size presets.
+- Audio retention is **off by default**.
+- Optional primary-audio retention only (`0:a:0`).
+- AAC audio for non-WebM video output and Opus for WebM.
+- Separate warning before retaining audio because TinyRedactionTool does not inspect or redact spoken content.
+- Source metadata, stream metadata and chapters stripped from exports.
+- Subtitle, data, attachment and unintended extra audio streams excluded.
+- Neutral default output name: `REDACTED_yyyyMMdd_HHmmss.ext`.
+- Source media is read-only from TinyRedactionTool's perspective; export is always written separately.
+
+### Export validation and fail-closed behaviour
+
+- Export is first written to a same-directory `.partial.<GUID>` file.
+- The partial output is structurally inspected with the bundled FFprobe before finalisation.
+- Stream counts/types, chapters, metadata keys, dimensions and expected audio state are checked.
+- Video exports rebuild and compare the complete output frame timeline against the source timing map.
+- Exact decoded frame-count equality is required for video.
+- Per-frame presentation timestamps must remain within a tight muxer-quantisation tolerance.
+- Generated video is decode-checked before promotion to the requested destination.
+- Existing destination files are not replaced until validation succeeds.
+- Failed encoding/validation/finalisation removes the partial output where possible and leaves the existing destination untouched.
+
+### Local-processing, privacy and media-tool trust
+
+- Local media processing; no TinyRedactionTool media-upload service.
+- No application telemetry.
+- No background update checker.
+- No FFmpeg/FFprobe `PATH` fallback in the packaged application.
+- Single-file EXE embeds a private custom FFmpeg and FFprobe build.
+- Embedded media tools are extracted to a unique random runtime directory.
+- Exact FFmpeg/FFprobe SHA-256 values are injected during the release build and verified at startup.
+- Verified runtime tool files are held open with read-only sharing locks for the GUI session to prevent ordinary post-verification replacement/modification.
+- Custom FFmpeg build has networking disabled while retaining required local file/pipe protocols.
+- Unredacted preview frames are piped through memory instead of intentionally being written as temporary image files.
+- Non-rectangular temporary mask PNGs contain generated geometry/colour coverage, not copied source imagery.
+- Network/mapped-drive source warning before opening unredacted media.
+- Separate network/mapped-drive destination warning before saving exported media.
+- Network warning suppression is session-only and source/destination suppression states are separate.
+- Best-effort Windows Recent Items suppression using `OFN_DONTADDTORECENT`.
+- Captured FFmpeg/FFprobe error text replaces the current source path with `[source media]` where practical and truncates oversized diagnostics.
+
+### User interface and workflow
+
+- Compact Windows PowerShell/WinForms desktop UI.
+- Day and Dark modes with themed toolbar icons.
+- Compact left toolbar for Rectangle, Oval, Freeform, Zoom, Coloured Box, Blur and Pixelate.
+- Collapsible **Redaction Area** side panel; preview expands when the panel is collapsed.
+- Selection X/Y/Width/Height readout.
+- Security-mode guidance distinguishing opaque redaction from visual obscuration.
+- Status/progress feedback during media analysis and export.
+- Compact warning dialogs for Blur/Pixelate, audio and network/cloud paths.
+- About dialog identifies **TinyRedactionTool v2.0.0**, GPL-2.0-or-later licensing and local-processing/no-telemetry posture.
+- GitHub repository URL in About is non-clickable and has a dedicated copy-to-clipboard icon.
+- Custom application/taskbar icon in the packaged v2.0.0 EXE.
+
+### Standalone build
+
+- Runs as a single **64-bit Windows EXE** after packaging.
+- No separate FFmpeg installation or PATH configuration required for the standalone build.
+- Release builder targets Windows PowerShell 5.1 and uses pinned PS2EXE 1.0.18.
+- Builder performs functional FFmpeg/FFprobe smoke tests before packaging, including exact-frame selection and VFR timestamp round trips.
+- v2.0.0 builder refuses to package a source file or approved media-tool binary whose SHA-256 does not match the frozen release values.
 
 > **Important:** Black/Coloured Box is the security-oriented opaque redaction method. **Blur and Pixelate are visual obscuration only** and must not be treated as irreversible redaction.
 
 ## Current release
 
-**Version:** v1.3.8  
+**Version:** v2.0.0  
 **License:** GPL-2.0-or-later  
 **Repository:** https://github.com/mccabedd/tinyredactiontool/
 
-### Runtime-tested v1.3.8 hashes
+### Verified v2.0.0 release build
 
-The build exercised by the v1.3.8 runtime/security test plan on 2026-09-13 produced:
+The final Windows standalone build was produced and independently hash-checked on **2026-09-16** after the full v2.0.0 regression pass and packaged-runtime smoke tests.
 
 | Artifact | SHA-256 |
 |---|---|
-| `TinyRedactionTool.exe` | `8590DC0C584A064A9C56619D9CB1E944501A8FFDC5EB2D022182C8434290AB96` |
-| embedded `ffmpeg.exe` | `28612C0A94D50A29AABD0555C91E086D1CCDF13260757B83B4BBD53A0C2CDCE0` |
-| embedded `ffprobe.exe` | `BB8CBA76F9D4F05DD608F319477A0604D8A8C289FB6A885B03919F07C4DC9855` |
+| `TinyRedactionTool.exe` | `F2C76CA945209101BADA2D995056BE3B8B3CC3763FAFED08E3A29E394F397A4F` |
+| frozen v2.0.0 RC3 source | `11698B006A1FF8759D7FF222246475FE9B0A091C5A4F61023AC4649ACBF2B4FB` |
+| approved embedded `ffmpeg.exe` | `28612C0A94D50A29AABD0555C91E086D1CCDF13260757B83B4BBD53A0C2CDCE0` |
+| approved embedded `ffprobe.exe` | `BB8CBA76F9D4F05DD608F319477A0604D8A8C289FB6A885B03919F07C4DC9855` |
+| secure builder package r2 | `D90F75E81A1A0BF07529D08CCF665B4BCF451EF05C5390C59D0D008DF8DB7813` |
 
-These identify the tested build only. The complete toolchain is **not claimed to be bit-for-bit reproducible**, so a later rebuild may have a different EXE/media-tool hash even when using the same source revision.
+RC3 differs from the fully regression-tested RC2 only by assigning the packaged EXE's embedded custom icon to the main WinForms window/taskbar. No media, redaction, zoom/pan, timing, export or security logic changed.
+
+The v2.0.0 regression matrix covered still images, CFR and VFR video, 90°/180°/270° rotation, Rectangle/Oval/Freeform, Black/Blur/Pixelate, exact Begin/End frame activation, playback/seeking/frame stepping, zoom/pan, audio handling, metadata/chapter stripping, WebM, panel resize/collapse and mixed-state torture testing.
 
 ## Supported media
 
@@ -78,9 +193,21 @@ Blur and Pixelate are provided for visual obscuration, not irreversible redactio
 
 The warning can be suppressed for the current application session only.
 
+## Zoom and pan
+
+Zoom/pan is a preview-only viewport feature. Redaction geometry is stored in canonical displayed-media coordinates and export does not depend on the current zoom factor or pan offset.
+
+- `Fit` keeps the full displayed media visible without distortion.
+- 100% means one displayed-media pixel equals one screen pixel.
+- Manual zoom is capped at 800%.
+- Left/right click and mouse wheel zoom around the pointer while the Zoom tool is active.
+- Dragging with the Zoom tool pans the media.
+- Holding Space while a Rectangle/Oval/Freeform tool is selected temporarily enables drag-to-pan without changing the selected drawing tool.
+- Zoom/pan persists across frame stepping, seeking and playback, and new media resets to Fit.
+
 ## Native VFR support
 
-TinyRedactionTool v1.3.8 supports both CFR and variable-frame-rate video without converting the source to a temporary CFR file.
+TinyRedactionTool supports both CFR and variable-frame-rate video without converting the source to a temporary CFR file.
 
 For every video, the trusted embedded FFprobe enumerates the presentation timing of every decoded frame. TinyRedactionTool builds an in-memory timing map containing frame identity, presentation timestamps/times, frame durations and key-frame information. The map must be internally usable and is independently reconciled against a complete FFmpeg decode count before the source is accepted.
 
@@ -99,7 +226,7 @@ If a safe, unique frame mapping cannot be established, the file is rejected.
 
 ## Rotation
 
-Preview, media geometry and export use FFmpeg autorotation consistently. Rotation metadata/orientation cases at 90°, 180° and 270° were included in the v1.3.8 runtime regression testing so that preview coordinates, selection placement and exported placement remain aligned.
+Preview, media geometry and export use FFmpeg autorotation consistently. Rotation metadata/orientation cases at 90°, 180° and 270° were included in the v2.0.0 regression testing so that preview coordinates, selection placement and exported placement remain aligned.
 
 ## Audio
 
@@ -130,7 +257,7 @@ Exports explicitly remove:
 
 Post-export inspection uses structured FFprobe JSON rather than parsing FFmpeg's human-readable banner output. A narrow allow-list permits only expected muxer/encoder housekeeping metadata keys.
 
-The v1.3.8 runtime test used deliberately fake global, stream and chapter metadata and confirmed that the fake values and chapter/data stream did not survive export.
+The v2.0.0 regression pass includes metadata/chapter stripping checks. The historical v1.3.8 standalone security test also used deliberately fake global, stream and chapter metadata and confirmed that the fake values and chapter/data stream did not survive export.
 
 ## Local-processing and privacy model
 
@@ -143,7 +270,7 @@ TinyRedactionTool contains:
 
 Media processing is performed locally by the embedded custom FFmpeg/FFprobe build.
 
-The **About** dialog contains a GitHub link. Clicking it deliberately launches the repository URL in the user's normal browser, so TinyRedactionTool does **not** claim that no user action can ever initiate a network connection.
+The **About** dialog displays the GitHub repository URL as non-clickable text with a copy button. TinyRedactionTool does not launch the repository or initiate a browser/network connection from that URL. Copying it to the clipboard and opening it elsewhere is an explicit user action outside TinyRedactionTool.
 
 ### Network and cloud paths
 
@@ -221,7 +348,7 @@ This reduces accidental disclosure in dialogs/log capture but is not a promise t
 
 The secure builder targets **Windows PowerShell 5.1** and uses a cached MSYS2/MinGW environment under `_CustomFFmpegBuild`.
 
-Major pinned inputs in v1.3.8:
+Major pinned inputs in the v2.0.0 release builder:
 
 - FFmpeg source commit: `fd7c73d01e976d2e332e85862ab63ab608710834`
 - MSYS2 base release asset ID: `560868716`
@@ -273,4 +400,4 @@ TinyRedactionTool is designed to reduce accidental disclosure, not to control th
 - Long-path behaviour beyond ordinary Windows path limits is not claimed for the standalone build.
 - OS-level forensic artefacts cannot be absolutely eliminated by an ordinary desktop application.
 
-For the implementation details, threat model and v1.3.8 test record, see [`SECURITY-AUDIT.md`](SECURITY-AUDIT.md).
+For the hardened packaging threat model and historical v1.3.8 standalone security-test record, see [`SECURITY-AUDIT.md`](SECURITY-AUDIT.md). For v2.0.0 release-specific changes and regression status, see `RELEASE-NOTES-v2.0.0.txt`.

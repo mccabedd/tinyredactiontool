@@ -1,7 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-title TinyRedactionTool - Secure Custom FFmpeg Builder v1.3.8
+title TinyRedactionTool - Secure Custom FFmpeg Builder v2.0.0
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Build-TinyRedactionTool-Custom.ps1"
 set "RC=%ERRORLEVEL%"
 echo.
