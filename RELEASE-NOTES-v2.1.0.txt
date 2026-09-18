@@ -1,0 +1,80 @@
+TinyRedactionTool v2.1.0 — Release Notes
+=========================================
+
+Release-preparation date: 2026-09-18
+Status: Frozen source; final Windows builder/package run pending
+
+WHAT'S NEW
+----------
+
+1. Pre-commit Rectangle / Square resizing
+   - Eight resize handles: four corners plus North/East/South/West.
+   - Standard Windows resize cursors.
+   - Side handles resize one axis; corner handles resize both axes.
+   - Hold Shift while resizing to preserve a square.
+   - Handles remain constant screen size at every zoom level.
+
+2. Pre-commit Oval / Circle resizing
+   - Four cardinal resize handles: North/East/South/West.
+   - Hold Shift while resizing to preserve a circle.
+
+3. Pre-commit Freeform vertex editing
+   - Every existing vertex of a closed Freeform receives a draggable handle.
+   - Dragging a vertex changes only that vertex.
+   - Whole-polygon movement remains available.
+   - First click outside a closed Freeform clears/dismisses it and is consumed; the second click begins a new Freeform.
+
+4. Always-available viewport navigation
+   - Mouse-wheel zoom is available whenever the pointer is over the preview, regardless of the selected drawing tool.
+   - Middle-button drag pans the preview without changing tools.
+   - Existing Space+left-drag temporary pan remains available.
+   - Existing Magnifying Glass / Zoom tool remains available.
+
+UNCHANGED SECURITY / MEDIA ARCHITECTURE
+---------------------------------------
+
+The v2.1 feature work deliberately did not redesign:
+
+- CFR/VFR timing or logical frame identity;
+- exact-PTS preview extraction;
+- Begin/End frame activation or the ±2-frame temporal buffer;
+- rotation handling;
+- Black/Coloured Box security semantics and spatial safety margin;
+- conventional Blur/Pixelate export behaviour;
+- metadata/chapter/extra-stream stripping;
+- audio-off-by-default / primary-audio-only handling;
+- transactional .partial export and post-export validation;
+- source immutability;
+- embedded FFmpeg/FFprobe SHA verification and session-long file locks; or
+- the custom FFmpeg network-disabled build profile.
+
+The experimental replacement-first Blur/Pixelate prototype developed separately during v2.1 investigation is NOT included in this release source. Blur and Pixelate therefore retain the documented visual-obscuration-only security warning.
+
+REGRESSION STATUS
+-----------------
+
+The consolidated v2.1.0 RC1 completed the full application regression on 2026-09-18. Release preparation then changed only the About-dialog label from "v2.1.0 RC1" to "v2.1.0".
+
+Frozen release source SHA-256:
+2BC392FD52587343AB4CEA95B19C295286E44E4D3543634D9D3D1E383567BDC7
+
+Consolidated RC1 source SHA-256:
+05445FE17E1E1EC58BF084B749B97C8B8BAAF6869FBAFCCA9D2A3AEB96B94C0D
+
+Approved embedded FFmpeg SHA-256:
+28612C0A94D50A29AABD0555C91E086D1CCDF13260757B83B4BBD53A0C2CDCE0
+
+Approved embedded FFprobe SHA-256:
+BB8CBA76F9D4F05DD608F319477A0604D8A8C289FB6A885B03919F07C4DC9855
+
+FINAL BUILD STATUS
+------------------
+
+The final standalone EXE has not yet been produced. The Windows secure builder must be updated to require the frozen v2.1.0 source hash above, while retaining the approved FFmpeg/FFprobe hashes. The normal builder smoke-test gate must then pass before packaging.
+
+After the build succeeds:
+
+1. independently hash-check TinyRedactionTool.exe;
+2. launch the packaged EXE and perform a final runtime smoke test;
+3. record the final EXE SHA-256 and builder-package SHA-256 in README.md and SECURITY-AUDIT.md; and
+4. only then mark the packaged v2.1.0 release identity as final.

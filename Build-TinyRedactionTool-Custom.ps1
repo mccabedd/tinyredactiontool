@@ -1,15 +1,16 @@
 ﻿#requires -Version 5.1
 $ErrorActionPreference = 'Stop'
-$Host.UI.RawUI.WindowTitle = 'Build TinyRedactionTool.exe - Secure Custom FFmpeg/FFprobe v2.0.0'
+$Host.UI.RawUI.WindowTitle = 'Build TinyRedactionTool.exe - Secure Custom FFmpeg/FFprobe v2.1.0'
 
 function Write-Step([string]$Text) { Write-Host "`n==> $Text" -ForegroundColor Cyan }
 function Fail([string]$Text) { Write-Host "`nBUILD FAILED: $Text" -ForegroundColor Red; throw $Text }
 function Format-MB([long]$Bytes) { return ('{0:N1} MB' -f ($Bytes / 1MB)) }
 
-# v2.0.0 production release identity. The standalone builder must package the
-# exact regression-tested RC3 source and the exact approved media tools from
-# the v1.4.0 production baseline. Zoom/pan does not require a media-tool change.
-$releaseSourceSha256 = '11698B006A1FF8759D7FF222246475FE9B0A091C5A4F61023AC4649ACBF2B4FB'
+# v2.1.0 production release identity. The standalone builder must package the
+# exact frozen, regression-tested v2.1.0 release source and the exact approved
+# media tools retained from the v2.0.0 production release. Draft editing and
+# viewport usability do not require a media-tool change.
+$releaseSourceSha256 = '2BC392FD52587343AB4CEA95B19C295286E44E4D3543634D9D3D1E383567BDC7'
 $releaseFFmpegSha256 = '28612C0A94D50A29AABD0555C91E086D1CCDF13260757B83B4BBD53A0C2CDCE0'
 $releaseFFprobeSha256 = 'BB8CBA76F9D4F05DD608F319477A0604D8A8C289FB6A885B03919F07C4DC9855'
 
@@ -245,12 +246,12 @@ foreach ($required in @($sourceTemplate,$icon,$shellTemplate)) {
 }
 New-Item -ItemType Directory -Path $cache -Force | Out-Null
 
-Write-Step 'Verifying frozen v2.0.0 release source'
+Write-Step 'Verifying frozen v2.1.0 release source'
 $actualSourceSha256 = (Get-FileHash -LiteralPath $sourceTemplate -Algorithm SHA256).Hash.ToUpperInvariant()
 if ($actualSourceSha256 -ne $releaseSourceSha256) {
-    Fail "Release source SHA-256 mismatch. Expected $releaseSourceSha256; got $actualSourceSha256. Refusing to package a non-RC3 source."
+    Fail "Release source SHA-256 mismatch. Expected $releaseSourceSha256; got $actualSourceSha256. Refusing to package a non-frozen v2.1.0 source."
 }
-Write-Host "    RC3 source SHA-256 verified: $actualSourceSha256" -ForegroundColor Green
+Write-Host "    v2.1.0 source SHA-256 verified: $actualSourceSha256" -ForegroundColor Green
 
 $needsMediaBuild = (-not (Test-Path -LiteralPath $customFFmpeg) -or -not (Test-Path -LiteralPath $customFFprobe))
 if (-not $needsMediaBuild) {
@@ -334,12 +335,12 @@ Test-VFRTimingRoundTrip $customFFmpeg $customFFprobe
 $ffmpegHash = (Get-FileHash -LiteralPath $customFFmpeg -Algorithm SHA256).Hash.ToUpperInvariant()
 $ffprobeHash = (Get-FileHash -LiteralPath $customFFprobe -Algorithm SHA256).Hash.ToUpperInvariant()
 if ($ffmpegHash -ne $releaseFFmpegSha256) {
-    Fail "FFmpeg SHA-256 differs from the approved v2.0.0 release binary. Expected $releaseFFmpegSha256; got $ffmpegHash."
+    Fail "FFmpeg SHA-256 differs from the approved v2.1.0 release binary. Expected $releaseFFmpegSha256; got $ffmpegHash."
 }
 if ($ffprobeHash -ne $releaseFFprobeSha256) {
-    Fail "FFprobe SHA-256 differs from the approved v2.0.0 release binary. Expected $releaseFFprobeSha256; got $ffprobeHash."
+    Fail "FFprobe SHA-256 differs from the approved v2.1.0 release binary. Expected $releaseFFprobeSha256; got $ffprobeHash."
 }
-Write-Host '    Approved v2.0.0 media-tool hashes: OK' -ForegroundColor Green
+Write-Host '    Approved v2.1.0 media-tool hashes: OK' -ForegroundColor Green
 Write-Step 'Pinning exact SHA-256 hashes into the packaged application source'
 Write-Host "    FFmpeg : $ffmpegHash"
 Write-Host "    FFprobe: $ffprobeHash"
@@ -403,7 +404,7 @@ Invoke-ps2exe `
     -title 'TinyRedactionTool' `
     -product 'TinyRedactionTool' `
     -description 'Standalone local image and video redaction tool' `
-    -version '2.0.0.0' `
+    -version '2.1.0.0' `
     -supportOS
 
 if (-not (Test-Path -LiteralPath $output)) { Fail 'PS2EXE did not create TinyRedactionTool.exe.' }

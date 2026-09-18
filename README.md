@@ -18,6 +18,11 @@ You’re welcome to fork and adapt this project for your own use. If you do, ple
 - Oval selection.
 - Freeform/polygon selection.
 - Move an uncommitted Rectangle, Oval or closed Freeform selection before committing it.
+- Resize an uncommitted Rectangle/Square with **8 handles**: four corners plus North/East/South/West edge handles.
+- Resize an uncommitted Oval/Circle with **4 cardinal handles**: North/East/South/West.
+- Edit a closed uncommitted Freeform by dragging any existing vertex handle; whole-polygon movement remains available.
+- Hold **Shift while resizing** a Rectangle/Oval to constrain the result to a square/circle.
+- Clicking outside a closed Freeform dismisses that draft; a second click begins a new Freeform.
 - Hold **Shift** while drawing a Rectangle/Oval to constrain it to a square/circle.
 - Hold **Shift** while adding Freeform points to snap the next segment to horizontal, vertical or 45-degree angles.
 - Opaque **Black/Coloured Box** redaction for permanent pixel replacement.
@@ -39,12 +44,13 @@ You’re welcome to fork and adapt this project for your own use. If you do, ple
 - Dedicated Zoom tool in the left toolbar.
 - Pointer-centred **left-click zoom in**.
 - Pointer-centred **right-click zoom out**.
-- Pointer-centred **mouse-wheel zoom**.
+- Pointer-centred **mouse-wheel zoom is always available while the pointer is over the preview**, regardless of the selected drawing tool.
 - Visible `−  Fit  +` zoom controls in the preview.
 - Live zoom indicator such as `Fit (43%)` or `200%`.
 - **100% = one displayed-media pixel per screen pixel**.
 - Manual zoom up to **800%**.
 - Drag with the Zoom tool to pan.
+- **Middle-button drag** pans the preview at any time without changing the selected drawing tool.
 - Hold **Space + drag** while Rectangle/Oval/Freeform is selected for temporary pan without changing drawing tools.
 - Fit mode preserves aspect ratio and permits letterboxing rather than stretching media.
 - Manual zoom/pan survives frame stepping, seeking, playback, pause, panel collapse/restore and window resize/maximise/restore.
@@ -124,9 +130,9 @@ You’re welcome to fork and adapt this project for your own use. If you do, ple
 - Security-mode guidance distinguishing opaque redaction from visual obscuration.
 - Status/progress feedback during media analysis and export.
 - Compact warning dialogs for Blur/Pixelate, audio and network/cloud paths.
-- About dialog identifies **TinyRedactionTool v2.0.0**, GPL-2.0-or-later licensing and local-processing/no-telemetry posture.
+- About dialog identifies **TinyRedactionTool v2.1.0**, GPL-2.0-or-later licensing and local-processing/no-telemetry posture.
 - GitHub repository URL in About is non-clickable and has a dedicated copy-to-clipboard icon.
-- Custom application/taskbar icon in the packaged v2.0.0 EXE.
+- Custom application/taskbar icon in the packaged EXE.
 
 ### Standalone build
 
@@ -134,31 +140,34 @@ You’re welcome to fork and adapt this project for your own use. If you do, ple
 - No separate FFmpeg installation or PATH configuration required for the standalone build.
 - Release builder targets Windows PowerShell 5.1 and uses pinned PS2EXE 1.0.18.
 - Builder performs functional FFmpeg/FFprobe smoke tests before packaging, including exact-frame selection and VFR timestamp round trips.
-- v2.0.0 builder refuses to package a source file or approved media-tool binary whose SHA-256 does not match the frozen release values.
+- The release builder is expected to refuse to package a source file or approved media-tool binary whose SHA-256 does not match the frozen release values.
 
 > **Important:** Black/Coloured Box is the security-oriented opaque redaction method. **Blur and Pixelate are visual obscuration only** and must not be treated as irreversible redaction.
 
 ## Current release
 
-**Version:** v2.0.0  
+**Version:** v2.1.0 final release  
 **License:** GPL-2.0-or-later  
 **Repository:** https://github.com/mccabedd/tinyredactiontool/
 
-### Verified v2.0.0 release build
+### Frozen v2.1.0 source
 
-The final Windows standalone build was produced and independently hash-checked on **2026-09-16** after the full v2.0.0 regression pass and packaged-runtime smoke tests.
+The consolidated v2.1.0 RC1 completed the full application regression on **2026-09-18**. Release preparation then changed only the About-dialog version label from `v2.1.0 RC1` to `v2.1.0`; no media, redaction, timing, export, resize or viewport logic changed.
 
 | Artifact | SHA-256 |
 |---|---|
-| `TinyRedactionTool.exe` | `F2C76CA945209101BADA2D995056BE3B8B3CC3763FAFED08E3A29E394F397A4F` |
-| frozen v2.0.0 RC3 source | `11698B006A1FF8759D7FF222246475FE9B0A091C5A4F61023AC4649ACBF2B4FB` |
+| frozen v2.1.0 release source | `2BC392FD52587343AB4CEA95B19C295286E44E4D3543634D9D3D1E383567BDC7` |
+| consolidated v2.1.0 RC1 source | `05445FE17E1E1EC58BF084B749B97C8B8BAAF6869FBAFCCA9D2A3AEB96B94C0D` |
 | approved embedded `ffmpeg.exe` | `28612C0A94D50A29AABD0555C91E086D1CCDF13260757B83B4BBD53A0C2CDCE0` |
 | approved embedded `ffprobe.exe` | `BB8CBA76F9D4F05DD608F319477A0604D8A8C289FB6A885B03919F07C4DC9855` |
-| secure builder package r2 | `D90F75E81A1A0BF07529D08CCF665B4BCF451EF05C5390C59D0D008DF8DB7813` |
+| final `TinyRedactionTool.exe` | `1770318460DA5FCE5E7E5957F9937674D2ABF57C409189DAF915268D4A55BCB2` |
+| `TinyRedactionTool-Secure-Builder-v2.1.0-r1.zip` | `6DF3F0A51D37B42E649CD4A5DD2E0B4289F3B2B499BCF2D9B096B9038D974C7F` |
 
-RC3 differs from the fully regression-tested RC2 only by assigning the packaged EXE's embedded custom icon to the main WinForms window/taskbar. No media, redaction, zoom/pan, timing, export or security logic changed.
+The final Windows secure-builder run completed successfully on **2026-09-18**. The builder verified the frozen source and approved media-tool hashes, passed the FFmpeg/FFprobe feature, network-disable and VFR timestamp round-trip smoke tests, produced a single-file EXE with no `.config` sidecar, and the resulting EXE was independently hash-checked. A packaged-runtime smoke test was then reported green.
 
-The v2.0.0 regression matrix covered still images, CFR and VFR video, 90°/180°/270° rotation, Rectangle/Oval/Freeform, Black/Blur/Pixelate, exact Begin/End frame activation, playback/seeking/frame stepping, zoom/pan, audio handling, metadata/chapter stripping, WebM, panel resize/collapse and mixed-state torture testing.
+The v2.1.0 feature set adds pre-commit Rectangle/Oval/Freeform editing plus always-available mouse-wheel zoom and middle-button pan. CFR/VFR timing, logical frame identity, export validation, rotation, metadata/audio handling, trusted media-tool architecture and Blur/Pixelate export behaviour remain based on the tested v2.0.0 architecture.
+
+For reference, the previous verified v2.0.0 release used source hash `11698B006A1FF8759D7FF222246475FE9B0A091C5A4F61023AC4649ACBF2B4FB` and EXE hash `F2C76CA945209101BADA2D995056BE3B8B3CC3763FAFED08E3A29E394F397A4F`.
 
 ## Supported media
 
@@ -228,7 +237,7 @@ If a safe, unique frame mapping cannot be established, the file is rejected.
 
 ## Rotation
 
-Preview, media geometry and export use FFmpeg autorotation consistently. Rotation metadata/orientation cases at 90°, 180° and 270° were included in the v2.0.0 regression testing so that preview coordinates, selection placement and exported placement remain aligned.
+Preview, media geometry and export use FFmpeg autorotation consistently. Rotation metadata/orientation cases at 90°, 180° and 270° were rechecked in the consolidated v2.1.0 regression so that preview coordinates, selection placement and exported placement remain aligned.
 
 ## Audio
 
@@ -259,7 +268,7 @@ Exports explicitly remove:
 
 Post-export inspection uses structured FFprobe JSON rather than parsing FFmpeg's human-readable banner output. A narrow allow-list permits only expected muxer/encoder housekeeping metadata keys.
 
-The v2.0.0 regression pass includes metadata/chapter stripping checks. The historical v1.3.8 standalone security test also used deliberately fake global, stream and chapter metadata and confirmed that the fake values and chapter/data stream did not survive export.
+The consolidated v2.1.0 regression rechecked metadata/chapter stripping. The historical v1.3.8 standalone security test also used deliberately fake global, stream and chapter metadata and confirmed that the fake values and chapter/data stream did not survive export.
 
 ## Local-processing and privacy model
 
@@ -350,7 +359,7 @@ This reduces accidental disclosure in dialogs/log capture but is not a promise t
 
 The secure builder targets **Windows PowerShell 5.1** and uses a cached MSYS2/MinGW environment under `_CustomFFmpegBuild`.
 
-Major pinned inputs in the v2.0.0 release builder:
+Major pinned inputs retained for the v2.1.0 release builder:
 
 - FFmpeg source commit: `fd7c73d01e976d2e332e85862ab63ab608710834`
 - MSYS2 base release asset ID: `560868716`
@@ -402,4 +411,4 @@ TinyRedactionTool is designed to reduce accidental disclosure, not to control th
 - Long-path behaviour beyond ordinary Windows path limits is not claimed for the standalone build.
 - OS-level forensic artefacts cannot be absolutely eliminated by an ordinary desktop application.
 
-For the hardened packaging threat model and historical v1.3.8 standalone security-test record, see [`SECURITY-AUDIT.md`](SECURITY-AUDIT.md). For v2.0.0 release-specific changes and regression status, see `RELEASE-NOTES-v2.0.0.txt`.
+For the hardened packaging threat model and historical v1.3.8 standalone security-test record, see [`SECURITY-AUDIT.md`](SECURITY-AUDIT.md). For v2.1.0 changes and release-preparation status, see `RELEASE-NOTES-v2.1.0.txt`.

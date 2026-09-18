@@ -1,62 +1,66 @@
 # TinyRedactionTool Security Audit
 
 **Application:** TinyRedactionTool  
-**Audited version:** v2.0.0  
-**Audit/update date:** 2026-09-16  
+**Audited version:** v2.1.0 final packaged release  
+**Audit/update date:** 2026-09-18  
 **Platform:** 64-bit Windows / Windows PowerShell 5.1 builder  
 **Primary use case:** Local redaction of still images and video that may contain PII/PHI or other sensitive information  
 **License:** GPL-2.0-or-later
 
-> **Version scope:** This document is the authoritative security audit for **TinyRedactionTool v2.0.0**. References to earlier releases are retained only where they identify the origin of historical fault-injection evidence; they are not statements about the current audited version. Current v2.0.0 release identity, hashes and regression results are recorded in Sections 2 and 22.
+> **Version scope:** This document records the final **TinyRedactionTool v2.1.0** source, secure-builder and packaged-release identity. The frozen source, consolidated application regression, Windows secure-builder gates, independent EXE hash verification and final packaged-runtime smoke test were completed on 2026-09-18.
 
 ## 1. Executive summary
 
-TinyRedactionTool v2.0.0 is a local Windows redaction application with a security model built around four core principles:
+TinyRedactionTool v2.1.0 is a local Windows redaction application with a security model built around four core principles:
 
 1. **Fail closed when media identity, frame timing, export validation, or trusted-tool integrity is ambiguous.**
 2. **Use opaque pixel replacement, not reversible-looking visual effects, for security-sensitive redaction.**
 3. **Do not trust arbitrary FFmpeg/FFprobe binaries from the host environment.**
 4. **Do not promote an export to the requested final destination until the generated output has passed post-export inspection.**
 
-The established hardened security architecture remains in v2.0.0: native CFR/VFR frame identity, exact logical-frame activation, metadata/chapter/extra-stream stripping, audio-off-by-default behaviour, transactional `.partial.<GUID>` export, structured post-export inspection, application-local pinned media tools, and runtime protection of the verified FFmpeg/FFprobe files.
+The established hardened security architecture remains in v2.1.0: native CFR/VFR frame identity, exact logical-frame activation, metadata/chapter/extra-stream stripping, audio-off-by-default behaviour, transactional `.partial.<GUID>` export, structured post-export inspection, application-local pinned media tools, and runtime protection of the verified FFmpeg/FFprobe files.
 
-v2.0.0 adds a substantial **preview zoom/pan and coordinate-system redesign**. The security/correctness boundary for that work is explicit: redaction geometry is stored in canonical displayed-media coordinates, while zoom, pan, window size and panel state exist only in viewport coordinates. Export code does not depend on zoom factor or pan offset. Draft Rectangle, Oval and Freeform geometry is converted into media space before storage and remains attached to the same media pixels while the viewport changes.
+v2.0.0 established the preview zoom/pan and canonical coordinate architecture. v2.1.0 extends only the draft-editing and viewport interaction layers: uncommitted Rectangle/Square selections gain eight resize handles, Oval/Circle selections gain four cardinal resize handles, and closed Freeform selections gain draggable per-vertex handles. The v2.1.0 viewport also makes pointer-centred mouse-wheel zoom always available over the preview and adds always-available middle-button drag pan. Existing Space+drag and the dedicated Zoom tool remain available.
 
-A full v2.0.0 regression pass was completed before the final standalone build. It covered still images, CFR and VFR video, Rectangle/Oval/Freeform, Black/Coloured Box, Blur, Pixelate, exact video Begin/End ranges, playback/seeking/frame stepping, zoom/pan, Space+drag temporary pan, rotation at 90°/180°/270°, audio behaviour, metadata/chapter stripping, WebM/VP9, panel collapse/restore, window resize/maximise/restore, and mixed-state interaction testing. The final packaged EXE was then built with the approved media-tool binaries, launched successfully and independently hash-checked.
+The security/correctness boundary remains explicit: redaction geometry is stored in canonical displayed-media coordinates, while zoom, pan, handle hit areas, cursor state, window size and panel state exist only in viewport/UI coordinates. Handles are draft-only decoration and are never export geometry.
 
-Some dedicated historical fault-injection tests pre-date v2.0.0 and were not deliberately repeated against the final v2 build. Where a security control was unchanged, this audit labels that evidence as historical rather than implying a fresh v2.0.0 fault-injection occurred. Those references are consolidated in Section 23.
+The consolidated v2.1.0 RC1 completed the full application regression on 2026-09-18, including still images, CFR/VFR video, Rectangle/Oval/Freeform editing, Black/Coloured Box, conventional Blur/Pixelate, exact Begin/End ranges, playback/seeking/frame stepping, zoom/pan, wheel zoom, middle-button pan, Space+drag, rotation, audio/metadata, WebM, panel/window changes and mixed-state interaction testing. Release preparation changed only the About-dialog label from `v2.1.0 RC1` to `v2.1.0`. Final packaged-build evidence was completed on 2026-09-18: the secure builder passed its source/media-tool integrity gates and functional smoke tests, the packaged EXE was independently verified as `1770318460DA5FCE5E7E5957F9937674D2ABF57C409189DAF915268D4A55BCB2`, and the final packaged-runtime smoke test was reported green.
+
+Some dedicated historical fault-injection tests pre-date v2.1.0 and were not deliberately repeated against the final v2 build. Where a security control was unchanged, this audit labels that evidence as historical rather than implying a fresh v2.1.0 fault-injection occurred. Those references are consolidated in Section 23.
 
 No claim is made that TinyRedactionTool eliminates all operating-system forensic artefacts, protects against a compromised Windows kernel/administrator, or makes Blur/Pixelate irreversible.
 
 ## 2. Tested release identity
 
-The final v2.0.0 standalone release candidate that passed the packaged-runtime smoke test and independent hash verification produced:
+The frozen v2.1.0 release source is:
 
-| Artifact | SHA-256 |
+| Artifact | SHA-256 / status |
 |---|---|
-| `TinyRedactionTool.exe` | `F2C76CA945209101BADA2D995056BE3B8B3CC3763FAFED08E3A29E394F397A4F` |
-| frozen v2.0.0 RC3 source | `11698B006A1FF8759D7FF222246475FE9B0A091C5A4F61023AC4649ACBF2B4FB` |
+| frozen v2.1.0 release source | `2BC392FD52587343AB4CEA95B19C295286E44E4D3543634D9D3D1E383567BDC7` |
+| consolidated v2.1.0 RC1 source | `05445FE17E1E1EC58BF084B749B97C8B8BAAF6869FBAFCCA9D2A3AEB96B94C0D` |
 | approved embedded `ffmpeg.exe` | `28612C0A94D50A29AABD0555C91E086D1CCDF13260757B83B4BBD53A0C2CDCE0` |
 | approved embedded `ffprobe.exe` | `BB8CBA76F9D4F05DD608F319477A0604D8A8C289FB6A885B03919F07C4DC9855` |
-| secure builder package v2.0.0 r2 | `D90F75E81A1A0BF07529D08CCF665B4BCF451EF05C5390C59D0D008DF8DB7813` |
+| final `TinyRedactionTool.exe` | `1770318460DA5FCE5E7E5957F9937674D2ABF57C409189DAF915268D4A55BCB2` |
+| `TinyRedactionTool-Secure-Builder-v2.1.0-r1.zip` | `6DF3F0A51D37B42E649CD4A5DD2E0B4289F3B2B499BCF2D9B096B9038D974C7F` |
 
-The final EXE hash was independently checked after the builder reported success.
+The frozen release source differs from the fully regression-tested consolidated RC1 source only by changing the About-dialog text from `TinyRedactionTool v2.1.0 RC1` to `TinyRedactionTool v2.1.0`. No media, redaction, viewport-transform, timing, export, audio, metadata or security logic changed in that final version-label edit.
 
-RC3 differs from the fully regression-tested RC2 source only by assigning the packaged executable's embedded application icon to the main WinForms window/taskbar. No media, redaction, viewport-transform, timing, export, audio, metadata or security logic changed between RC2 and RC3.
+The approved FFmpeg and FFprobe binaries are intentionally unchanged from v2.0.0. The v2.1.0 Windows secure builder verified this frozen source and both approved media-tool hashes, completed its functional smoke-test gate, produced the final EXE, and the resulting EXE was independently hash-checked as `1770318460DA5FCE5E7E5957F9937674D2ABF57C409189DAF915268D4A55BCB2`.
 
-Any later source/build change invalidates the direct applicability of this test record to the resulting binary. The complete toolchain is not claimed to be bit-for-bit reproducible.
+Any later source/build change invalidates the direct applicability of this source-regression record. The complete toolchain is not claimed to be bit-for-bit reproducible.
 
 ## 3. Audit scope and evidence model
 
-This audit evaluates **v2.0.0**. The v2 development effort deliberately avoided broad refactoring of CFR/VFR timing, export validation, metadata/audio controls and embedded-tool trust while adding zoom/pan and the viewport-coordinate redesign.
+This audit evaluates the frozen **v2.1.0 release source**. The v2.1 work deliberately avoided broad refactoring of CFR/VFR timing, export validation, metadata/audio controls and embedded-tool trust while adding draft-shape resizing/vertex editing and always-available wheel/middle-button viewport navigation.
 
 Evidence in this audit comes from three categories:
 
-1. **v2.0.0 static/source integrity review**, including checks that zoom/pan state is absent from export-generation logic and that protected timing/export subsystems were not casually rewritten.
-2. **v2.0.0 functional regression and final packaged-runtime testing**, including the full zoom/pan geometry matrix and the builder's FFmpeg/FFprobe/VFR smoke-test gate.
-3. **Clearly labelled historical fault-injection evidence** for unchanged security controls. This evidence is kept only to document how those controls were originally challenged and is consolidated in Section 23.
+1. **v2.1.0 static/source integrity review**, including byte-equivalent checks for protected export/frame functions and isolation of resize/viewport UI state from export geometry.
+2. **v2.1.0 functional regression**, including Rectangle/Oval/Freeform draft editing and the viewport interaction matrix. The consolidated RC1 full regression completed successfully before the release-preparation version-label-only edit.
+3. **v2.1.0 packaged-runtime/build evidence**, including frozen-source/media-tool hash gates, functional FFmpeg/FFprobe smoke tests, timestamp-preserving VFR round trips, single-file packaging, independent EXE hash verification and a final packaged-runtime smoke test.
+4. **Clearly labelled historical fault-injection evidence** for unchanged security controls. This evidence is kept only to document how those controls were originally challenged and is consolidated in Section 23.
 
-No historical result is presented as though it were freshly fault-injected against v2.0.0.
+Historical evidence is still labelled as historical; fresh v2.1.0 builder/package evidence is identified separately and is not conflated with earlier fault-injection results.
 
 ## 4. Security objectives
 
@@ -124,7 +128,7 @@ The application contains no telemetry service, media upload service or backgroun
 
 The custom FFmpeg configuration is compiled with networking disabled. Local file and pipe protocols remain enabled because the application requires them.
 
-The v2.0.0 About dialog displays the GitHub repository URL as **non-clickable text** with a copy-to-clipboard icon. TinyRedactionTool does not itself launch that URL. Copying it and later opening it in another application is an explicit user action outside TinyRedactionTool's media-processing path.
+The v2.1.0 About dialog displays the GitHub repository URL as **non-clickable text** with a copy-to-clipboard icon. TinyRedactionTool does not itself launch that URL. Copying it and later opening it in another application is an explicit user action outside TinyRedactionTool's media-processing path.
 
 UNC paths and mapped network drives are permitted but produce separate Source and Destination warnings. Each warning has its own session-only suppression state. This is an informed-consent control, not a prohibition.
 
@@ -134,7 +138,7 @@ Universal cloud-sync detection is not attempted. A path that appears local may s
 
 ### 7.1 Pinned major inputs
 
-The v2.0.0 release builder retains the hardened major build inputs:
+The v2.1.0 release is intended to retain the same hardened major builder inputs used by v2.0.0:
 
 - **FFmpeg source commit:** `fd7c73d01e976d2e332e85862ab63ab608710834`
 - **MSYS2 base release asset ID:** `560868716`
@@ -144,7 +148,7 @@ The v2.0.0 release builder retains the hardened major build inputs:
 
 The builder verifies the FFmpeg `FETCH_HEAD` against the full pinned commit when it performs a source build.
 
-For the final v2.0.0 release, the already-approved media binaries were deliberately reused rather than rebuilding FFmpeg merely because the UI gained zoom/pan. The v2 builder refuses to package media binaries unless their SHA-256 values match the approved release hashes in Section 2.
+For v2.1.0, the already-approved media binaries are deliberately retained rather than rebuilding FFmpeg for draft-editing/viewport-only changes. The updated v2.1 builder must continue to refuse packaging unless the media-binary SHA-256 values match the approved hashes in Section 2.
 
 The v2 builder also refuses to package an application source file unless it matches the frozen RC3 source hash.
 
@@ -188,9 +192,9 @@ TinyRedactionTool never searches `PATH` for media tools in the packaged release.
 
 ### 8.1 Inherited tamper-resistance control
 
-The current v2.0.0 runtime keeps verified FFmpeg/FFprobe file handles open with read-only sharing for the GUI session, preventing ordinary later write/delete replacement through normal Windows file-opening semantics.
+The current v2.1.0 source retains verified FFmpeg/FFprobe file handles open with read-only sharing for the GUI session, preventing ordinary later write/delete replacement through normal Windows file-opening semantics.
 
-The dedicated append-byte tamper experiment that originally demonstrated the need for this control is **historical evidence** and was not separately repeated as a v2.0.0 fault-injection test. v2 retained the control, source-reviewed the relevant path, and successfully performed normal packaged-runtime media operations with the trust checks active.
+The dedicated append-byte tamper experiment that originally demonstrated the need for this control is **historical evidence**. It was not freshly repeated for v2.1.0. The control remains present in the source; the final v2.1 packaged build and runtime smoke test completed successfully, but this specific tamper fault-injection was not repeated.
 
 For the historical fault-injection provenance, see Section 23.
 
@@ -200,7 +204,7 @@ For the historical fault-injection provenance, see Section 23.
 
 Preview frames are emitted by FFmpeg through `image2pipe`/stdout and loaded into a process memory stream. TinyRedactionTool does not intentionally write decoded unredacted preview PNG/JPG files to disk.
 
-v2.0.0 changed who draws the preview on screen: the application now renders the in-memory preview bitmap through its own viewport transform rather than relying on `PictureBox.SizeMode=Zoom`. This does not introduce a new decoded-frame disk cache.
+v2.0.0 changed who draws the preview on screen; v2.1.0 retains that renderer. The application renders the in-memory preview bitmap through its own viewport transform rather than relying on `PictureBox.SizeMode=Zoom`. This does not introduce a new decoded-frame disk cache.
 
 ### 9.2 Geometry mask files
 
@@ -208,7 +212,7 @@ Non-rectangular redactions can use temporary PNG masks. These contain generated 
 
 ## 10. Viewport, zoom/pan and redaction-coordinate architecture
 
-This is the primary v2.0.0 architectural change.
+This coordinate separation was the primary v2.0.0 architectural change and remains the foundation for the v2.1.0 editing/viewport work.
 
 ### 10.1 Canonical coordinate boundary
 
@@ -238,7 +242,7 @@ Export consumes canonical media-space geometry and has no reason to know the cur
 
 The v1.4-era UI kept unfinished Rectangle/Oval/Freeform geometry in PictureBox coordinates until commit. During v2 development this exposed a pre-existing defect: collapsing/restoring the side panel could move the media under an unfinished selection because the draft remained fixed to screen pixels.
 
-v2.0.0 fixes that architecture. Draft Rectangle/Oval/Freeform geometry is converted to media coordinates immediately. It therefore remains attached to the same source pixels through:
+v2.0.0 fixed that architecture, and v2.1.0 retains it. Draft Rectangle/Oval/Freeform geometry is converted to media coordinates immediately. It therefore remains attached to the same source pixels through:
 
 - zoom changes;
 - pan;
@@ -246,6 +250,18 @@ v2.0.0 fixes that architecture. Draft Rectangle/Oval/Freeform geometry is conver
 - window resize;
 - maximise/restore; and
 - frame navigation/playback.
+
+v2.1.0 extends this existing draft-only editing layer without changing committed/export geometry:
+
+- Rectangle/Square drafts expose eight screen-sized handles: four corners plus North/East/South/West;
+- Oval/Circle drafts expose four North/East/South/West handles;
+- closed Freeform drafts expose one screen-sized handle per existing vertex;
+- Shift-resizing constrains Rectangle/Oval drafts to square/circle proportions;
+- handles and their larger invisible hit targets are viewport decoration only;
+- Freeform vertex editing changes only the selected media-space vertex; and
+- committed redactions remain immutable and have no resize handles.
+
+A first click outside a closed Freeform dismisses the draft and is consumed; a subsequent click begins a new Freeform.
 
 ### 10.3 View rendering
 
@@ -270,6 +286,17 @@ The Zoom tool supports:
 Holding Space while a Rectangle/Oval/Freeform tool is selected temporarily borrows the pan gesture without changing the drawing tool or redaction state.
 
 The v2 regression verified that zoom/pan state persists across Previous/Next Frame, seek-bar navigation, playback and pause; opening new media resets the viewport to Fit.
+
+#### v2.1 always-available viewport gestures
+
+v2.1.0 reuses the same pointer-centred zoom and pan state rather than introducing a second transform:
+
+- mouse-wheel zoom is available whenever the pointer is over loaded media, regardless of the selected drawing tool;
+- middle-button drag pans without changing the selected drawing tool;
+- Space+left-drag temporary pan remains available; and
+- the dedicated Zoom tool retains its left/right-click zoom and drag-pan behaviour.
+
+Wheel-scale changes are ignored during an active draw/move/resize/vertex-edit/pan gesture so the viewport transform cannot change underneath an in-progress geometry operation.
 
 ### 10.5 Resize/panel behaviour
 
@@ -382,7 +409,7 @@ FFmpeg autorotation is used consistently for:
 
 Displayed dimensions are obtained from the decoded/autorotated image rather than trusting only raw encoded width/height metadata.
 
-v2.0.0 continues to use this already-displayed coordinate convention for zoom/pan and redaction geometry. The full regression covered 90°, 180° and 270° orientation cases and confirmed preview/redaction/export placement alignment.
+v2.1.0 continues to use this already-displayed coordinate convention for zoom/pan and redaction geometry. The consolidated regression covered 90°, 180° and 270° orientation cases and confirmed preview/redaction/export placement alignment.
 
 ## 13. Secure mask semantics
 
@@ -429,7 +456,7 @@ Structured FFprobe inspection checks:
 - expected dimensions; and
 - only a narrow allow-list of muxer/encoder housekeeping metadata keys.
 
-The v2.0.0 regression pass rechecked metadata/chapter stripping. The earlier hardened security test had additionally used controlled fake global, stream and chapter metadata plus a chapter-related data stream and confirmed those values/streams did not survive export.
+The consolidated v2.1.0 regression rechecked metadata/chapter stripping. The earlier hardened security test had additionally used controlled fake global, stream and chapter metadata plus a chapter-related data stream and confirmed those values/streams did not survive export.
 
 ## 15. Audio handling
 
@@ -459,7 +486,7 @@ The final destination is not created/replaced until the temporary export has pas
 
 For an existing destination, the application attempts an atomic `File.Replace`; otherwise it moves the validated partial into place.
 
-The protected-destination failure path remains unchanged in v2.0.0: if finalisation cannot replace an existing destination, the validated partial is not promoted over it. The dedicated exclusive-lock fault-injection evidence for this control is historical and was not separately repeated for v2.0.0; its provenance is recorded in Section 23.
+The protected-destination failure path remains unchanged in the v2.1.0 source: if finalisation cannot replace an existing destination, the validated partial is not promoted over it. The dedicated exclusive-lock fault-injection evidence for this control is historical and was not separately repeated for v2.0.0; its provenance is recorded in Section 23.
 
 ## 17. Post-export validation
 
@@ -481,7 +508,7 @@ Only after validation succeeds can finalisation occur.
 
 ### 17.1 Validation-failure fault-injection limitation
 
-A post-export validator failure was not separately induced in the final v2.0.0 build. The normal validation path ran for successful regression exports, and the explicit failure branches remain present/source-reviewed. This is not represented as equivalent to a deliberate corruption fault-injection test.
+A post-export validator failure was not separately induced during the v2.1.0 feature regression. The explicit failure branches remain present/source-reviewed; fresh packaged validation-failure evidence is not claimed for v2.1.0.
 
 ## 18. Network/cloud warning model
 
@@ -497,7 +524,7 @@ The v2 regression rechecked network warning behaviour. The control is not descri
 
 TinyRedactionTool uses native Windows Open/Save dialogs with `OFN_DONTADDTORECENT`.
 
-The dedicated historical security test observed no new current-session source/export Recent Items entries, while older development entries already existed. v2.0.0 retains the same implementation.
+The dedicated historical security test observed no new current-session source/export Recent Items entries, while older development entries already existed. v2.1.0 retains the same implementation.
 
 Result: **best-effort control**, not a guarantee of zero operating-system/EDR traces.
 
@@ -511,7 +538,7 @@ Captured FFmpeg/FFprobe error text replaces the current sensitive source path wi
 
 Captured text is also truncated to limit oversized diagnostics.
 
-A deliberate fake-sensitive-filename test during the hardened security work confirmed that the application error dialog used the sanitised placeholder rather than exposing that source filename/path. The same error-sanitisation functions remain in v2.0.0.
+A deliberate fake-sensitive-filename test during the hardened security work confirmed that the application error dialog used the sanitised placeholder rather than exposing that source filename/path. The same error-sanitisation functions remain in v2.1.0.
 
 No claim is made that every Windows, EDR or third-party diagnostic path is sanitised.
 
@@ -521,61 +548,49 @@ TinyRedactionTool reads source media and creates a separate export. It does not 
 
 Source immutability was previously runtime-tested by comparing SHA-256 before and after repeated processing and remains part of the v2 design. The v2 regression did not reveal any source-write behaviour.
 
-## 22. v2.0.0 functional regression record
+## 22. v2.1.0 functional regression record
 
-The dedicated v2.0.0 regression pass was completed successfully before RC2 was frozen. RC3 then made only the packaged-window icon assignment described in Section 2.
+The resize/edit feature was developed in isolated slices, with static harness results of 32/32 for Rectangle r2, 36/36 for Oval, and 60/60 for Freeform r2. The integrated Resize Slice 4 static harness then passed 51/51. The viewport-usability slice and consolidated RC1 were subsequently tested, and the user confirmed the complete consolidated full-regression checklist was green on 2026-09-18.
 
-| Test area | Result | Notes |
+The frozen release source differs from consolidated RC1 only by the About-dialog version label. Therefore the source-level functional regression applies directly to this frozen source. The final secure-builder and packaged-runtime checks were subsequently completed successfully on 2026-09-18.
+
+| Test area | Result | Evidence / notes |
 |---|---|---|
-| Application launch | PASS | Final packaged EXE opened successfully. |
-| Independent final EXE hash verification | PASS | Matched `F2C76CA...397A4F`. |
-| Builder RC3 source hash gate | PASS | Frozen source hash verified before packaging. |
-| Builder FFmpeg hash gate | PASS | Approved FFmpeg hash verified. |
-| Builder FFprobe hash gate | PASS | Approved FFprobe hash verified. |
-| FFmpeg functional feature gate | PASS | Required features, exact preview/frame-index smoke tests and network-disable checks passed. |
-| FFprobe functional timing gate | PASS | Structured inspection and frame-timing smoke test passed. |
-| MP4/H.264 VFR round trip | PASS | Timestamp-preserving builder smoke test passed. |
-| WebM/VP9 VFR round trip | PASS | Timestamp-preserving builder smoke test passed. |
-| Still-image redaction | PASS | Rectangle/Oval/Freeform and effects exercised. |
-| CFR video | PASS | Navigation, playback, range activation and export regression passed. |
-| VFR video | PASS | Native timing, navigation, playback, range activation and export regression passed. |
-| Rectangle draft geometry under resize/panel change | PASS | Pre-existing screen-space draft bug fixed; shape remains on same media pixels. |
-| Oval draft geometry under resize/panel change | PASS | Same canonical-media behaviour confirmed. |
-| Freeform draft geometry under resize/panel change | PASS | Points remain canonical media-space. |
-| Committed redactions under zoom/pan | PASS | No media-relative drift observed. |
-| Zoom left/right click | PASS | Pointer-centred in/out behaviour passed. |
-| Mouse-wheel zoom | PASS | Pointer-centred wheel zoom passed. |
-| Visible `- / Fit / +` controls | PASS | Fit/manual zoom state behaved as designed. |
-| Maximum zoom | PASS | 800% cap exercised. |
-| Zoom-tool drag pan | PASS | Pan with drag threshold passed. |
-| Space+drag temporary pan | PASS | Drawing tool/draft state preserved. |
-| Zoom/pan across frame stepping | PASS | View state persisted. |
-| Zoom/pan across seek/playback/pause | PASS | View state persisted. |
-| Fit reset on new media | PASS | New-media reset boundary behaved correctly. |
-| Window maximise/restore while Fit/manual zoom | PASS | Geometry/view behaviour passed. |
-| Redaction Area collapse/restore | PASS | Fit recalculation/manual centre preservation passed. |
-| Drag-resize repaint | PASS after fix | Stale/double-preview artifacts fixed in Slice 3 r2. |
-| RectangleF manual-zoom paint path | PASS after fix | Float-coordinate outline exception fixed in Slice 4 r2. |
-| Redaction Begin/End semantic button colours | PASS after fix | Theme refresh no longer overwrites green/grey/red state colours. |
-| Eyedropper at zoom/pan | PASS | Colour sampling remained aligned to source pixels. |
-| Black/Coloured Box | PASS | Secure opaque export regression passed. |
-| Blur | PASS | Warning/effect/export regression passed. |
-| Pixelate | PASS | Warning/effect/export regression passed. |
-| Rotation 90° | PASS | Preview/redaction/export placement aligned. |
-| Rotation 180° | PASS | Preview/redaction/export placement aligned. |
-| Rotation 270° | PASS | Preview/redaction/export placement aligned. |
-| Audio OFF | PASS | Regression passed. |
-| Audio ON / warning | PASS | Primary-audio workflow regression passed. |
-| Metadata/chapter stripping | PASS | Regression passed. |
-| WebM export | PASS | VP9 path included in regression. |
-| Network source/destination warnings | PASS | Regression passed. |
-| Mixed-state torture sequence | PASS | Zoom/pan/scrub/resize/redaction/export combination passed. |
-| Packaged custom taskbar/window icon | PASS after RC3 | Final EXE displays the custom application icon. |
-| Single-file packaging | PASS | No `.config` sidecar. |
+| Frozen v2.0.0 baseline integrity | PASS | Development started from source hash `11698B006A1FF8759D7FF222246475FE9B0A091C5A4F61023AC4649ACBF2B4FB`. |
+| Protected export filter builder | PASS | Kept byte-equivalent to frozen v2.0.0 throughout resize integration. |
+| Exact video frame extraction | PASS | Kept byte-equivalent to frozen v2.0.0 throughout resize integration. |
+| Export redaction-list preparation | PASS | Kept byte-equivalent to frozen v2.0.0 throughout resize integration. |
+| Rectangle/Square draft resizing | PASS | Eight handles, cursor mapping, bounds, Shift-square, move/resize precedence. |
+| Oval/Circle draft resizing | PASS | Four cardinal handles, bounds and Shift-circle. |
+| Freeform vertex editing | PASS | Per-vertex handles, isolated point edits, whole-shape move retained. |
+| Freeform outside-click dismissal | PASS | First outside click clears/consumes; second click starts a new polygon. |
+| Resize handles under zoom/pan | PASS | Screen-sized UI decoration aligned to canonical draft geometry. |
+| Create/Begin commit geometry | PASS | Final edited media-space geometry is committed; handles remain draft-only. |
+| Always-on mouse-wheel zoom | PASS | Pointer-centred zoom over preview regardless of selected drawing tool. |
+| Always-on middle-button pan | PASS | Reuses existing viewport pan state/clamping. |
+| Space+drag temporary pan | PASS | Retained. |
+| Dedicated Zoom tool | PASS | Existing left/right click zoom and drag-pan retained. |
+| Still-image redaction | PASS | Consolidated full regression green. |
+| CFR video | PASS | Consolidated full regression green. |
+| VFR video | PASS | Consolidated full regression green. |
+| Exact Begin/End frame activation | PASS | Consolidated full regression green. |
+| Rotation 90°/180°/270° | PASS | Consolidated full regression green. |
+| Black/Coloured Box | PASS | Consolidated full regression green. |
+| Conventional Blur / Pixelate | PASS | v2.1 does not include the parked replacement-first experiment. |
+| Audio OFF / audio ON warning | PASS | Consolidated full regression green. |
+| Metadata/chapter stripping | PASS | Consolidated full regression green. |
+| WebM/VP9 | PASS | Consolidated full regression green. |
+| Panel collapse/restore and window resize | PASS | Consolidated full regression green. |
+| Mixed-state torture sequence | PASS | Consolidated full regression green. |
+| Final Windows builder source-hash gate | PASS | Verified frozen source `2BC392FD52587343AB4CEA95B19C295286E44E4D3543634D9D3D1E383567BDC7`. |
+| Final FFmpeg/FFprobe hash gates | PASS | Verified approved binaries `28612C0A94D50A29AABD0555C91E086D1CCDF13260757B83B4BBD53A0C2CDCE0` / `BB8CBA76F9D4F05DD608F319477A0604D8A8C289FB6A885B03919F07C4DC9855`. |
+| Builder functional media-tool smoke tests | PASS | Required features, exact-preview/frame-index tests, network-disable checks, structured FFprobe timing and MP4/H.264 + WebM/VP9 VFR timestamp round trips all passed. |
+| Final packaged EXE launch | PASS | Final EXE opened normally; About/version and v2.1 interaction smoke tests were reported green. |
+| Independent final EXE SHA-256 | PASS | `1770318460DA5FCE5E7E5957F9937674D2ABF57C409189DAF915268D4A55BCB2` matched the builder-reported hash exactly. |
 
-## 23. Historical security evidence inherited by v2.0.0
+## 23. Historical security evidence inherited by v2.1.0
 
-**Historical provenance only:** the evidence in this section originates from the **v1.3.8 hardening/security test campaign**. It is included because the corresponding controls remain present and materially unchanged in v2.0.0. These items are **not** being represented as freshly repeated v2.0.0 fault-injection tests.
+**Historical provenance only:** the fault-injection evidence in this section originates from the **v1.3.8 hardening/security test campaign**. It is retained because the corresponding controls remain present and materially unchanged through v2.1.0. These items are **not** represented as freshly repeated v2.1.0 fault-injection tests.
 
 The following historical tests remain relevant to the current control design:
 
@@ -586,16 +601,16 @@ The following historical tests remain relevant to the current control design:
 - direct `%TEMP%` observation for absence of decoded preview image files; and
 - dedicated Recent Items observation.
 
-The v2 work did not intentionally weaken these controls, and the corresponding code paths were kept outside the zoom/pan refactor wherever possible.
+The v2.1 draft-editing/viewport work did not intentionally alter these controls, and the protected export/timing/trust code paths were kept outside the feature changes.
 
 ## 24. Build-time smoke tests
 
-Before packaging, the v2.0.0 builder validates the approved custom media tools on normal Windows.
+The v2.1.0 secure builder reused the established functional gates for the approved custom media tools after pinning the frozen application-source hash `2BC392FD52587343AB4CEA95B19C295286E44E4D3543634D9D3D1E383567BDC7`. No FFmpeg/FFprobe rebuild was required for the v2.1 UI/geometry changes.
 
-The gate includes:
+The existing gate includes:
 
 - exact approved media-tool SHA-256 verification;
-- frozen RC3 source SHA-256 verification;
+- frozen application-source SHA-256 verification;
 - required encoder/muxer/filter/protocol checks;
 - explicit network-protocol absence checks;
 - `null` + `wrapped_avframe` functional decode/discard;
@@ -606,7 +621,7 @@ The gate includes:
 - controlled unequal-frame-timing enumeration; and
 - timestamp-preserving VFR round trips through MP4/H.264 and WebM/VP9.
 
-The final v2 build log reported all of these gates as successful before PS2EXE packaging.
+**v2.1.0 build status: PASS.** The Windows builder verified the frozen source and approved media tools, all listed smoke tests passed, packaging produced a single `TinyRedactionTool.exe` with no `.config` sidecar, the independent EXE hash matched `1770318460DA5FCE5E7E5957F9937674D2ABF57C409189DAF915268D4A55BCB2`, and the packaged-runtime smoke test was reported green. Builder package identity: `6DF3F0A51D37B42E649CD4A5DD2E0B4289F3B2B499BCF2D9B096B9038D974C7F`.
 
 ## 25. Known residual risks and explicit non-guarantees
 
@@ -632,23 +647,18 @@ The following limitations are intentional and must remain visible in release doc
 
 ## 26. Security conclusion
 
-Within the stated threat model, the final tested TinyRedactionTool v2.0.0 build retains the hardened security posture of the previous standalone architecture while adding zoom/pan without coupling viewport state to export geometry.
+Within the stated threat model, the frozen TinyRedactionTool v2.1.0 source retains the hardened v2.0.0 media/timing/export architecture while adding draft-only geometry editing and more convenient viewport navigation without coupling those UI states to export geometry.
 
-The release demonstrates:
+The source/regression evidence demonstrates:
 
-- trusted, pinned and session-locked media tools;
-- a release builder that verifies the frozen source and approved FFmpeg/FFprobe hashes before packaging;
-- local memory-only decoded preview handling;
-- canonical media-space redaction geometry independent of zoom/pan/window state;
-- native CFR/VFR frame identity without FPS arithmetic;
-- exact logical-frame redaction activation;
-- hard opaque security masks with spatial/temporal safety margins;
-- metadata/chapter/extra-stream stripping;
-- conservative audio handling;
-- transactional partial-file export and validation;
-- post-export frame-timeline reconciliation;
-- source immutability by design;
-- network-location warnings; and
-- explicit disclosure of platform limitations and a clear separation between current v2.0.0 evidence and historical test provenance.
+- canonical media-space geometry remains independent of zoom/pan/window state;
+- resize/vertex handles are screen-space, draft-only decoration;
+- committed redactions use the final edited canonical geometry and remain immutable;
+- always-on wheel zoom and middle-button pan reuse the existing viewport transform;
+- protected CFR/VFR, frame extraction and export-list functions were not rewritten for the resize feature;
+- conventional Black/Blur/Pixelate behaviour remains unchanged from the tested architecture; and
+- the existing trust, metadata/audio, partial-export and post-export validation controls remain part of the source.
 
-TinyRedactionTool should therefore be described as **security-conscious/fail-closed redaction software**, not as a mechanism that can erase all traces of sensitive data from Windows or guarantee protection against a compromised host.
+The v2.1.0 Windows builder run, source/media-tool hash gates, media-tool smoke tests, packaged launch and independent final EXE hash verification have all been completed. The final packaged release identity is `TinyRedactionTool.exe` SHA-256 `1770318460DA5FCE5E7E5957F9937674D2ABF57C409189DAF915268D4A55BCB2`; the secure builder package identity is `6DF3F0A51D37B42E649CD4A5DD2E0B4289F3B2B499BCF2D9B096B9038D974C7F`.
+
+TinyRedactionTool should be described as **security-conscious/fail-closed redaction software**, not as a mechanism that can erase all traces of sensitive data from Windows or guarantee protection against a compromised host.

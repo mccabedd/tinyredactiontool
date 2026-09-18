@@ -1766,6 +1766,12 @@ $zoomPanDragThreshold = 4.0
 # immediately to the existing drawing tool because the tool was never changed.
 $script:spacePanActive = $false
 
+# v2.1 Viewport Usability Slice 1: middle-button drag is an always-available
+# viewport pan gesture. It deliberately reuses the proven zoomPanCandidate /
+# zoomPanning state so pan maths, clamping and media-space isolation stay the
+# same as the existing Magnifying Glass and Space+drag paths.
+$script:middlePanActive = $false
+
 # Moving a drawn-but-not-yet-committed shape (Rectangle/Oval/closed Polygon)
 # by dragging inside it, rather than starting a brand new one. $moveStart,
 # $moveOrigSelection and $moveOrigPolygonPoints are all MEDIA-space snapshots,
@@ -1774,6 +1780,37 @@ $movingShape = $false
 $moveStart = New-Object System.Drawing.PointF(0,0)
 $moveOrigSelection = $null
 $moveOrigPolygonPoints = $null
+
+# ===== v2.1 Resize Integration: draft resizing is now normal behavior =====
+# Rectangle/Square, Oval/Circle and closed-Freeform draft editing have passed
+# their isolated Slice tests and are enabled by default in this integration
+# candidate. The existing internal flags are deliberately retained as TRUE
+# constants so the already-tested helper/wiring paths remain mechanically
+# unchanged. Export/timing/security architecture remains outside this feature.
+$script:resizeSlice3Enabled = $true
+$script:resizeSlice2Enabled = $true
+$script:resizeSlice1Enabled = $true
+$script:resizingShape = $false
+$script:resizeHandle = "None"
+$script:resizeShapeKind = "None"
+$script:resizeOrigSelection = $null
+$script:resizeHandleVisualSize = 8.0
+$script:resizeHandleHitSize = 14.0
+$script:resizeMinMediaSize = 2.0
+# r2: distinguish an intentional Rectangle drag from an ordinary click. Without
+# this, MouseDown creates the usual 0.01 x 0.01 seed rectangle and MouseUp can
+# leave all eight handles collapsed onto one apparent "lone anchor".
+$script:resizeDraftDrawStartView = $null
+$script:resizeDraftDrawMoved = $false
+$script:resizeDraftDrawThreshold = 3.0
+
+# Slice 3: a closed Freeform polygon exposes one constant-screen-size handle
+# at every canonical media-space vertex. Vertex editing is kept separate from
+# Rectangle/Oval bounding-box resizing so the earlier known-good paths remain
+# mechanically untouched.
+$script:editingPolygonVertex = $false
+$script:polygonVertexIndex = -1
+# ===== End Resize Slice 1/2/3 state =====
 
 # Drawing tool: "Rectangle", "Oval", or "Polygon" (the freeform tool). Rectangle
 # and Oval are drag-based and use the media-space $selection above; Polygon is
@@ -3887,7 +3924,7 @@ function Show-AboutDialog {
     $script:aboutY = 0
     $aboutEmphasis = if ($isDark) { $cText } else { [System.Drawing.Color]::Black }
 
-    Add-CenteredAboutLabel $panel "TinyRedactionTool v2.0.0" (New-UIFont 15.5 ([System.Drawing.FontStyle]::Bold)) $cText $contentWidth 0 6 | Out-Null
+    Add-CenteredAboutLabel $panel "TinyRedactionTool v2.1.0" (New-UIFont 15.5 ([System.Drawing.FontStyle]::Bold)) $cText $contentWidth 0 6 | Out-Null
     Add-CenteredAboutLabel $panel "Copyright (C) 2026 David McCabe" (New-UIFont 9.5 ([System.Drawing.FontStyle]::Bold)) $cText $contentWidth 0 5 | Out-Null
     Add-CenteredAboutLabel $panel "Local media processing. No telemetry or media uploads." (New-UIFont 8.5 ([System.Drawing.FontStyle]::Bold)) $aboutEmphasis $contentWidth 0 0 | Out-Null
     Add-CenteredAboutLabel $panel "Licensed under GPL-2.0-or-later. Source available on GitHub." (New-UIFont 8.5) $cMuted $contentWidth -4 0 | Out-Null
@@ -4205,6 +4242,361 @@ function Clamp-MediaPoint([System.Drawing.PointF]$point) {
     return New-Object System.Drawing.PointF([single]$x, [single]$y)
 }
 
+
+# ===== Resize Slice 1 helpers: Rectangle/Square only =====
+# Handles are VIEW-space UI affordances with constant screen-pixel size. The
+# rectangle itself remains canonical MEDIA-space geometry at all times.
+function Get-RectangleResizeHandleCenters([System.Drawing.RectangleF]$rect) {
+    $dr = MediaRect-To-ViewRect $rect
+    if (-not $dr) { return @() }
+
+    $left = [double]$dr.X
+    $top = [double]$dr.Y
+    $right = [double]$dr.X + [double]$dr.Width
+    $bottom = [double]$dr.Y + [double]$dr.Height
+    $midX = ($left + $right) / 2.0
+    $midY = ($top + $bottom) / 2.0
+
+    return @(
+        [pscustomobject]@{ Name = "NW"; X = $left;  Y = $top },
+        [pscustomobject]@{ Name = "N";  X = $midX;  Y = $top },
+        [pscustomobject]@{ Name = "NE"; X = $right; Y = $top },
+        [pscustomobject]@{ Name = "E";  X = $right; Y = $midY },
+        [pscustomobject]@{ Name = "SE"; X = $right; Y = $bottom },
+        [pscustomobject]@{ Name = "S";  X = $midX;  Y = $bottom },
+        [pscustomobject]@{ Name = "SW"; X = $left;  Y = $bottom },
+        [pscustomobject]@{ Name = "W";  X = $left;  Y = $midY }
+    )
+}
+
+function Get-RectangleResizeHandleAtViewPoint([System.Drawing.PointF]$viewPoint, [System.Drawing.RectangleF]$rect) {
+    $half = [double]$script:resizeHandleHitSize / 2.0
+    $bestName = "None"
+    $bestDist = [double]::PositiveInfinity
+
+    foreach ($h in (Get-RectangleResizeHandleCenters $rect)) {
+        $dx = [double]$viewPoint.X - [double]$h.X
+        $dy = [double]$viewPoint.Y - [double]$h.Y
+        if ([Math]::Abs($dx) -le $half -and [Math]::Abs($dy) -le $half) {
+            $d2 = ($dx * $dx) + ($dy * $dy)
+            if ($d2 -lt $bestDist) {
+                $bestDist = $d2
+                $bestName = [string]$h.Name
+            }
+        }
+    }
+    return $bestName
+}
+
+function Get-RectangleResizeCursor([string]$handle) {
+    switch ($handle) {
+        "N"  { return [System.Windows.Forms.Cursors]::SizeNS }
+        "S"  { return [System.Windows.Forms.Cursors]::SizeNS }
+        "E"  { return [System.Windows.Forms.Cursors]::SizeWE }
+        "W"  { return [System.Windows.Forms.Cursors]::SizeWE }
+        "NW" { return [System.Windows.Forms.Cursors]::SizeNWSE }
+        "SE" { return [System.Windows.Forms.Cursors]::SizeNWSE }
+        "NE" { return [System.Windows.Forms.Cursors]::SizeNESW }
+        "SW" { return [System.Windows.Forms.Cursors]::SizeNESW }
+        default { return [System.Windows.Forms.Cursors]::Default }
+    }
+}
+
+function Get-RectangleResizeResult(
+    [System.Drawing.RectangleF]$orig,
+    [string]$handle,
+    [System.Drawing.PointF]$pointer,
+    [bool]$constrainSquare,
+    [System.Drawing.RectangleF]$bounds
+) {
+    $minSize = [double]$script:resizeMinMediaSize
+    $bL = [double]$bounds.X
+    $bT = [double]$bounds.Y
+    $bR = [double]$bounds.X + [double]$bounds.Width
+    $bB = [double]$bounds.Y + [double]$bounds.Height
+
+    $oL = [double]$orig.X
+    $oT = [double]$orig.Y
+    $oR = [double]$orig.X + [double]$orig.Width
+    $oB = [double]$orig.Y + [double]$orig.Height
+    $cx = ($oL + $oR) / 2.0
+    $cy = ($oT + $oB) / 2.0
+
+    $px = [Math]::Max($bL, [Math]::Min([double]$pointer.X, $bR))
+    $py = [Math]::Max($bT, [Math]::Min([double]$pointer.Y, $bB))
+
+    $l = $oL; $t = $oT; $r = $oR; $b = $oB
+
+    if ($constrainSquare -and (@("NW","NE","SE","SW") -contains $handle)) {
+        switch ($handle) {
+            "NW" { $ax=$oR; $ay=$oB; $dx=-1.0; $dy=-1.0; $maxX=$ax-$bL; $maxY=$ay-$bT }
+            "NE" { $ax=$oL; $ay=$oB; $dx= 1.0; $dy=-1.0; $maxX=$bR-$ax; $maxY=$ay-$bT }
+            "SE" { $ax=$oL; $ay=$oT; $dx= 1.0; $dy= 1.0; $maxX=$bR-$ax; $maxY=$bB-$ay }
+            "SW" { $ax=$oR; $ay=$oT; $dx=-1.0; $dy= 1.0; $maxX=$ax-$bL; $maxY=$bB-$ay }
+        }
+        $desired = [Math]::Max([Math]::Abs($px-$ax), [Math]::Abs($py-$ay))
+        $maxSide = [Math]::Max(0.01, [Math]::Min($maxX,$maxY))
+        $side = [Math]::Min($maxSide, [Math]::Max([Math]::Min($minSize,$maxSide), $desired))
+        if ($dx -lt 0) { $l=$ax-$side; $r=$ax } else { $l=$ax; $r=$ax+$side }
+        if ($dy -lt 0) { $t=$ay-$side; $b=$ay } else { $t=$ay; $b=$ay+$side }
+    }
+    elseif ($constrainSquare -and (@("N","S") -contains $handle)) {
+        $anchorY = if ($handle -eq "N") { $oB } else { $oT }
+        $desired = [Math]::Abs($py - $anchorY)
+        $maxVertical = if ($handle -eq "N") { $anchorY-$bT } else { $bB-$anchorY }
+        $maxHorizontal = 2.0 * [Math]::Min($cx-$bL, $bR-$cx)
+        $maxSide = [Math]::Max(0.01, [Math]::Min($maxVertical,$maxHorizontal))
+        $side = [Math]::Min($maxSide, [Math]::Max([Math]::Min($minSize,$maxSide), $desired))
+        $l=$cx-($side/2.0); $r=$cx+($side/2.0)
+        if ($handle -eq "N") { $t=$anchorY-$side; $b=$anchorY } else { $t=$anchorY; $b=$anchorY+$side }
+    }
+    elseif ($constrainSquare -and (@("E","W") -contains $handle)) {
+        $anchorX = if ($handle -eq "W") { $oR } else { $oL }
+        $desired = [Math]::Abs($px - $anchorX)
+        $maxHorizontal = if ($handle -eq "W") { $anchorX-$bL } else { $bR-$anchorX }
+        $maxVertical = 2.0 * [Math]::Min($cy-$bT, $bB-$cy)
+        $maxSide = [Math]::Max(0.01, [Math]::Min($maxHorizontal,$maxVertical))
+        $side = [Math]::Min($maxSide, [Math]::Max([Math]::Min($minSize,$maxSide), $desired))
+        $t=$cy-($side/2.0); $b=$cy+($side/2.0)
+        if ($handle -eq "W") { $l=$anchorX-$side; $r=$anchorX } else { $l=$anchorX; $r=$anchorX+$side }
+    }
+    else {
+        switch ($handle) {
+            "NW" { $l=[Math]::Max($bL,[Math]::Min($px,$oR-$minSize)); $t=[Math]::Max($bT,[Math]::Min($py,$oB-$minSize)) }
+            "N"  { $t=[Math]::Max($bT,[Math]::Min($py,$oB-$minSize)) }
+            "NE" { $r=[Math]::Min($bR,[Math]::Max($px,$oL+$minSize)); $t=[Math]::Max($bT,[Math]::Min($py,$oB-$minSize)) }
+            "E"  { $r=[Math]::Min($bR,[Math]::Max($px,$oL+$minSize)) }
+            "SE" { $r=[Math]::Min($bR,[Math]::Max($px,$oL+$minSize)); $b=[Math]::Min($bB,[Math]::Max($py,$oT+$minSize)) }
+            "S"  { $b=[Math]::Min($bB,[Math]::Max($py,$oT+$minSize)) }
+            "SW" { $l=[Math]::Max($bL,[Math]::Min($px,$oR-$minSize)); $b=[Math]::Min($bB,[Math]::Max($py,$oT+$minSize)) }
+            "W"  { $l=[Math]::Max($bL,[Math]::Min($px,$oR-$minSize)) }
+            default { return $orig }
+        }
+    }
+
+    return New-Object System.Drawing.RectangleF(
+        [single]$l,[single]$t,
+        [single][Math]::Max(0.01,$r-$l),
+        [single][Math]::Max(0.01,$b-$t))
+}
+
+function Test-RectangleDraftDragThreshold([System.Drawing.PointF]$startView, [System.Drawing.PointF]$currentView) {
+    $dx = [double]$currentView.X - [double]$startView.X
+    $dy = [double]$currentView.Y - [double]$startView.Y
+    return ([Math]::Sqrt(($dx * $dx) + ($dy * $dy)) -ge [double]$script:resizeDraftDrawThreshold)
+}
+
+function Draw-RectangleResizeHandles($gfx, [System.Drawing.RectangleF]$rect) {
+    if (-not $script:resizeSlice1Enabled -or -not $gfx) { return }
+    $size = [double]$script:resizeHandleVisualSize
+    $half = $size / 2.0
+    $fill = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
+    $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::Red, 1)
+    try {
+        foreach ($h in (Get-RectangleResizeHandleCenters $rect)) {
+            $x = [single]([double]$h.X - $half)
+            $y = [single]([double]$h.Y - $half)
+            $gfx.FillRectangle($fill, $x, $y, [single]$size, [single]$size)
+            $gfx.DrawRectangle($pen, $x, $y, [single]$size, [single]$size)
+        }
+    }
+    finally {
+        $fill.Dispose()
+        $pen.Dispose()
+    }
+}
+
+
+# ===== Resize Slice 2 helpers: Oval/Circle only =====
+# Oval geometry remains the same canonical MEDIA-space RectangleF bounding box
+# already used by v2.0.0. Only four VIEW-space handles are exposed: the north,
+# east, south and west cardinal points of the ellipse.
+function Get-OvalResizeHandleCenters([System.Drawing.RectangleF]$rect) {
+    $dr = MediaRect-To-ViewRect $rect
+    if (-not $dr) { return @() }
+
+    $left = [double]$dr.X
+    $top = [double]$dr.Y
+    $right = [double]$dr.X + [double]$dr.Width
+    $bottom = [double]$dr.Y + [double]$dr.Height
+    $midX = ($left + $right) / 2.0
+    $midY = ($top + $bottom) / 2.0
+
+    return @(
+        [pscustomobject]@{ Name = "N"; X = $midX;  Y = $top },
+        [pscustomobject]@{ Name = "E"; X = $right; Y = $midY },
+        [pscustomobject]@{ Name = "S"; X = $midX;  Y = $bottom },
+        [pscustomobject]@{ Name = "W"; X = $left;  Y = $midY }
+    )
+}
+
+function Get-OvalResizeHandleAtViewPoint([System.Drawing.PointF]$viewPoint, [System.Drawing.RectangleF]$rect) {
+    $half = [double]$script:resizeHandleHitSize / 2.0
+    $bestName = "None"
+    $bestDist = [double]::PositiveInfinity
+
+    foreach ($h in (Get-OvalResizeHandleCenters $rect)) {
+        $dx = [double]$viewPoint.X - [double]$h.X
+        $dy = [double]$viewPoint.Y - [double]$h.Y
+        if ([Math]::Abs($dx) -le $half -and [Math]::Abs($dy) -le $half) {
+            $d2 = ($dx * $dx) + ($dy * $dy)
+            if ($d2 -lt $bestDist) {
+                $bestDist = $d2
+                $bestName = [string]$h.Name
+            }
+        }
+    }
+    return $bestName
+}
+
+function Get-OvalResizeCursor([string]$handle) {
+    switch ($handle) {
+        "N" { return [System.Windows.Forms.Cursors]::SizeNS }
+        "S" { return [System.Windows.Forms.Cursors]::SizeNS }
+        "E" { return [System.Windows.Forms.Cursors]::SizeWE }
+        "W" { return [System.Windows.Forms.Cursors]::SizeWE }
+        default { return [System.Windows.Forms.Cursors]::Default }
+    }
+}
+
+function Get-OvalResizeResult(
+    [System.Drawing.RectangleF]$orig,
+    [string]$handle,
+    [System.Drawing.PointF]$pointer,
+    [bool]$constrainCircle,
+    [System.Drawing.RectangleF]$bounds
+) {
+    # Cardinal-point ellipse resizing is mathematically the same bounding-box
+    # edge operation already proven by Slice 1. Shift simply requests the
+    # existing 1:1 side-handle constraint, producing a circle.
+    if (@("N","E","S","W") -notcontains $handle) { return $orig }
+    return Get-RectangleResizeResult $orig $handle $pointer $constrainCircle $bounds
+}
+
+function Draw-OvalResizeHandles($gfx, [System.Drawing.RectangleF]$rect) {
+    if (-not $script:resizeSlice2Enabled -or -not $gfx) { return }
+    $size = [double]$script:resizeHandleVisualSize
+    $half = $size / 2.0
+    $fill = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
+    $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::Red, 1)
+    try {
+        foreach ($h in (Get-OvalResizeHandleCenters $rect)) {
+            $x = [single]([double]$h.X - $half)
+            $y = [single]([double]$h.Y - $half)
+            $gfx.FillRectangle($fill, $x, $y, [single]$size, [single]$size)
+            $gfx.DrawRectangle($pen, $x, $y, [single]$size, [single]$size)
+        }
+    }
+    finally {
+        $fill.Dispose()
+        $pen.Dispose()
+    }
+}
+# ===== End Resize Slice 2 helpers =====
+
+# ===== Resize Slice 3 helpers: Freeform vertex editing only =====
+# A closed Freeform polygon already stores every vertex as a canonical
+# MEDIA-space PointF. These helpers only project the points for screen-space
+# handles/hit-testing and return a cloned point list when one vertex moves.
+function Get-FreeformVertexHandleCenters($points) {
+    if (-not $points -or $points.Count -le 0) { return @() }
+    $viewPoints = MediaPoints-To-ViewPoints $points
+    if (-not $viewPoints) { return @() }
+
+    $result = @()
+    for ($i = 0; $i -lt $viewPoints.Count; $i++) {
+        $vp = $viewPoints[$i]
+        $result += [pscustomobject]@{ Index = [int]$i; X = [double]$vp.X; Y = [double]$vp.Y }
+    }
+    return $result
+}
+
+function Get-FreeformVertexHandleAtViewPoint([System.Drawing.PointF]$viewPoint, $points) {
+    $half = [double]$script:resizeHandleHitSize / 2.0
+    $bestIndex = -1
+    $bestDist = [double]::PositiveInfinity
+
+    foreach ($h in (Get-FreeformVertexHandleCenters $points)) {
+        $dx = [double]$viewPoint.X - [double]$h.X
+        $dy = [double]$viewPoint.Y - [double]$h.Y
+        if ([Math]::Abs($dx) -le $half -and [Math]::Abs($dy) -le $half) {
+            $d2 = ($dx * $dx) + ($dy * $dy)
+            if ($d2 -lt $bestDist) {
+                $bestDist = $d2
+                $bestIndex = [int]$h.Index
+            }
+        }
+    }
+    return $bestIndex
+}
+
+function Get-FreeformVertexCursor {
+    # Cross distinguishes precise single-vertex editing from SizeAll, which
+    # continues to mean "move the whole closed Freeform shape".
+    return [System.Windows.Forms.Cursors]::Cross
+}
+
+function Get-FreeformVertexEditResult(
+    $points,
+    [int]$vertexIndex,
+    [System.Drawing.PointF]$pointer,
+    [System.Drawing.RectangleF]$bounds
+) {
+    if (-not $points -or $vertexIndex -lt 0 -or $vertexIndex -ge $points.Count) { return ,$points }
+
+    $bL = [double]$bounds.X
+    $bT = [double]$bounds.Y
+    $bR = [double]$bounds.X + [double]$bounds.Width
+    $bB = [double]$bounds.Y + [double]$bounds.Height
+    $x = [Math]::Max($bL, [Math]::Min([double]$pointer.X, $bR))
+    $y = [Math]::Max($bT, [Math]::Min([double]$pointer.Y, $bB))
+
+    $result = New-Object System.Collections.Generic.List[System.Drawing.PointF]
+    for ($i = 0; $i -lt $points.Count; $i++) {
+        if ($i -eq $vertexIndex) {
+            [void]$result.Add((New-Object System.Drawing.PointF([single]$x,[single]$y)))
+        }
+        else {
+            $p = $points[$i]
+            [void]$result.Add((New-Object System.Drawing.PointF([single]$p.X,[single]$p.Y)))
+        }
+    }
+    return ,$result
+}
+
+function Draw-FreeformVertexHandles($gfx, $points) {
+    if (-not $script:resizeSlice3Enabled -or -not $gfx -or -not $points -or $points.Count -lt 3) { return }
+    $size = [double]$script:resizeHandleVisualSize
+    $half = $size / 2.0
+    $fill = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
+    $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::Red, 1)
+    try {
+        foreach ($h in (Get-FreeformVertexHandleCenters $points)) {
+            $x = [single]([double]$h.X - $half)
+            $y = [single]([double]$h.Y - $half)
+            $gfx.FillRectangle($fill, $x, $y, [single]$size, [single]$size)
+            $gfx.DrawRectangle($pen, $x, $y, [single]$size, [single]$size)
+        }
+    }
+    finally {
+        $fill.Dispose()
+        $pen.Dispose()
+    }
+}
+
+# Resize Slice 3 r2: when a CLOSED, uncommitted Freeform is clicked outside,
+# that first click is a dismissal gesture only. Clear the existing draft and
+# consume the click; the next click may then start a new Freeform normally.
+function Clear-ClosedFreeformDraftForOutsideClick {
+    Reset-DrawingState
+    Update-SelectionFields $null
+    Update-RedactionButtons
+    Update-PreviewCursor
+}
+# ===== End Resize Slice 3 helpers =====
+
+# ===== End Resize Slice 1 helpers =====
+
 function Reset-ViewportState {
     $script:zoomMode = "Fit"
     $script:zoomFactor = 1.0
@@ -4270,6 +4662,7 @@ function Clamp-ViewportPan([double]$minimumMaxX = 0.0, [double]$minimumMaxY = 0.
 function Reset-ZoomPanGesture {
     $script:zoomPanCandidate = $false
     $script:zoomPanning = $false
+    $script:middlePanActive = $false
     $script:zoomPanStartPoint = New-Object System.Drawing.PointF(0,0)
     $script:zoomPanStartOffsetX = 0.0
     $script:zoomPanStartOffsetY = 0.0
@@ -4294,6 +4687,29 @@ function Stop-SpacePanMode {
     $script:spacePanActive = $false
     Reset-ZoomPanGesture
     Update-PreviewCursor
+}
+
+function Stop-MiddlePanMode {
+    if (-not $script:middlePanActive) { return }
+
+    $wasPanning = [bool]$script:zoomPanning
+    $startOffsetX = [double]$script:zoomPanStartOffsetX
+    $startOffsetY = [double]$script:zoomPanStartOffsetY
+    Reset-ZoomPanGesture
+
+    if ($wasPanning) {
+        Clamp-ViewportPan ([Math]::Abs($startOffsetX)) ([Math]::Abs($startOffsetY))
+        $picture.Refresh()
+    }
+
+    # Eyedropper owns the normal crosshair while armed. Restore it explicitly
+    # because Update-PreviewCursor intentionally does not override eyedropper.
+    if ($eyedropperActive) {
+        $picture.Cursor = [System.Windows.Forms.Cursors]::Cross
+    }
+    else {
+        Update-PreviewCursor
+    }
 }
 
 function Set-ZoomFit {
@@ -4391,6 +4807,10 @@ function Initialize-ZoomCursor {
 
 function Update-PreviewCursor {
     if (-not $picture) { return }
+    if ($script:middlePanActive) {
+        $picture.Cursor = [System.Windows.Forms.Cursors]::Hand
+        return
+    }
     if ($eyedropperActive) { return }
     if ($script:spacePanActive) {
         # Space is a temporary viewport override only; the underlying drawing
@@ -4791,6 +5211,14 @@ function Reset-DrawingState {
     $script:moveStart = New-Object System.Drawing.PointF(0,0)
     $script:moveOrigSelection = $null
     $script:moveOrigPolygonPoints = $null
+    $script:resizingShape = $false
+    $script:resizeHandle = "None"
+    $script:resizeShapeKind = "None"
+    $script:resizeOrigSelection = $null
+    $script:resizeDraftDrawStartView = $null
+    $script:resizeDraftDrawMoved = $false
+    $script:editingPolygonVertex = $false
+    $script:polygonVertexIndex = -1
     if ($picture) { $picture.Invalidate() }
 }
  
@@ -5268,6 +5696,7 @@ $form.Add_KeyUp({
 # cannot get stuck in hand/pan mode when the user Alt-Tabs away and returns.
 $form.Add_Deactivate({
     Stop-SpacePanMode
+    Stop-MiddlePanMode
 })
  
 function Set-ToolMode([string]$mode) {
@@ -5320,15 +5749,15 @@ $btnZoomIn.Add_Click({ Step-ZoomAtViewPoint 1 (Get-ViewportCenterPoint) })
 $btnZoomOut.Add_Click({ Step-ZoomAtViewPoint -1 (Get-ViewportCenterPoint) })
 
 $picture.Add_MouseEnter({
-    if ($script:zoomToolActive) {
-        # MouseWheel is delivered to the focused WinForms control. Give the
-        # preview focus only while Zoom is active so wheel zoom works without
-        # changing normal drawing-tool focus behaviour. KeyPreview on the form
-        # still preserves the existing keyboard shortcuts.
+    # v2.1: wheel zoom is always available while the pointer is over the loaded
+    # preview, regardless of which drawing/view tool is selected. MouseWheel is
+    # delivered to the focused WinForms control, so focus the preview on entry.
+    # Form.KeyPreview keeps the existing keyboard shortcuts available.
+    if ($previewImage) {
         [void]$picture.Focus()
-        Update-PreviewCursor
     }
-    elseif ($script:spacePanActive) {
+
+    if ($script:zoomToolActive -or $script:spacePanActive -or $script:middlePanActive) {
         Update-PreviewCursor
     }
 })
@@ -5337,7 +5766,28 @@ $picture.Add_MouseDown({
     param($sender,$e)
     if (-not $previewImage) { return }
 
-    # Eyedropper takes priority over everything else while armed. In Slice 3
+    # v2.1 always-on middle-button pan takes priority over drawing/edit gestures
+    # without changing the selected tool. The pointer only needs to be over the
+    # displayed media when the gesture begins; capture then allows the drag to
+    # continue naturally beyond the original hit area.
+    if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Middle) {
+        $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+        $mediaRect = Get-MediaViewRect
+        if (-not $mediaRect -or -not $mediaRect.Contains($viewPt)) { return }
+
+        Reset-ZoomPanGesture
+        $script:middlePanActive = $true
+        $script:zoomPanCandidate = $true
+        $script:zoomPanning = $false
+        $script:zoomPanStartPoint = $viewPt
+        $script:zoomPanStartOffsetX = [double]$panOffsetX
+        $script:zoomPanStartOffsetY = [double]$panOffsetY
+        $picture.Capture = $true
+        $picture.Cursor = [System.Windows.Forms.Cursors]::Hand
+        return
+    }
+
+    # Eyedropper takes priority over normal left/right drawing input while armed. In Slice 3
     # it uses the same inverse viewport transform as draft geometry.
     if ($eyedropperActive) {
         if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Left) {
@@ -5404,27 +5854,94 @@ $picture.Add_MouseDown({
     if (-not $viewRect) { return }
 
     $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+
+    # Resize Slice 1/2: handle hit-testing deliberately happens before the
+    # normal media-rectangle containment check. Handles centred on a media edge
+    # are partly outside the image by design and must remain easy to grab.
+    $resizeHandleCandidate = [bool](
+        ($script:resizeSlice1Enabled -and $toolMode -eq "Rectangle") -or
+        ($script:resizeSlice2Enabled -and $toolMode -eq "Oval"))
+    if ($resizeHandleCandidate -and
+        $selection.Width -gt 0.01 -and $selection.Height -gt 0.01 -and -not $dragging) {
+        $hitHandle = if ($toolMode -eq "Oval") {
+            Get-OvalResizeHandleAtViewPoint $viewPt $selection
+        } else {
+            Get-RectangleResizeHandleAtViewPoint $viewPt $selection
+        }
+        if ($hitHandle -ne "None") {
+            $script:resizingShape = $true
+            $script:resizeHandle = $hitHandle
+            $script:resizeShapeKind = [string]$toolMode
+            $script:resizeOrigSelection = New-Object System.Drawing.RectangleF(
+                [single]$selection.X,[single]$selection.Y,[single]$selection.Width,[single]$selection.Height)
+            $picture.Capture = $true
+            $picture.Cursor = if ($toolMode -eq "Oval") {
+                Get-OvalResizeCursor $hitHandle
+            } else {
+                Get-RectangleResizeCursor $hitHandle
+            }
+            $picture.Invalidate()
+            return
+        }
+    }
+
+    # Resize Slice 3: closed Freeform vertex handles take precedence over the
+    # polygon interior move gesture. Hit-testing is VIEW-space so the handle
+    # remains a comfortable fixed screen size at every zoom level.
+    if ($script:resizeSlice3Enabled -and $toolMode -eq "Polygon" -and
+        -not $polygonActive -and $polygonPoints.Count -ge 3) {
+        $vertexIndex = Get-FreeformVertexHandleAtViewPoint $viewPt $polygonPoints
+        if ($vertexIndex -ge 0) {
+            $script:editingPolygonVertex = $true
+            $script:polygonVertexIndex = [int]$vertexIndex
+            $picture.Capture = $true
+            $picture.Cursor = Get-FreeformVertexCursor
+            $picture.Invalidate()
+            return
+        }
+    }
+
+    # Resize Slice 3 r2: a first click outside a closed Freeform is a
+    # dismissal-only gesture. This also applies to preview letterbox space.
+    # Vertex handles were already given priority above, so an edge handle that
+    # straddles the media boundary is still editable rather than dismissed.
+    if ($script:resizeSlice3Enabled -and $toolMode -eq "Polygon" -and
+        -not $polygonActive -and $polygonPoints.Count -ge 3 -and
+        -not $viewRect.Contains($viewPt)) {
+        Clear-ClosedFreeformDraftForOutsideClick
+        return
+    }
+
     if (-not $viewRect.Contains($viewPt)) { return }
 
     $mediaPt = ViewPoint-To-MediaPoint $viewPt $true
     if (-not $mediaPt) { return }
 
     if ($toolMode -eq "Polygon") {
-        if (-not $polygonActive -and $polygonPoints.Count -ge 3 -and (Test-PointInPolygon $mediaPt $polygonPoints)) {
-            # Clicked inside the closed-but-uncommitted path: move the whole
-            # canonical media-space shape instead of starting a new one.
-            $script:movingShape = $true
-            $picture.Capture = $true
-            $script:moveStart = $mediaPt
-            $script:moveOrigPolygonPoints = New-Object System.Collections.Generic.List[System.Drawing.PointF]
-            foreach ($pt in $polygonPoints) {
-                [void]$script:moveOrigPolygonPoints.Add((New-Object System.Drawing.PointF([single]$pt.X,[single]$pt.Y)))
+        if (-not $polygonActive -and $polygonPoints.Count -ge 3) {
+            if (Test-PointInPolygon $mediaPt $polygonPoints) {
+                # Clicked inside the closed-but-uncommitted path: move the whole
+                # canonical media-space shape instead of starting a new one.
+                $script:movingShape = $true
+                $picture.Capture = $true
+                $script:moveStart = $mediaPt
+                $script:moveOrigPolygonPoints = New-Object System.Collections.Generic.List[System.Drawing.PointF]
+                foreach ($pt in $polygonPoints) {
+                    [void]$script:moveOrigPolygonPoints.Add((New-Object System.Drawing.PointF([single]$pt.X,[single]$pt.Y)))
+                }
+                $picture.Invalidate()
+                return
             }
-            $picture.Invalidate()
-            return
+
+            if ($script:resizeSlice3Enabled) {
+                # r2 behavior: the first outside click clears the closed draft
+                # and is consumed. Do NOT reuse this same click as point #1 of
+                # the next polygon; a second click starts the next Freeform.
+                Clear-ClosedFreeformDraftForOutsideClick
+                return
+            }
         }
         if (-not $polygonActive) {
-            # Starting fresh discards any previously closed-but-uncommitted path.
             $script:polygonActive = $true
             $script:polygonPoints = New-Object System.Collections.Generic.List[System.Drawing.PointF]
             $script:polygonPoints.Add($mediaPt)
@@ -5478,7 +5995,14 @@ $picture.Add_MouseDown({
         return
     }
 
-    # Rectangle / Oval: the very first point is canonical MEDIA space.
+    # Rectangle / Oval: the very first point is canonical MEDIA space. The
+    # resize branch also tracks a small screen-pixel threshold so click-only
+    # gestures cannot leave coincident handles behind.
+    if (($script:resizeSlice1Enabled -and $toolMode -eq "Rectangle") -or
+        ($script:resizeSlice2Enabled -and $toolMode -eq "Oval")) {
+        $script:resizeDraftDrawStartView = $viewPt
+        $script:resizeDraftDrawMoved = $false
+    }
     $script:dragging = $true
     $picture.Capture = $true
     $script:dragStart = $mediaPt
@@ -5490,7 +6014,7 @@ $picture.Add_MouseDown({
 $picture.Add_MouseMove({
     param($sender,$e)
 
-    if ($script:zoomToolActive -or $script:spacePanActive) {
+    if ($script:zoomToolActive -or $script:spacePanActive -or $script:middlePanActive) {
         if ($script:zoomPanCandidate) {
             $dxView = [double]$e.X - [double]$script:zoomPanStartPoint.X
             $dyView = [double]$e.Y - [double]$script:zoomPanStartPoint.Y
@@ -5513,6 +6037,39 @@ $picture.Add_MouseMove({
         }
 
         Update-PreviewCursor
+        return
+    }
+
+    if ($script:resizingShape) {
+        $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+        $rawPt = ViewPoint-To-MediaPoint $viewPt $true
+        $mediaBounds = Get-DraftMediaBounds
+        if (-not $rawPt -or -not $mediaBounds -or -not $script:resizeOrigSelection) { return }
+
+        $constrainOneToOne = [bool]([System.Windows.Forms.Control]::ModifierKeys -band [System.Windows.Forms.Keys]::Shift)
+        if ($script:resizeShapeKind -eq "Oval") {
+            $script:selection = Get-OvalResizeResult $script:resizeOrigSelection $script:resizeHandle $rawPt $constrainOneToOne $mediaBounds
+            $picture.Cursor = Get-OvalResizeCursor $script:resizeHandle
+        }
+        else {
+            $script:selection = Get-RectangleResizeResult $script:resizeOrigSelection $script:resizeHandle $rawPt $constrainOneToOne $mediaBounds
+            $picture.Cursor = Get-RectangleResizeCursor $script:resizeHandle
+        }
+        Update-SelectionFields (Selection-To-VideoRect) "Selection resizing."
+        $picture.Invalidate()
+        return
+    }
+
+    if ($script:editingPolygonVertex) {
+        $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+        $rawPt = ViewPoint-To-MediaPoint $viewPt $true
+        $mediaBounds = Get-DraftMediaBounds
+        if (-not $rawPt -or -not $mediaBounds -or $script:polygonVertexIndex -lt 0) { return }
+
+        $script:polygonPoints = Get-FreeformVertexEditResult $polygonPoints $script:polygonVertexIndex $rawPt $mediaBounds
+        $picture.Cursor = Get-FreeformVertexCursor
+        Update-SelectionFields $null "Selection: freeform vertex editing."
+        $picture.Invalidate()
         return
     }
 
@@ -5565,10 +6122,20 @@ $picture.Add_MouseMove({
             $picture.Invalidate()
         }
         elseif (-not $pendingRedaction -and $polygonPoints.Count -ge 3) {
-            # Idle hover hit-testing is also media-space. Outside the displayed
-            # media, keep the normal cursor rather than clamping into an edge.
+            # Slice 3 vertex handles take precedence over whole-polygon hover.
+            # Because their hit area may straddle the media edge, test them
+            # before enforcing media-rectangle containment.
             $viewRect = Get-MediaViewRect
             $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+            if ($script:resizeSlice3Enabled) {
+                $hoverVertex = Get-FreeformVertexHandleAtViewPoint $viewPt $polygonPoints
+                if ($hoverVertex -ge 0) {
+                    $picture.Cursor = Get-FreeformVertexCursor
+                    return
+                }
+            }
+            # Idle interior hit-testing remains media-space. Outside the
+            # displayed media, keep the normal cursor rather than clamping.
             if ($viewRect -and $viewRect.Contains($viewPt)) {
                 $hoverPt = ViewPoint-To-MediaPoint $viewPt $true
                 $picture.Cursor = if ($hoverPt -and (Test-PointInPolygon $hoverPt $polygonPoints)) {
@@ -5588,6 +6155,28 @@ $picture.Add_MouseMove({
         if (-not $pendingRedaction -and $selection.Width -gt 0.01 -and $selection.Height -gt 0.01) {
             $viewRect = Get-MediaViewRect
             $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+
+            # Resize handles take precedence over whole-shape movement. Their
+            # hover zone may extend a few pixels outside the displayed media.
+            $resizeHoverCandidate = [bool](
+                ($script:resizeSlice1Enabled -and $toolMode -eq "Rectangle") -or
+                ($script:resizeSlice2Enabled -and $toolMode -eq "Oval"))
+            if ($resizeHoverCandidate) {
+                $hoverHandle = if ($toolMode -eq "Oval") {
+                    Get-OvalResizeHandleAtViewPoint $viewPt $selection
+                } else {
+                    Get-RectangleResizeHandleAtViewPoint $viewPt $selection
+                }
+                if ($hoverHandle -ne "None") {
+                    $picture.Cursor = if ($toolMode -eq "Oval") {
+                        Get-OvalResizeCursor $hoverHandle
+                    } else {
+                        Get-RectangleResizeCursor $hoverHandle
+                    }
+                    return
+                }
+            }
+
             if ($viewRect -and $viewRect.Contains($viewPt)) {
                 $hoverPt = ViewPoint-To-MediaPoint $viewPt $true
                 $picture.Cursor = if ($hoverPt -and $selection.Contains($hoverPt)) {
@@ -5604,6 +6193,13 @@ $picture.Add_MouseMove({
     }
 
     $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+    if ((($script:resizeSlice1Enabled -and $toolMode -eq "Rectangle") -or
+         ($script:resizeSlice2Enabled -and $toolMode -eq "Oval")) -and
+        -not $script:resizeDraftDrawMoved -and $script:resizeDraftDrawStartView) {
+        if (Test-RectangleDraftDragThreshold $script:resizeDraftDrawStartView $viewPt) {
+            $script:resizeDraftDrawMoved = $true
+        }
+    }
     $p = ViewPoint-To-MediaPoint $viewPt $true
     if (-not $p) { return }
 
@@ -5624,7 +6220,12 @@ $picture.Add_MouseMove({
 
 $picture.Add_MouseWheel({
     param($sender,$e)
-    if (-not $script:zoomToolActive -or -not $previewImage -or $e.Delta -eq 0 -or $script:zoomPanCandidate) { return }
+
+    # v2.1 always-on pointer-centred wheel zoom. Do not change scale in the
+    # middle of an active geometry drag/edit or pan gesture; between gestures,
+    # wheel zoom remains available with Rectangle/Oval/Freeform/Zoom selected.
+    if (-not $previewImage -or $e.Delta -eq 0 -or $script:zoomPanCandidate -or
+        $dragging -or $movingShape -or $script:resizingShape -or $script:editingPolygonVertex) { return }
 
     $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
     $mediaRect = Get-MediaViewRect
@@ -5635,6 +6236,13 @@ $picture.Add_MouseWheel({
 
 $picture.Add_MouseUp({
     param($sender,$e)
+
+    if ($script:middlePanActive) {
+        if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Middle) {
+            Stop-MiddlePanMode
+        }
+        return
+    }
 
     if ($script:zoomToolActive -or $script:spacePanActive) {
         if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Left -and $script:zoomPanCandidate) {
@@ -5659,6 +6267,65 @@ $picture.Add_MouseUp({
         return
     }
 
+    if ($script:editingPolygonVertex) {
+        $script:editingPolygonVertex = $false
+        $picture.Capture = $false
+        $script:polygonVertexIndex = -1
+        Update-SelectionFields $null "Selection: freeform vertex moved."
+        Update-RedactionButtons
+
+        $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+        $hoverVertex = Get-FreeformVertexHandleAtViewPoint $viewPt $polygonPoints
+        if ($hoverVertex -ge 0) {
+            $picture.Cursor = Get-FreeformVertexCursor
+        }
+        else {
+            $viewRect = Get-MediaViewRect
+            if ($viewRect -and $viewRect.Contains($viewPt)) {
+                $hoverPt = ViewPoint-To-MediaPoint $viewPt $true
+                $picture.Cursor = if ($hoverPt -and (Test-PointInPolygon $hoverPt $polygonPoints)) {
+                    [System.Windows.Forms.Cursors]::SizeAll
+                } else {
+                    [System.Windows.Forms.Cursors]::Default
+                }
+            }
+            else {
+                $picture.Cursor = [System.Windows.Forms.Cursors]::Default
+            }
+        }
+        $picture.Invalidate()
+        return
+    }
+
+    if ($script:resizingShape) {
+        $resizeKind = [string]$script:resizeShapeKind
+        $script:resizingShape = $false
+        $picture.Capture = $false
+        $script:resizeOrigSelection = $null
+        Update-SelectionFields (Selection-To-VideoRect) "Selection resized."
+        Update-RedactionButtons
+
+        $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+        $hoverHandle = if ($resizeKind -eq "Oval") {
+            Get-OvalResizeHandleAtViewPoint $viewPt $selection
+        } else {
+            Get-RectangleResizeHandleAtViewPoint $viewPt $selection
+        }
+        if ($hoverHandle -ne "None") {
+            $picture.Cursor = if ($resizeKind -eq "Oval") {
+                Get-OvalResizeCursor $hoverHandle
+            } else {
+                Get-RectangleResizeCursor $hoverHandle
+            }
+        } else {
+            $picture.Cursor = [System.Windows.Forms.Cursors]::Default
+        }
+        $script:resizeHandle = "None"
+        $script:resizeShapeKind = "None"
+        $picture.Invalidate()
+        return
+    }
+
     if ($movingShape) {
         $script:movingShape = $false
         $picture.Capture = $false
@@ -5671,8 +6338,30 @@ $picture.Add_MouseUp({
     }
     if ($toolMode -eq "Polygon") { return }
     if (-not $dragging) { return }
+
+    $resizeTrackedShape = [bool](
+        ($script:resizeSlice1Enabled -and $toolMode -eq "Rectangle") -or
+        ($script:resizeSlice2Enabled -and $toolMode -eq "Oval"))
+    $clickOnlyResizeShape = [bool]($resizeTrackedShape -and -not $script:resizeDraftDrawMoved)
+
     $script:dragging = $false
     $picture.Capture = $false
+
+    if ($resizeTrackedShape) {
+        $script:resizeDraftDrawStartView = $null
+        $script:resizeDraftDrawMoved = $false
+    }
+
+    if ($clickOnlyResizeShape) {
+        # A click is not a redaction. Remove the seed geometry entirely so
+        # coincident resize handles cannot appear as one stray anchor point.
+        $script:selection = New-Object System.Drawing.RectangleF(0,0,0,0)
+        Update-SelectionFields $null
+        Update-RedactionButtons
+        $picture.Cursor = [System.Windows.Forms.Cursors]::Default
+        $picture.Invalidate()
+        return
+    }
  
     $vr = Selection-To-VideoRect
     Update-SelectionFields $vr
@@ -5751,10 +6440,23 @@ function Get-LiveEffectPatch([string]$mode, [int]$sx, [int]$sy, [int]$sw, [int]$
 function Draw-RedactionShapeLiveEffect($gfx, $r, [System.Drawing.Color]$borderColor) {
     $pen = New-Object System.Drawing.Pen($borderColor, 2)
 
+    # Resize Slice 1 r2 / Slice 2: an uncommitted Rectangle or Oval may still
+    # contain fractional MEDIA coordinates after move/resize. Its handles are
+    # projected from that RectangleF directly. Keep the draft effect/border on
+    # exactly the same VIEW rectangle instead of projecting the commit-normalized
+    # integer box, which could visibly separate handles from the border after zoom/pan.
+    $draftDisplayRect = $null
+    if ($r -is [hashtable] -and $r.ContainsKey("DraftDisplayRect")) {
+        $draftDisplayRect = $r["DraftDisplayRect"]
+    }
+    elseif ($r.PSObject -and $r.PSObject.Properties["DraftDisplayRect"]) {
+        $draftDisplayRect = $r.DraftDisplayRect
+    }
+
     if ($r.Mode -eq "Black box") {
         $brush = New-Object System.Drawing.SolidBrush((Get-RedactionColor $r))
         if ($r.Shape -eq "Oval") {
-            $dr = VideoRect-To-Display $r.X $r.Y $r.W $r.H
+            $dr = if ($draftDisplayRect) { $draftDisplayRect } else { VideoRect-To-Display $r.X $r.Y $r.W $r.H }
             if ($dr) { $gfx.FillEllipse($brush, $dr); $gfx.DrawEllipse($pen, $dr) }
         }
         elseif ($r.Shape -eq "Polygon") {
@@ -5762,7 +6464,7 @@ function Draw-RedactionShapeLiveEffect($gfx, $r, [System.Drawing.Color]$borderCo
             if ($dpts -and $dpts.Count -ge 3) { $gfx.FillPolygon($brush, $dpts); $gfx.DrawPolygon($pen, $dpts) }
         }
         else {
-            $dr = VideoRect-To-Display $r.X $r.Y $r.W $r.H
+            $dr = if ($draftDisplayRect) { $draftDisplayRect } else { VideoRect-To-Display $r.X $r.Y $r.W $r.H }
             if ($dr) { $gfx.FillRectangle($brush, $dr); Draw-ViewportRectangleOutline $gfx $pen $dr }
         }
         $brush.Dispose()
@@ -5770,7 +6472,7 @@ function Draw-RedactionShapeLiveEffect($gfx, $r, [System.Drawing.Color]$borderCo
         return
     }
 
-    $dr = VideoRect-To-Display $r.X $r.Y $r.W $r.H
+    $dr = if ($draftDisplayRect -and ($r.Shape -eq "Rectangle" -or $r.Shape -eq "Oval")) { $draftDisplayRect } else { VideoRect-To-Display $r.X $r.Y $r.W $r.H }
     if (-not $dr) { $pen.Dispose(); return }
     $liveStrength = if ($r.Strength) { [int]$r.Strength } else { 5 }
     $patch = Get-LiveEffectPatch $r.Mode $r.X $r.Y $r.W $r.H $liveStrength
@@ -5920,6 +6622,13 @@ $picture.Add_Paint({
                 $e.Graphics.DrawEllipse($pen, ($startPt.X - 4), ($startPt.Y - 4), 8, 8)
                 $markerBrush.Dispose()
                 $pen.Dispose()
+
+                # Slice 3: once the path is closed, every Freeform corner is
+                # an editable vertex. Handles are pure VIEW-space decoration;
+                # the underlying PointF list remains canonical media geometry.
+                if ($script:resizeSlice3Enabled -and -not $polygonActive -and $polygonPoints.Count -ge 3) {
+                    Draw-FreeformVertexHandles $e.Graphics $polygonPoints
+                }
             }
         }
     }
@@ -5935,6 +6644,12 @@ $picture.Add_Paint({
                         Mode = Get-SelectedMode
                         Strength = $redactionStrength
                         Color = $redactionColor
+                    }
+                    if (($script:resizeSlice1Enabled -and $toolMode -eq "Rectangle") -or
+                        ($script:resizeSlice2Enabled -and $toolMode -eq "Oval")) {
+                        # VIEW-only draft geometry: keeps border/effect and the
+                        # resize handles on one identical projected RectangleF.
+                        $shapeData.DraftDisplayRect = $displaySelection
                     }
                     Draw-RedactionShapeLiveEffect $e.Graphics $shapeData ([System.Drawing.Color]::Red)
                 }
@@ -5952,6 +6667,17 @@ $picture.Add_Paint({
                 }
                 $brush.Dispose()
                 $pen.Dispose()
+            }
+
+            # Resize Slice 1/2: handles are constant screen-pixel UI only.
+            # Rectangle keeps its eight handles; Oval exposes only N/E/S/W.
+            if (-not $dragging) {
+                if ($script:resizeSlice1Enabled -and $toolMode -eq "Rectangle") {
+                    Draw-RectangleResizeHandles $e.Graphics $selection
+                }
+                elseif ($script:resizeSlice2Enabled -and $toolMode -eq "Oval") {
+                    Draw-OvalResizeHandles $e.Graphics $selection
+                }
             }
         }
     }
