@@ -1,4 +1,106 @@
-# TinyRedactionTool Security Audit
+# TinyRedactionTool v2.2.0 — Security Audit
+
+Release date: **2026-09-23**  
+Status: **FINAL**
+
+## v2.2.0 final release identity
+
+| Artifact | SHA-256 |
+|---|---|
+| final frozen source | `E8845C6791E340F1D8002997B0E50622317500C7ACACF3B981AD61B8F9CFE7D0` |
+| final `TinyRedactionTool.exe` | `D4181637596CD99B3599CCDCF19E1C1073E21AD4D07BD06D8E36059EE7F94F79` |
+| secure builder ZIP | `2486E659AB31C6D8727C1989DDC76057C69C3AD9EEAFDC9C182AA4719B2E01E5` |
+| approved embedded FFmpeg | `643D9CFE006D0F72763B7A46B66AC23067B6A8BF4C113044781C11E862C34AFC` |
+| approved embedded FFprobe | `84F5DEDA1C8D648A588AEE7BAD7148EE0DA02569C39A7C1B41048729BE9763F2` |
+
+The v2.2.0 RC1 passed the packaged regression. Final promotion changed only the About-dialog identity from `TinyRedactionTool v2.2.0 RC1` to `TinyRedactionTool v2.2.0`.
+
+## v2.2.0 security-relevant changes
+
+### Controlled pre-redaction rotation
+
+User-selected quarter-turn rotation is separate from source autorotation. Source orientation is established first, then user rotation, then canonical displayed-media redaction geometry.
+
+Rotation is available only before redaction geometry exists. Once redaction work begins, the controls lock rather than silently transforming existing geometry. The exported orientation is baked into the output pixels/dimensions where practical.
+
+Rotation does not alter logical frame identity, CFR/VFR classification, exact PTS mapping, Begin/End frame indexes, the existing temporal safety buffer, playback timing or audio policy.
+
+### Aggressive Blur / Pixelate
+
+Default Blur and Pixelate remain available and remain the default.
+
+Aggressive mode first reduces the protected region to a deliberately low-detail structural representation before applying the final Blur or Pixelate appearance. The validated v2.2.0 Aggressive profile is fixed at strength 5.
+
+The design deliberately discards more source information than the conventional path before the cosmetic effect is rendered. It is intended to make reconstruction more difficult, not to claim cryptographic irreversibility or equivalence to opaque replacement.
+
+Pre-release testing included AI-based reconstruction attempts and a prolonged third-party-tool attack that did not recover hidden information in the tested cases. This is evidence for those tested cases only and is not a universal guarantee.
+
+**Black Box / Coloured Box remains the recommended mode when maximum obscuration is required.**
+
+### Default Pixelate preview/export parity
+
+A pre-release discrepancy was found where Default Pixelate could display a visibly different block layout after export.
+
+The final preview path now mirrors export's minimum reduced-grid rule and uses half-pixel-centred nearest-neighbour sampling so the displayed block layout materially agrees with the exported result.
+
+### Media-tool profile
+
+The custom FFmpeg source commit remains:
+
+`fd7c73d01e976d2e332e85862ab63ab608710834`
+
+v2.2.0 adds only the filters required by the accepted design:
+
+- `transpose`
+- `avgblur`
+- `lutyuv`
+
+The network-disabled protocol profile and existing exact-frame/VFR smoke tests remain in place.
+
+The accepted build uses the permanent dated MSYS2 base release:
+
+- release: `2026-06-11`
+- asset ID: `444454852`
+- archive: `msys2-base-x86_64-20260611.tar.xz`
+- size: `53555380` bytes
+- SHA-256: `A2D047E8EE213C3C6A49A8DE427EB1069DF12207C0422FF1B3CBB5C905C34221`
+
+### Preserved security controls
+
+The v2.2.0 release retains:
+
+- local media processing;
+- no TinyRedactionTool telemetry or media-upload service;
+- runtime SHA-256 verification of embedded FFmpeg/FFprobe;
+- session-long read-only sharing locks on verified runtime media tools;
+- no `PATH` fallback for FFmpeg/FFprobe;
+- network-disabled custom FFmpeg;
+- exact-frame / exact-PTS preview architecture;
+- CFR/VFR timing validation and timestamp-preserving export;
+- metadata/chapter/unintended-stream stripping;
+- audio disabled by default and primary-audio-only retention when explicitly enabled;
+- transactional `.partial.<GUID>` export and post-export validation;
+- source-file immutability; and
+- opaque Black/Coloured Box replacement semantics.
+
+## v2.2.0 regression status
+
+The final release path passed the staged application tests, combined rotation/Aggressive export tests, Default Pixelate preview/export parity retest, packaged RC1 regression and final release smoke checks.
+
+The canonical final executable identity is:
+
+`TinyRedactionTool.exe`  
+SHA-256: `D4181637596CD99B3599CCDCF19E1C1073E21AD4D07BD06D8E36059EE7F94F79`
+
+## Security qualification
+
+TinyRedactionTool should be described as security-conscious/fail-closed redaction software within its stated threat model.
+
+It does not claim to erase operating-system forensic artefacts, protect against a compromised host, or make Blur/Pixelate cryptographically irreversible.
+
+---
+
+# Historical v2.1.0 security audit baseline
 
 **Application:** TinyRedactionTool  
 **Audited version:** v2.1.0 final packaged release  

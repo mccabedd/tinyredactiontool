@@ -8,7 +8,7 @@ export PKG_CONFIG_PATH="/ucrt64/lib/pkgconfig:/ucrt64/share/pkgconfig"
 # 2026-09-10 Gyan git-master build revision and makes the custom build
 # reproducible instead of silently changing whenever upstream master changes.
 FFMPEG_COMMIT="fd7c73d01e976d2e332e85862ab63ab608710834"
-BUILD_PROFILE="tinyredactiontool-v1.3.8-vfr-timeline-exact-preview"
+BUILD_PROFILE="tinyredactiontool-v2.2.0-d1-rotation-enhanced-export"
 
 printf '\n==> Installing the Windows build toolchain and required codec libraries\n'
 pacman -Sy --needed --noconfirm \
@@ -112,6 +112,9 @@ if [[ ! -f ffbuild/config.mak ]]; then
   --enable-filter=drawbox \
   --enable-filter=crop \
   --enable-filter=boxblur \
+  --enable-filter=avgblur \
+  --enable-filter=lutyuv \
+  --enable-filter=transpose \
   --enable-filter=scale \
   --enable-filter=split \
   --enable-filter=overlay \

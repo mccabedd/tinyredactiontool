@@ -30,7 +30,9 @@ You’re welcome to fork and adapt this project for your own use. If you do, ple
 - Eyedropper tool to sample a colour directly from the loaded frame/image.
 - **Blur** visual obscuration with adjustable strength.
 - **Pixelate** visual obscuration with adjustable strength.
-- Session-only warning suppression for Blur/Pixelate security warnings.
+- Optional **Aggressive** Blur/Pixelate mode that first reduces the selected area to a deliberately low-detail structural representation before applying the final visual effect.
+- Aggressive mode uses the validated fixed strength-5 profile in v2.2.0; Default remains the normal unchecked mode.
+- Session-only warning suppression for Blur/Pixelate security warnings; the Blur/Pixelate suppression checkbox starts checked by default.
 - Video redactions use explicit **Begin Redaction** and **End Redaction** frame markers.
 - Automatic **2-frame temporal safety buffer** before and after each marked video range.
 - Automatic **1-pixel outward spatial safety margin** for secure opaque exports where media bounds allow it.
@@ -51,6 +53,7 @@ You’re welcome to fork and adapt this project for your own use. If you do, ple
 - Manual zoom up to **800%**.
 - Drag with the Zoom tool to pan.
 - **Middle-button drag** pans the preview at any time without changing the selected drawing tool.
+- **Right-button drag** also pans the preview while preserving the existing simple right-click Zoom/Freeform actions.
 - Hold **Space + drag** while Rectangle/Oval/Freeform is selected for temporary pan without changing drawing tools.
 - Fit mode preserves aspect ratio and permits letterboxing rather than stretching media.
 - Manual zoom/pan survives frame stepping, seeking, playback, pause, panel collapse/restore and window resize/maximise/restore.
@@ -71,7 +74,9 @@ You’re welcome to fork and adapt this project for your own use. If you do, ple
 - Current preview time and logical frame number display.
 - Redaction activation uses logical frame indexes rather than `frame / fps` arithmetic.
 - Exact-PTS preview extraction fails closed instead of silently substituting a neighbouring frame.
-- 90°, 180° and 270° rotation/orientation handling through the same autorotated displayed-media coordinate convention used for export.
+- Existing source autorotation/orientation handling remains intact.
+- Pre-redaction **90° clockwise / anticlockwise user rotation** is available before any redaction geometry exists; 180° and 270° are reached by repeated quarter-turns.
+- User rotation is baked into exported pixels/dimensions and does not alter logical frame identity or timing.
 
 ### Image and video export
 
@@ -123,14 +128,14 @@ You’re welcome to fork and adapt this project for your own use. If you do, ple
 ### User interface and workflow
 
 - Compact Windows PowerShell/WinForms desktop UI.
-- Day and Dark modes with themed toolbar icons.
+- Day and Dark modes with themed toolbar icons; the v2.2 Dark Mode base uses the lighter `#3C3F47` family.
 - Compact left toolbar for Rectangle, Oval, Freeform, Zoom, Coloured Box, Blur and Pixelate.
 - Collapsible **Redaction Area** side panel; preview expands when the panel is collapsed.
 - Selection X/Y/Width/Height readout.
 - Security-mode guidance distinguishing opaque redaction from visual obscuration.
 - Status/progress feedback during media analysis and export.
 - Compact warning dialogs for Blur/Pixelate, audio and network/cloud paths.
-- About dialog identifies **TinyRedactionTool v2.1.0**, GPL-2.0-or-later licensing and local-processing/no-telemetry posture.
+- About dialog identifies **TinyRedactionTool v2.2.0**, GPL-2.0-or-later licensing and local-processing/no-telemetry posture.
 - GitHub repository URL in About is non-clickable and has a dedicated copy-to-clipboard icon.
 - Custom application/taskbar icon in the packaged EXE.
 
@@ -146,28 +151,28 @@ You’re welcome to fork and adapt this project for your own use. If you do, ple
 
 ## Current release
 
-**Version:** v2.1.0 final release  
+**Version:** v2.2.0 final release  
 **License:** GPL-2.0-or-later  
 **Repository:** https://github.com/mccabedd/tinyredactiontool/
 
-### Frozen v2.1.0 source
+### Frozen v2.2.0 source
 
-The consolidated v2.1.0 RC1 completed the full application regression on **2026-09-18**. Release preparation then changed only the About-dialog version label from `v2.1.0 RC1` to `v2.1.0`; no media, redaction, timing, export, resize or viewport logic changed.
+The v2.2.0 RC1 completed the packaged regression and final promotion then changed only the About-dialog identity from `TinyRedactionTool v2.2.0 RC1` to `TinyRedactionTool v2.2.0`; no redaction, export, timing, rotation, geometry, masking, preview or security logic changed during final promotion.
 
 | Artifact | SHA-256 |
 |---|---|
-| frozen v2.1.0 release source | `2BC392FD52587343AB4CEA95B19C295286E44E4D3543634D9D3D1E383567BDC7` |
-| consolidated v2.1.0 RC1 source | `05445FE17E1E1EC58BF084B749B97C8B8BAAF6869FBAFCCA9D2A3AEB96B94C0D` |
-| approved embedded `ffmpeg.exe` | `28612C0A94D50A29AABD0555C91E086D1CCDF13260757B83B4BBD53A0C2CDCE0` |
-| approved embedded `ffprobe.exe` | `BB8CBA76F9D4F05DD608F319477A0604D8A8C289FB6A885B03919F07C4DC9855` |
-| final `TinyRedactionTool.exe` | `1770318460DA5FCE5E7E5957F9937674D2ABF57C409189DAF915268D4A55BCB2` |
-| `TinyRedactionTool-Secure-Builder-v2.1.0-r1.zip` | `6DF3F0A51D37B42E649CD4A5DD2E0B4289F3B2B499BCF2D9B096B9038D974C7F` |
+| frozen v2.2.0 release source | `E8845C6791E340F1D8002997B0E50622317500C7ACACF3B981AD61B8F9CFE7D0` |
+| frozen v2.2.0 RC1 source | `FEA81D64DADD5DF6B7CBD389ADE0E373D9CD58C2B300726E9919364A11AD76E4` |
+| approved embedded `ffmpeg.exe` | `643D9CFE006D0F72763B7A46B66AC23067B6A8BF4C113044781C11E862C34AFC` |
+| approved embedded `ffprobe.exe` | `84F5DEDA1C8D648A588AEE7BAD7148EE0DA02569C39A7C1B41048729BE9763F2` |
+| final `TinyRedactionTool.exe` | `D4181637596CD99B3599CCDCF19E1C1073E21AD4D07BD06D8E36059EE7F94F79` |
+| `TinyRedactionTool-Secure-Builder-v2.2.0.zip` | `2486E659AB31C6D8727C1989DDC76057C69C3AD9EEAFDC9C182AA4719B2E01E5` |
 
-The final Windows secure-builder run completed successfully on **2026-09-18**. The builder verified the frozen source and approved media-tool hashes, passed the FFmpeg/FFprobe feature, network-disable and VFR timestamp round-trip smoke tests, produced a single-file EXE with no `.config` sidecar, and the resulting EXE was independently hash-checked. A packaged-runtime smoke test was then reported green.
+The final Windows secure-builder run verified the frozen source and approved media-tool hashes, passed the FFmpeg/FFprobe feature, network-disable, exact-frame and VFR timestamp round-trip smoke tests, produced a single-file EXE with no `.config` sidecar, and the resulting EXE was independently hash-checked.
 
-The v2.1.0 feature set adds pre-commit Rectangle/Oval/Freeform editing plus always-available mouse-wheel zoom and middle-button pan. CFR/VFR timing, logical frame identity, export validation, rotation, metadata/audio handling, trusted media-tool architecture and Blur/Pixelate export behaviour remain based on the tested v2.0.0 architecture.
+v2.2.0 adds controlled pre-redaction quarter-turn rotation, optional Aggressive Blur/Pixelate, right-button drag panning, the lighter Dark Mode palette, and a Default Pixelate preview/export parity correction while preserving the established CFR/VFR timing, source-immutability, metadata/audio and transactional export architecture.
 
-For reference, the previous verified v2.0.0 release used source hash `11698B006A1FF8759D7FF222246475FE9B0A091C5A4F61023AC4649ACBF2B4FB` and EXE hash `F2C76CA945209101BADA2D995056BE3B8B3CC3763FAFED08E3A29E394F397A4F`.
+For reference, the previous verified v2.1.0 release used source hash `2BC392FD52587343AB4CEA95B19C295286E44E4D3543634D9D3D1E383567BDC7` and EXE hash `1770318460DA5FCE5E7E5957F9937674D2ABF57C409189DAF915268D4A55BCB2`.
 
 ## Supported media
 
@@ -200,9 +205,13 @@ The application replaces pixels in the exported media. It does not delete or mod
 
 ### Blur and Pixelate
 
-Blur and Pixelate are provided for visual obscuration, not irreversible redaction. TinyRedactionTool warns about this when either mode is selected and recommends Black/Coloured Box for information that must not be recoverable.
+Blur and Pixelate are provided for visual obscuration, not as equivalents of opaque replacement. TinyRedactionTool warns about this when either mode is selected and recommends Black Box or Coloured Box when maximum obscuration is required.
 
-The warning can be suppressed for the current application session only.
+**Default** retains the conventional Blur/Pixelate path. **Aggressive** first reduces the protected region to a deliberately low-detail structural representation before producing the final Blur or Pixelate appearance. The validated v2.2.0 Aggressive profile is fixed at strength 5.
+
+Pre-release testing included AI-based reconstruction attempts and a prolonged third-party-tool attack that did not recover the hidden information in the tested cases. That result is not a guarantee that sensitive material can never be retrieved.
+
+The warning can be suppressed for the current application session only. For the Blur/Pixelate warning, **Don't show again this session** starts checked by default.
 
 ## Zoom and pan
 
@@ -213,6 +222,8 @@ Zoom/pan is a preview-only viewport feature. Redaction geometry is stored in can
 - Manual zoom is capped at 800%.
 - Left/right click and mouse wheel zoom around the pointer while the Zoom tool is active.
 - Dragging with the Zoom tool pans the media.
+- Middle-button drag and right-button drag can pan without changing the selected drawing tool.
+- A simple right-click still retains its normal Zoom-out / Freeform behaviour.
 - Holding Space while a Rectangle/Oval/Freeform tool is selected temporarily enables drag-to-pan without changing the selected drawing tool.
 - Zoom/pan persists across frame stepping, seeking and playback, and new media resets to Fit.
 
@@ -237,7 +248,16 @@ If a safe, unique frame mapping cannot be established, the file is rejected.
 
 ## Rotation
 
-Preview, media geometry and export use FFmpeg autorotation consistently. Rotation metadata/orientation cases at 90°, 180° and 270° were rechecked in the consolidated v2.1.0 regression so that preview coordinates, selection placement and exported placement remain aligned.
+TinyRedactionTool keeps **source orientation** and **user-selected rotation** separate.
+
+1. Normal source autorotation/orientation handling is applied first.
+2. The user may then apply 90° clockwise or anticlockwise quarter-turns before redaction work begins.
+3. Redaction geometry is created in that final displayed-media coordinate space.
+4. Once draft, pending or committed redaction geometry exists, the rotation controls are locked to avoid retroactively transforming geometry.
+5. Opening new media resets additional user rotation to 0°.
+6. Export physically bakes the selected orientation into the output pixels/dimensions rather than depending on a new rotation metadata flag where practical.
+
+User rotation does **not** change CFR/VFR frame identity, Previous/Next semantics, Begin/End frame indexes, presentation timestamps, playback timing or audio handling.
 
 ## Audio
 
@@ -268,7 +288,7 @@ Exports explicitly remove:
 
 Post-export inspection uses structured FFprobe JSON rather than parsing FFmpeg's human-readable banner output. A narrow allow-list permits only expected muxer/encoder housekeeping metadata keys.
 
-The consolidated v2.1.0 regression rechecked metadata/chapter stripping. The historical v1.3.8 standalone security test also used deliberately fake global, stream and chapter metadata and confirmed that the fake values and chapter/data stream did not survive export.
+The consolidated v2.2.0 regression rechecked metadata/chapter stripping. The historical v1.3.8 standalone security test also used deliberately fake global, stream and chapter metadata and confirmed that the fake values and chapter/data stream did not survive export.
 
 ## Local-processing and privacy model
 
@@ -359,12 +379,14 @@ This reduces accidental disclosure in dialogs/log capture but is not a promise t
 
 The secure builder targets **Windows PowerShell 5.1** and uses a cached MSYS2/MinGW environment under `_CustomFFmpegBuild`.
 
-Major pinned inputs retained for the v2.1.0 release builder:
+Major pinned inputs for the v2.2.0 release builder:
 
 - FFmpeg source commit: `fd7c73d01e976d2e332e85862ab63ab608710834`
-- MSYS2 base release asset ID: `560868716`
-- MSYS2 archive size: `42915960` bytes
-- MSYS2 archive SHA-256: `F6BBDE384F3331FB293C5051D5B9DBEC01C772BCCDCEEE83B78213801264D0BD`
+- MSYS2 base release: `2026-06-11`
+- MSYS2 base release asset ID: `444454852`
+- MSYS2 archive: `msys2-base-x86_64-20260611.tar.xz`
+- MSYS2 archive size: `53555380` bytes
+- MSYS2 archive SHA-256: `A2D047E8EE213C3C6A49A8DE427EB1069DF12207C0422FF1B3CBB5C905C34221`
 - PS2EXE: `1.0.18`
 
 Build with:
@@ -377,7 +399,7 @@ Do not run the builder as Administrator unless there is a separate, unavoidable 
 
 The builder validates the custom media tools on normal Windows before packaging, including functional tests for:
 
-- required FFmpeg encoders/muxers/filters/protocols;
+- required FFmpeg encoders/muxers/filters/protocols, including the v2.2 `transpose`, `avgblur` and `lutyuv` filters;
 - networking being disabled;
 - `null` + `wrapped_avframe`;
 - `image2pipe` + PNG;
@@ -411,4 +433,4 @@ TinyRedactionTool is designed to reduce accidental disclosure, not to control th
 - Long-path behaviour beyond ordinary Windows path limits is not claimed for the standalone build.
 - OS-level forensic artefacts cannot be absolutely eliminated by an ordinary desktop application.
 
-For the hardened packaging threat model and historical v1.3.8 standalone security-test record, see [`SECURITY-AUDIT.md`](SECURITY-AUDIT.md). For v2.1.0 changes and release-preparation status, see `RELEASE-NOTES-v2.1.0.txt`.
+For the hardened packaging threat model, v2.2 security addendum and historical security-test record, see [`SECURITY-AUDIT.md`](SECURITY-AUDIT.md). For v2.2.0 release details, see `RELEASE-NOTES-v2.2.0.txt`.

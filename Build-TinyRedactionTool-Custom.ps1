@@ -1,18 +1,18 @@
 ﻿#requires -Version 5.1
 $ErrorActionPreference = 'Stop'
-$Host.UI.RawUI.WindowTitle = 'Build TinyRedactionTool.exe - Secure Custom FFmpeg/FFprobe v2.1.0'
+$Host.UI.RawUI.WindowTitle = 'Build TinyRedactionTool v2.2.0 - Secure Custom FFmpeg/FFprobe'
 
 function Write-Step([string]$Text) { Write-Host "`n==> $Text" -ForegroundColor Cyan }
 function Fail([string]$Text) { Write-Host "`nBUILD FAILED: $Text" -ForegroundColor Red; throw $Text }
 function Format-MB([long]$Bytes) { return ('{0:N1} MB' -f ($Bytes / 1MB)) }
 
-# v2.1.0 production release identity. The standalone builder must package the
-# exact frozen, regression-tested v2.1.0 release source and the exact approved
-# media tools retained from the v2.0.0 production release. Draft editing and
-# viewport usability do not require a media-tool change.
-$releaseSourceSha256 = '2BC392FD52587343AB4CEA95B19C295286E44E4D3543634D9D3D1E383567BDC7'
-$releaseFFmpegSha256 = '28612C0A94D50A29AABD0555C91E086D1CCDF13260757B83B4BBD53A0C2CDCE0'
-$releaseFFprobeSha256 = 'BB8CBA76F9D4F05DD608F319477A0604D8A8C289FB6A885B03919F07C4DC9855'
+# v2.2.0 final release identity. The standalone builder must package the
+# exact frozen final application source and the exact D1 media tools that
+# passed combined rotation/Aggressive export validation. Any identity mismatch
+# fails closed.
+$releaseSourceSha256 = 'E8845C6791E340F1D8002997B0E50622317500C7ACACF3B981AD61B8F9CFE7D0'
+$releaseFFmpegSha256 = '643D9CFE006D0F72763B7A46B66AC23067B6A8BF4C113044781C11E862C34AFC'
+$releaseFFprobeSha256 = '84F5DEDA1C8D648A588AEE7BAD7148EE0DA02569C39A7C1B41048729BE9763F2'
 
 function Compress-GZipFile([string]$Source, [string]$Destination) {
     $input=$null; $output=$null; $gzip=$null
@@ -38,7 +38,7 @@ function Test-TinyFFmpeg([string]$FFmpeg) {
     }
 
     $filters = & $FFmpeg -hide_banner -filters 2>&1 | Out-String
-    foreach ($name in @('drawbox','crop','boxblur','scale','split','overlay','format','alphamerge','palettegen','paletteuse','aformat','aresample','select')) {
+    foreach ($name in @('drawbox','crop','boxblur','avgblur','lutyuv','transpose','scale','split','overlay','format','alphamerge','palettegen','paletteuse','aformat','aresample','select')) {
         if ($filters -notmatch "(?m)^ .{2,4}\s+$([regex]::Escape($name))\s") { Fail "Custom FFmpeg is missing required filter '$name'." }
     }
 
@@ -119,6 +119,20 @@ function Test-TinyFFmpeg([string]$FFmpeg) {
         $ptsHash = (Get-FileHash -LiteralPath $exactByPts -Algorithm SHA256).Hash
         if ($indexHash -ne $ptsHash) {
             Fail 'Custom FFmpeg PTS-selected preview did not match the exact logical frame baseline.'
+        }
+
+        # D1 combined export capability smoke. Keep this INSIDE the same
+        # temporary-smoke try block so $smokePng still exists.
+        $yExpr = "floor((val+18.2142857)/36.4285714)*36.4285714"
+        $cExpr = "if(lt(val\,92)\,80\,if(lt(val\,111)\,104\,if(lt(val\,123)\,118\,if(lt(val\,133)\,128\,if(lt(val\,145)\,138\,if(lt(val\,164)\,152\,176))))))"
+        $d1Filter = "scale=20:20:flags=bicubic:out_range=full,format=yuv444p," +
+                    "avgblur=sizeX=8:sizeY=8,scale=5:5:flags=neighbor," +
+                    "lutyuv=y='$yExpr':u='$cExpr':v='$cExpr'," +
+                    "scale=20:20:flags=bilinear,transpose=clock"
+
+        $d1Text = & $FFmpeg -hide_banner -nostdin -loglevel error -i $smokePng -vf $d1Filter -frames:v 1 -an -sn -dn -c:v wrapped_avframe -f null NUL 2>&1 | Out-String
+        if ($LASTEXITCODE -ne 0) {
+            Fail ("Custom FFmpeg D1 transpose/pooled-Enhanced runtime smoke test failed: " + $d1Text.Trim())
         }
     }
     finally {
@@ -246,19 +260,42 @@ foreach ($required in @($sourceTemplate,$icon,$shellTemplate)) {
 }
 New-Item -ItemType Directory -Path $cache -Force | Out-Null
 
-Write-Step 'Verifying frozen v2.1.0 release source'
+# If this RC builder is extracted into the tested D1-READY folder, adopt those
+# exact ffmpeg.exe / ffprobe.exe binaries after hash verification. This avoids
+# recompiling the already-approved media tools.
+$d1ReadyFFmpeg = Join-Path $root 'ffmpeg.exe'
+$d1ReadyFFprobe = Join-Path $root 'ffprobe.exe'
+if ((-not (Test-Path -LiteralPath $customFFmpeg)) -and
+    (-not (Test-Path -LiteralPath $customFFprobe)) -and
+    (Test-Path -LiteralPath $d1ReadyFFmpeg) -and
+    (Test-Path -LiteralPath $d1ReadyFFprobe)) {
+
+    $candidateFFmpegHash = (Get-FileHash -LiteralPath $d1ReadyFFmpeg -Algorithm SHA256).Hash.ToUpperInvariant()
+    $candidateFFprobeHash = (Get-FileHash -LiteralPath $d1ReadyFFprobe -Algorithm SHA256).Hash.ToUpperInvariant()
+    if ($candidateFFmpegHash -eq $releaseFFmpegSha256 -and $candidateFFprobeHash -eq $releaseFFprobeSha256) {
+        Write-Step 'Adopting approved D1-READY media tools'
+        Copy-Item -LiteralPath $d1ReadyFFmpeg -Destination $customFFmpeg -Force
+        Copy-Item -LiteralPath $d1ReadyFFprobe -Destination $customFFprobe -Force
+        Write-Host '    Exact approved D1 media hashes verified before adoption.' -ForegroundColor Green
+    }
+    else {
+        Write-Host '    Existing ffmpeg.exe/ffprobe.exe do not match approved D1 hashes; not adopting them.' -ForegroundColor Yellow
+    }
+}
+
+Write-Step 'Verifying frozen v2.2.0 final release source'
 $actualSourceSha256 = (Get-FileHash -LiteralPath $sourceTemplate -Algorithm SHA256).Hash.ToUpperInvariant()
 if ($actualSourceSha256 -ne $releaseSourceSha256) {
-    Fail "Release source SHA-256 mismatch. Expected $releaseSourceSha256; got $actualSourceSha256. Refusing to package a non-frozen v2.1.0 source."
+    Fail "Release source SHA-256 mismatch. Expected $releaseSourceSha256; got $actualSourceSha256. Refusing to package a non-frozen v2.2.0 final source."
 }
-Write-Host "    v2.1.0 source SHA-256 verified: $actualSourceSha256" -ForegroundColor Green
+Write-Host "    v2.2.0 final source SHA-256 verified: $actualSourceSha256" -ForegroundColor Green
 
 $needsMediaBuild = (-not (Test-Path -LiteralPath $customFFmpeg) -or -not (Test-Path -LiteralPath $customFFprobe))
 if (-not $needsMediaBuild) {
     # The hardened application requires image2pipe for memory-only frame decoding
     # and null for VFR/decode safety checks that intentionally produce no file.
     # Existing binaries from older build profiles must be rebuilt rather than
-    # silently reused with either security-critical runtime capability absent.
+    # silently reused if any v2.2 security-critical capability is absent.
     $existingMuxers = & $customFFmpeg -hide_banner -muxers 2>&1 | Out-String
     $existingProtocols = & $customFFmpeg -hide_banner -protocols 2>&1 | Out-String
     $existingEncoders = & $customFFmpeg -hide_banner -encoders 2>&1 | Out-String
@@ -268,8 +305,11 @@ if (-not $needsMediaBuild) {
         $existingMuxers -notmatch '(?m)^\s*E\s+null\s' -or
         $existingEncoders -notmatch '(?m)^ .{5,8}\s+wrapped_avframe\s' -or
         $existingProtocols -notmatch '(?m)^\s*pipe\s*$' -or
-        $existingFilters -notmatch '(?m)^ .{2,4}\s+select\s') {
-        Write-Step 'Existing media tools predate the required exact-frame VFR preview build profile; rebuilding them'
+        $existingFilters -notmatch '(?m)^ .{2,4}\s+select\s' -or
+        $existingFilters -notmatch '(?m)^ .{2,4}\s+transpose\s' -or
+        $existingFilters -notmatch '(?m)^ .{2,4}\s+avgblur\s' -or
+        $existingFilters -notmatch '(?m)^ .{2,4}\s+lutyuv\s') {
+        Write-Step 'Existing media tools do not match the v2.2 rotation/Aggressive capability profile; rebuilding them'
         $needsMediaBuild = $true
     }
 }
@@ -281,15 +321,17 @@ if ($needsMediaBuild) {
         # builder revision and verify it byte-for-byte before extraction. Do not
         # silently follow the moving "latest" asset without a matching hash.
         $headers = @{ 'User-Agent'='TinyRedactionTool-Secure-Builder'; 'Accept'='application/octet-stream' }
-        $msysAssetId = '560868716'
-        $msysAssetName = 'msys2-base-x86_64-latest.tar.xz'
-        $msysExpectedSize = 42915960
-        $msysExpectedSha256 = 'F6BBDE384F3331FB293C5051D5B9DBEC01C772BCCDCEEE83B78213801264D0BD'
+        # Permanent dated MSYS2 release asset used for the accepted D1 build.
+        # Release: 2026-06-11
+        $msysAssetId = '444454852'
+        $msysAssetName = 'msys2-base-x86_64-20260611.tar.xz'
+        $msysExpectedSize = 53555380
+        $msysExpectedSha256 = 'A2D047E8EE213C3C6A49A8DE427EB1069DF12207C0422FF1B3CBB5C905C34221'
         $msysAssetApi = "https://api.github.com/repos/msys2/msys2-installer/releases/assets/$msysAssetId"
         $archive = Join-Path $cache $msysAssetName
 
         if (-not (Test-Path -LiteralPath $archive)) {
-            Write-Host "    Downloading pinned MSYS2 asset ID $msysAssetId"
+            Write-Host "    Downloading pinned MSYS2 2026-06-11 asset ID $msysAssetId"
             Invoke-WebRequest -Uri $msysAssetApi -Headers $headers -OutFile $archive -UseBasicParsing
         } else {
             Write-Host "    Found cached $msysAssetName; verifying before reuse"
@@ -335,12 +377,12 @@ Test-VFRTimingRoundTrip $customFFmpeg $customFFprobe
 $ffmpegHash = (Get-FileHash -LiteralPath $customFFmpeg -Algorithm SHA256).Hash.ToUpperInvariant()
 $ffprobeHash = (Get-FileHash -LiteralPath $customFFprobe -Algorithm SHA256).Hash.ToUpperInvariant()
 if ($ffmpegHash -ne $releaseFFmpegSha256) {
-    Fail "FFmpeg SHA-256 differs from the approved v2.1.0 release binary. Expected $releaseFFmpegSha256; got $ffmpegHash."
+    Fail "FFmpeg SHA-256 differs from the approved v2.2.0 release binary. Expected $releaseFFmpegSha256; got $ffmpegHash."
 }
 if ($ffprobeHash -ne $releaseFFprobeSha256) {
-    Fail "FFprobe SHA-256 differs from the approved v2.1.0 release binary. Expected $releaseFFprobeSha256; got $ffprobeHash."
+    Fail "FFprobe SHA-256 differs from the approved v2.2.0 release binary. Expected $releaseFFprobeSha256; got $ffprobeHash."
 }
-Write-Host '    Approved v2.1.0 media-tool hashes: OK' -ForegroundColor Green
+Write-Host '    Approved v2.2.0 release media-tool hashes: OK' -ForegroundColor Green
 Write-Step 'Pinning exact SHA-256 hashes into the packaged application source'
 Write-Host "    FFmpeg : $ffmpegHash"
 Write-Host "    FFprobe: $ffprobeHash"
@@ -404,7 +446,7 @@ Invoke-ps2exe `
     -title 'TinyRedactionTool' `
     -product 'TinyRedactionTool' `
     -description 'Standalone local image and video redaction tool' `
-    -version '2.1.0.0' `
+    -version '2.2.0.0' `
     -supportOS
 
 if (-not (Test-Path -LiteralPath $output)) { Fail 'PS2EXE did not create TinyRedactionTool.exe.' }
@@ -418,4 +460,4 @@ Write-Host ('Final EXE: ' + (Format-MB (Get-Item $output).Length))
 Write-Host "Final EXE SHA-256: $exeHash"
 Write-Host "Single-file packaging check: OK (no .config sidecar)" -ForegroundColor Green
 Write-Host "`nThe final EXE contains the exact hashed FFmpeg and FFprobe binaries above." -ForegroundColor Green
-Write-Host 'Do not delete the build folder until the compiled EXE has passed the runtime security test plan.'
+Write-Host 'Final v2.2.0 build complete. Verify the EXE hash independently and run FINAL-RELEASE-SMOKE-CHECKLIST.md before publishing.'

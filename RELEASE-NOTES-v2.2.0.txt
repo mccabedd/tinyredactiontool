@@ -1,0 +1,42 @@
+TinyRedactionTool v2.2.0
+================================
+
+Highlights
+----------
+- Added pre-redaction 90-degree anticlockwise/clockwise media rotation.
+- Added optional Aggressive Blur/Pixelate mode using a deliberately
+  low-detail structural representation before cosmetic reconstruction.
+- Default Blur/Pixelate remains available and remains the default.
+- Corrected Default Pixelate preview/export block-layout parity.
+- Added right-button drag panning while preserving simple right-click actions.
+- Refined Blur/Pixelate reconstruction-risk warning.
+- Dark Mode base updated to #3C3F47 with coordinated nearby shades.
+
+Rotation
+--------
+- Source autorotation and user rotation remain separate.
+- User rotation is applied after normal source orientation handling.
+- Redactions are created in the final displayed coordinate space.
+- Rotation is locked after redaction work begins.
+- Opening new media resets additional user rotation to 0 degrees.
+- Export bakes the selected orientation into output pixels/dimensions.
+
+Blur / Pixelate
+----------------
+- Default retains the conventional visual effect.
+- Aggressive reduces the protected region to a low-detail structural
+  representation before rendering the final effect.
+- The validated v2.2.0 Aggressive profile is fixed at strength 5.
+- Blur and Pixelate remain visual-obscuration methods, not equivalents of
+  opaque replacement.
+- Black Box / Coloured Box remain recommended for maximum obscuration.
+
+Security / media
+----------------
+- Local processing retained.
+- Runtime SHA-256 locks on FFmpeg/FFprobe retained.
+- Custom FFmpeg network protocols remain disabled.
+- CFR/VFR timing and exact PTS preview architecture retained.
+- Audio off by default.
+- Metadata, chapters and unintended streams stripped.
+- Transactional export validation and source immutability retained.
