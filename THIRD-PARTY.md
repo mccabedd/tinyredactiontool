@@ -1,5 +1,10 @@
 # Third-Party Software and Licences
 
+## v2.5.0 packaging note
+
+The approved embedded FFmpeg/FFprobe binaries are unchanged. PS2EXE 1.0.18 is supplied under `packaging/vendor`, together with its licence and a clearly marked resource-only adaptation. That adaptation removes automatic pre-script extraction by changing one assignment; see `packaging/COMPILER-RESOURCE-ONLY.patch`. Existing third-party notices below are retained. The offline packaging bundle is not a complete corresponding FFmpeg/toolchain source archive.
+
+
 TinyRedactionTool includes or is built with third-party open-source software.
 
 ## TinyRedactionTool

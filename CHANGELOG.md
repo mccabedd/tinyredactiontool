@@ -2,6 +2,40 @@
 
 All notable changes to TinyRedactionTool are documented in this file.
 
+## [2.5.0] - 2026-10-04
+
+Final release; application version 2.5.0. Includes changes developed after the published v2.2.0 release.
+
+### Added
+
+- **Region screenshot capture:** Ctrl+Print Screen while TRT is running.
+- **Region video capture:** Ctrl+Shift+Print Screen, with a yellow Stop Recording control and blinking red recording-area border. Capture is available while TRT is in the tray.
+- **Tray settings:** mutually exclusive Minimize to tray and Exit to tray options in About; Exit to tray is the default. Click the tray icon to restore, or right-click > Quit to exit.
+- **Single-instance operation:** opening TRT again restores the existing session.
+- **Image crop:** Crop Image Tool below Zoom, an adjustable rectangular selection with eight handles and an explicit Confirm Crop action. Video crop is not supported.
+- **Text, Line and Polyline annotations:** floating editing controls, double-click reopening and an explicit Create Annotation commit action. Clicking outside the editor closes/confirms the edit without committing the annotation.
+- **Redaction editing:** double-click Rectangle, Oval or Freeform redactions to reopen editing on images and video.
+- **Clear Screen** to release the current media/editing workspace.
+- **Copy redacted image** beside image export, using the validated redacted/cropped output, followed by an Image Copied to Clipboard confirmation.
+- **Managed-policy restrictions** for network opening, network saving, optional original-file deletion, audio retention and Blur/Pixelate.
+- **Optional original-file deletion** after validated successful export, off by default and subject to eligibility checks, warnings and managed policy.
+
+### Improved and fixed
+
+- Video loading runs asynchronously with a Loading Video notice and Cancel button.
+- Minimize, restore and maximize remain responsive during video loading and export.
+- Tray closing/restoring behaviour and the main Create Annotation action were corrected.
+- The expanded editing pane was simplified; Appearance controls moved to floating annotation editors, reducing clipping and unwanted scrolling.
+- Loading, cancellation, clipboard confirmation, Clear Screen and editing controls follow the light/dark theme.
+- TRT starts maximized and uses the supplied icon in the title bar, taskbar, tray and header.
+- Compressed media tools remain embedded resources until the owning instance expands them; second launches do not stage extra payloads in TEMP.
+- App-owned temporary captures/tools have scoped cleanup and abandoned-session recovery. Forced termination can leave files until the next successful launch; tray residency is still an active session.
+
+### Preserved
+
+The approved custom FFmpeg/FFprobe binaries, CFR/VFR timing, Begin/End frame semantics, opaque redaction safety margins, export rendering and validation, metadata/extra-stream stripping and audio-off-by-default behaviour remain unchanged by the final final icon/packaging update.
+
+
 ## [2.2.0] - 2026-09-23
 
 ### Added

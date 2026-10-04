@@ -1,46 +1,30 @@
-TinyRedactionTool Secure Builder — v2.2.0 FINAL
-==================================================
+TinyRedactionTool v2.5.0 — offline EXE packaging builder
 
-RC1 has been accepted by user testing.
+Run BUILD-TinyRedactionTool-CUSTOM.cmd on Windows with Windows PowerShell 5.1.
+The root wrapper checks the frozen root source and supplied icon, then invokes
+packaging/BUILD-v2.5.0.ps1. Upload the entire packaging directory unchanged.
 
-The final source differs from RC1 only in release identity:
-    TinyRedactionTool v2.2.0 RC1
-becomes:
-    TinyRedactionTool v2.2.0
+Output: packaging/output/TinyRedactionTool.exe
 
-RC1 source SHA-256:
-FEA81D64DADD5DF6B7CBD389ADE0E373D9CD58C2B300726E9919364A11AD76E4
+Alternatively, extract TinyRedactionTool-v2.5.0-SOURCE-BUILD.zip and run
+BUILD-v2.5.0.cmd there. Its output is output/TinyRedactionTool.exe.
 
-Final frozen source SHA-256:
-E8845C6791E340F1D8002997B0E50622317500C7ACACF3B981AD61B8F9CFE7D0
+Neither route requires network access or administrator rights. The builder
+parses the source and verifies pinned source/icon/compiler, compressed payload
+hashes and the decompressed approved FFmpeg/FFprobe hashes before compilation.
+See packaging/BUILD-AND-AUDIT.md for the resource-only compiler adaptation.
 
-Approved media tools:
-FFmpeg : 643D9CFE006D0F72763B7A46B66AC23067B6A8BF4C113044781C11E862C34AFC
-FFprobe: 84F5DEDA1C8D648A588AEE7BAD7148EE0DA02569C39A7C1B41048729BE9763F2
+This is an EXE packaging rebuild from approved media binaries. It does not
+recreate the complete original FFmpeg/MSYS2 source build or its toolchain.
+The previous root build scripts are preserved under history/v2.2.0. Keep
+any existing _CustomFFmpegBuild cache. Do not use the old source-hash pins
+to compile the new root application source.
 
-RECOMMENDED BUILD PATH
-----------------------
-Extract this final builder directly into the same folder containing the already
-approved D1 media tools as:
+The delivered final EXE's hash is in SHA256SUMS-v2.5.0.txt. Rebuilding can
+produce a different EXE hash because compiler metadata can vary. Record
+the new hash and run acceptance checks; do not reuse the delivered hash.
+Company signing also changes the final EXE hash.
 
-    ffmpeg.exe
-    ffprobe.exe
-
-The builder will verify their exact hashes and adopt them automatically as
-ffmpeg-custom.exe / ffprobe-custom.exe.
-
-Then run:
-    VERIFY-STAGED-FINAL.cmd
-    BUILD-TinyRedactionTool-CUSTOM.cmd
-
-The expected output is:
-    TinyRedactionTool.exe
-
-After building:
-1. Record the printed SHA-256.
-2. Independently verify it with Get-FileHash.
-3. Run FINAL-RELEASE-SMOKE-CHECKLIST.md.
-4. Send the final EXE SHA-256 back so the immutable final release-record pack
-   can be generated.
-
-Do not publish a different build under the same v2.2.0 version identity.
+The provided evidence is the actual final validation record. Evidence scripts
+retain workspace-relative fixture paths; they are not a portable one-click
+test suite. Reproduce/adapt those fixture paths deliberately when reviewing.

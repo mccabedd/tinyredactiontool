@@ -1,4 +1,4 @@
-﻿# TinyRedactionTool v2.2.0 FINAL
+﻿# TinyRedactionTool v2.5.0 FINAL
 # Consolidated from user-tested B1-r4 source SHA-256
 # 594488A98BAFC465F90ECEB7CA43CC4E4C50879869CC5619A14BCC07F6AE1D0D
 # Frozen v2.1.0 ancestry SHA-256
@@ -28,9 +28,157 @@
 #
 # D1 REQUIRES the matching D1 custom FFmpeg build profile. The old v2.1 media
 # tool intentionally lacks transpose/avgblur/lutyuv and must not be used for D1.
+#
+# v2.3.0 S1c is the adversarial/regression candidate built on the user-accepted
+# S1b-r2 destructive deletion checkpoint:
+# - original-file deletion remains OFF by default and retains the accepted
+#   overwrite / flush / verify / delete path and stream-enumeration correction;
+# - S1c adds no new destructive primitive and does not alter overwrite strength;
+# - Export Image / Export Video now looks neutral/disabled until at least one
+#   committed redaction or standalone still-image annotation is actually exportable;
+# - enabled export keeps the established blue primary-action appearance;
+# - the export-success and original-deleted success dialogs now use the same
+#   TinyRedactionTool-themed compact dialog family as the destructive confirmation
+#   and countdown, removing the mixed stock/custom appearance;
+# - the deletion-capability information popup uses that same themed information dialog;
+# - the previously requested LEFT-side '?' information control is retained;
+# - S1c packaging adds disposable adversarial helpers for normal, read-only,
+#   hard-link, replaced-path, locked-file, network and delete-OFF regression tests;
+# - FFmpeg, FFprobe, redaction/export validation, timing, masks, and the secure
+#   builder remain unchanged.
+#
+# S1c-r2 UI correction:
+# - the S1 secure-deletion checkbox, capability status, and information button
+#   now receive explicit Day/Dark theme colours in Apply-Theme; this fixes the
+#   black-on-dark Output text seen during S1c adversarial testing;
+# - destructive deletion logic and all adversarial helper behaviour are unchanged.
+#
+# v2.3.0 D5a video-annotation slice:
+# - user-tested S1c-r2 is the accepted baseline; secure source deletion remains unchanged;
+# - Text, Line and Polyline annotations are now available on video and apply to the
+#   entire logical video by default;
+# - preview/export use exact logical-frame activation with no annotation safety buffer;
+# - creation-order layering is preserved without weakening the security-redaction pass.
+#
+# v2.3.0 D5b-r2 annotation-timing replacement slice:
+# - user-tested D5a remains the accepted baseline; the first D5b timing UI was rejected
+#   during user testing because its separate Begin Here / End Here / Whole Video controls
+#   broke the established temporal workflow and required confusing list re-selection;
+# - standalone video Text/Line/Polyline annotations now reuse the existing bottom-row
+#   Begin / End / Cancel controls contextually as Begin Annotation / End Annotation /
+#   Cancel Annotation, matching the already-familiar redaction timing flow;
+# - a video annotation remains a movable/editable draft until Begin Annotation is clicked;
+#   End Annotation commits the exact inclusive StartFrame/EndFrame range with no redaction
+#   safety buffer; Cancel Annotation during a pending range returns to the pre-range draft;
+# - no Whole Video timing control exists: a full-video annotation is explicitly ranged from
+#   the first logical frame through the final logical frame;
+# - the Annotations list retains its Range column only as post-commit feedback;
+# - video outline-only Rectangle/Oval/Freeform creation remains deferred;
+# - FFmpeg, FFprobe, destructive deletion primitives and the secure builder are unchanged.
+#
+# D5b-r3 UI/timeline polish:
+# - compact the Redaction Area guidance blocks and give the longer buffer note more height;
+# - expand the Text status area so two-line Begin Annotation guidance is never clipped;
+# - reflow the bottom transport row whenever Blur/Pixelate strength controls appear, preventing
+#   the strength slider/label from overlapping Begin Redaction / Begin Annotation;
+# - show standalone annotation ranges on the timeline in a separate violet lane beneath the
+#   existing red security-redaction lane; annotation markers use exact logical-frame timing;
+# - annotation-list refresh now invalidates the marker strip so add/remove/clear updates paint immediately;
+# - no export/security/timing/deletion primitive changes.
+#
+# v2.3.0 G1-r2 managed-policy loader checkpoint:
+# - adds an optional, generic local policy/configuration loader;
+# - no policy is required and normal public behaviour is unchanged when none exists;
+# - automatically checks only the machine-local ProgramData policy path;
+# - an explicit -ManagedPolicyPath is supported for managed deployment/testing;
+# - malformed, unsupported, network-hosted or reparse-point policy files fail closed at startup.
+#
+# v2.3.0 G2a managed-control slice:
+# - adds the first deliberately narrow managed enforcement controls;
+# - blockNetworkSource=true blocks UNC and mapped-network source media before it is opened;
+# - blockNetworkDestination=true blocks UNC and mapped-network export destinations before encoding starts;
+# - false/absent controls retain the accepted public warning behaviour rather than silently weakening it;
+# - unknown controls and non-Boolean values fail closed at startup;
+# - local cloud-sync folders are NOT claimed to be detected by these controls;
+# - no authentication, encryption-at-rest check, audit logging, updater or network service is added.
+#
+# v2.3.0 G2b managed-control slice:
+# - preserves the accepted G2a network-path controls unchanged;
+# - adds disableSourceDeletion=true so a managed deployment can prohibit TinyRedactionTool
+#   from deleting the original source after export;
+# - the deletion checkbox remains visible but is unchecked/disabled and labelled as managed;
+# - the export path independently forces source deletion OFF while the policy is active;
+# - false/absent disableSourceDeletion preserves the accepted S1c-r2 deletion workflow;
+# - destructive deletion primitives themselves are unchanged;
+# - no authentication, encryption-at-rest check, audit logging, updater or network service is added.
+#
+# v2.3.0 G2c managed-control slice:
+# - preserves the accepted G2a network-path and G2b source-deletion controls unchanged;
+# - adds disableAudioRetention=true so a managed deployment can require video exports
+#   to omit the source audio track that TinyRedactionTool does not inspect or redact;
+# - the Keep original audio checkbox remains visible for video but is unchecked/disabled
+#   and explicitly labelled as disabled by managed policy;
+# - the export path independently forces audio retention OFF while the policy is active;
+# - false/absent disableAudioRetention preserves the accepted opt-in audio workflow;
+# - FFmpeg/FFprobe, export validation and audio-warning primitives themselves are unchanged;
+# - no authentication, encryption-at-rest check, audit logging, updater or network service is added.
+#
+# v2.3.0 G2d managed-control slice:
+# - preserves the accepted G2a-G2c controls unchanged;
+# - adds disableVisualObscuration=true so a managed deployment can prohibit Blur and
+#   Pixelate redactions while retaining opaque Coloured Box secure redaction;
+# - Blur/Pixelate style buttons remain visible but are disabled while the policy is active;
+# - Get-SelectedMode independently resolves to Coloured Box under the policy, and export
+#   refuses any unexpected pre-existing/injected Blur or Pixelate redaction state;
+# - false/absent disableVisualObscuration preserves the accepted visual-obscuration warning,
+#   Standard/Aggressive behaviour and export paths unchanged;
+# - annotations remain available and are not misrepresented as secure redaction;
+# - no authentication, encryption-at-rest check, audit logging, updater or network service is added.
+#
+# v2.3.0 D5c-r2 pre-RC Text UX / startup polish slice:
+# - builds directly on the verified D5c-r1 candidate; all accepted G2d managed controls remain unchanged;
+# - adds an in-preview floating multiline editor for Text annotations; typing updates the existing
+#   Text draft/committed annotation live while the established Appearance controls continue to own styling;
+# - the floating editor opens automatically after a new Text Box is drawn and can be reopened for a
+#   selected committed Text annotation by double-clicking the annotation or its Annotations-list row;
+# - Ctrl+Enter closes the editor; Create Annotation retains the established commit/Begin semantics; Escape cancels a new draft or
+#   restores the text that existed when committed-text editing began; clicking the preview closes the editor;
+# - the floating editor is viewport-only UI state and never enters export geometry, timing or media processing;
+# - the main window now starts maximized (normal Windows maximized state, not borderless/kiosk fullscreen);
+# - FFmpeg, FFprobe, redaction/annotation export, CFR/VFR timing, destructive deletion and governance
+#   enforcement are unchanged.
+
+param(
+    [Parameter(Mandatory = $false)]
+    [string]$ManagedPolicyPath = "",
+    [string]$ApprovedMediaToolDirectory = ""
+)
+
+# One instance per interactive user/session, independent of launch directory.
+$script:InstanceKey='Local\TinyRedactionTool-v250-'+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+$script:InstanceMutex=New-Object Threading.Mutex($false,($script:InstanceKey+'-instance'))
+$script:InstanceSignal=New-Object Threading.EventWaitHandle($false,[Threading.EventResetMode]::AutoReset,($script:InstanceKey+'-restore'))
+$script:InstanceOwned=$false
+try{$script:InstanceOwned=$script:InstanceMutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{$script:InstanceOwned=$true}
+if(-not $script:InstanceOwned){[void]$script:InstanceSignal.Set();$script:InstanceSignal.Dispose();$script:InstanceMutex.Dispose();exit 0}
+
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
+
+# Managed-policy state. This remains $null during ordinary public use.
+# The loader stores only validated policy identity/version, the canonical local
+# policy source path, and the small supported Boolean control set. No media
+# paths/content are placed in governance state.
+$script:ManagedPolicy = $null
+$script:ManagedPolicySource = $null
+$script:ManagedPolicyExplicit = -not [string]::IsNullOrWhiteSpace($ManagedPolicyPath)
+$script:ManagedPolicyMachinePath = if ([string]::IsNullOrWhiteSpace($env:ProgramData)) {
+    $null
+}
+else {
+    Join-Path $env:ProgramData 'TinyRedactionTool\policy.json'
+}
 
 # v2.0.0 Slice 4: WinForms has no built-in magnifying-glass cursor. Build one
 # at runtime from the already-embedded Zoom glyph, using a tiny native helper
@@ -98,7 +246,7 @@ public static class ZoomCursorNativeV1
 "@
 }
 
-# Native Open/Save dialog wrapper used so Windows does not add patient
+# Native Open/Save dialog wrapper used so Windows does not add source
 # filenames/paths to Recent Items/MRU history. Windows PowerShell 5.1's
 # WinForms FileDialog does not expose AddToRecent, so use the documented
 # OFN_DONTADDTORECENT flag directly instead of relying on a newer .NET API.
@@ -297,6 +445,730 @@ public static class SecureFileDialogNativeV2
         }
     }
 }
+
+"@
+}
+
+# S1a: read-only source identity and storage-capability inspection. This helper
+# never writes to the source. It uses ordinary file/volume handles and refuses
+# to elevate if Windows cannot provide a defensible answer in the current user
+# context.
+if (-not ("SourceDeletionNativeV1" -as [type])) {
+    Add-Type -TypeDefinition @"
+using System;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
+using Microsoft.Win32.SafeHandles;
+
+public sealed class SourceDeletionInspectionV1
+{
+    public bool Ok;
+    public string Error;
+    public ulong VolumeSerialNumber;
+    public string FileIdHex;
+    public long FileLength;
+    public uint NumberOfLinks;
+    public uint FileAttributes;
+    public string FinalPath;
+    public bool RemoteProtocolKnown;
+    public bool IsRemote;
+    public bool SeekPenaltyKnown;
+    public bool IncursSeekPenalty;
+    public bool BusTypeKnown;
+    public int BusType;
+    public bool CanWriteDelete;
+}
+
+public static class SourceDeletionNativeV1
+{
+    private const uint FILE_READ_ATTRIBUTES = 0x00000080;
+    private const uint GENERIC_READ = 0x80000000;
+    private const uint GENERIC_WRITE = 0x40000000;
+    private const uint DELETE = 0x00010000;
+    private const uint FILE_SHARE_READ = 0x00000001;
+    private const uint FILE_SHARE_WRITE = 0x00000002;
+    private const uint FILE_SHARE_DELETE = 0x00000004;
+    private const uint OPEN_EXISTING = 3;
+    private const int FileStandardInfo = 1;
+    private const int FileAttributeTagInfo = 9;
+    private const int FileRemoteProtocolInfo = 13;
+    private const int FileIdInfo = 18;
+    private const uint IOCTL_STORAGE_QUERY_PROPERTY = 0x002D1400;
+    private const int StorageDeviceProperty = 0;
+    private const int StorageDeviceSeekPenaltyProperty = 7;
+    private const int PropertyStandardQuery = 0;
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern SafeFileHandle CreateFileW(
+        string lpFileName, uint dwDesiredAccess, uint dwShareMode, IntPtr lpSecurityAttributes,
+        uint dwCreationDisposition, uint dwFlagsAndAttributes, IntPtr hTemplateFile);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetFileInformationByHandleEx(
+        SafeFileHandle hFile, int fileInformationClass, byte[] lpFileInformation, uint dwBufferSize);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern uint GetFinalPathNameByHandleW(
+        SafeFileHandle hFile, StringBuilder lpszFilePath, uint cchFilePath, uint dwFlags);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetVolumePathNameW(
+        string lpszFileName, StringBuilder lpszVolumePathName, uint cchBufferLength);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetVolumeNameForVolumeMountPointW(
+        string lpszVolumeMountPoint, StringBuilder lpszVolumeName, uint cchBufferLength);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool DeviceIoControl(
+        SafeFileHandle hDevice, uint dwIoControlCode,
+        byte[] lpInBuffer, uint nInBufferSize,
+        byte[] lpOutBuffer, uint nOutBufferSize,
+        out uint lpBytesReturned, IntPtr lpOverlapped);
+
+    private static SafeFileHandle Open(string path, uint access)
+    {
+        return CreateFileW(path, access,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            IntPtr.Zero, OPEN_EXISTING, 0, IntPtr.Zero);
+    }
+
+    private static string HexId(byte[] b, int offset, int count)
+    {
+        StringBuilder sb = new StringBuilder(count * 2);
+        for (int i = 0; i < count; i++) sb.Append(b[offset + i].ToString("X2"));
+        return sb.ToString();
+    }
+
+    private static SafeFileHandle OpenSourceVolume(string sourcePath)
+    {
+        StringBuilder mount = new StringBuilder(1024);
+        if (!GetVolumePathNameW(sourcePath, mount, (uint)mount.Capacity)) return null;
+        StringBuilder volume = new StringBuilder(1024);
+        if (!GetVolumeNameForVolumeMountPointW(mount.ToString(), volume, (uint)volume.Capacity)) return null;
+        string volumePath = volume.ToString().TrimEnd('\\');
+        if (String.IsNullOrWhiteSpace(volumePath)) return null;
+        return Open(volumePath, 0);
+    }
+
+    private static bool QueryStorageProperty(SafeFileHandle hVolume, int propertyId, byte[] output, out uint returned)
+    {
+        returned = 0;
+        byte[] query = new byte[12];
+        Buffer.BlockCopy(BitConverter.GetBytes(propertyId), 0, query, 0, 4);
+        Buffer.BlockCopy(BitConverter.GetBytes(PropertyStandardQuery), 0, query, 4, 4);
+        return DeviceIoControl(hVolume, IOCTL_STORAGE_QUERY_PROPERTY,
+            query, (uint)query.Length, output, (uint)output.Length,
+            out returned, IntPtr.Zero);
+    }
+
+    private static bool TryStorageCharacteristics(string sourcePath, out bool seekPenalty, out int busType)
+    {
+        seekPenalty = false;
+        busType = -1;
+        using (SafeFileHandle hVolume = OpenSourceVolume(sourcePath))
+        {
+            if (hVolume == null || hVolume.IsInvalid) return false;
+
+            byte[] seek = new byte[16];
+            uint seekReturned;
+            if (!QueryStorageProperty(hVolume, StorageDeviceSeekPenaltyProperty, seek, out seekReturned) || seekReturned < 9)
+                return false;
+            seekPenalty = seek[8] != 0;
+
+            byte[] device = new byte[512];
+            uint deviceReturned;
+            if (!QueryStorageProperty(hVolume, StorageDeviceProperty, device, out deviceReturned) || deviceReturned < 32)
+                return false;
+            busType = BitConverter.ToInt32(device, 28);
+            return true;
+        }
+    }
+
+    public static SourceDeletionInspectionV1 Inspect(string path)
+    {
+        SourceDeletionInspectionV1 r = new SourceDeletionInspectionV1();
+        r.Error = "";
+        if (String.IsNullOrWhiteSpace(path)) { r.Error = "No source path."; return r; }
+
+        try
+        {
+            using (SafeFileHandle h = Open(path, FILE_READ_ATTRIBUTES))
+            {
+                if (h == null || h.IsInvalid) { r.Error = "Windows could not open the source for identity inspection."; return r; }
+
+                byte[] id = new byte[24];
+                if (!GetFileInformationByHandleEx(h, FileIdInfo, id, (uint)id.Length))
+                { r.Error = "Windows did not provide a stable file identity."; return r; }
+                r.VolumeSerialNumber = BitConverter.ToUInt64(id, 0);
+                r.FileIdHex = HexId(id, 8, 16);
+
+                byte[] standard = new byte[24];
+                if (!GetFileInformationByHandleEx(h, FileStandardInfo, standard, (uint)standard.Length))
+                { r.Error = "Windows did not provide standard file information."; return r; }
+                r.FileLength = BitConverter.ToInt64(standard, 8);
+                r.NumberOfLinks = BitConverter.ToUInt32(standard, 16);
+                if (standard[21] != 0) { r.Error = "The selected source is not a normal file."; return r; }
+
+                byte[] attrs = new byte[8];
+                if (!GetFileInformationByHandleEx(h, FileAttributeTagInfo, attrs, (uint)attrs.Length))
+                { r.Error = "Windows did not provide source file attributes."; return r; }
+                r.FileAttributes = BitConverter.ToUInt32(attrs, 0);
+
+                byte[] remote = new byte[256];
+                if (GetFileInformationByHandleEx(h, FileRemoteProtocolInfo, remote, (uint)remote.Length))
+                {
+                    r.RemoteProtocolKnown = true;
+                    r.IsRemote = BitConverter.ToUInt32(remote, 4) != 0;
+                }
+
+                StringBuilder finalPath = new StringBuilder(32768);
+                uint needed = GetFinalPathNameByHandleW(h, finalPath, (uint)finalPath.Capacity, 0);
+                r.FinalPath = (needed > 0 && needed < finalPath.Capacity) ? finalPath.ToString() : Path.GetFullPath(path);
+            }
+
+            using (SafeFileHandle writable = Open(path, GENERIC_READ | GENERIC_WRITE | DELETE))
+            {
+                r.CanWriteDelete = writable != null && !writable.IsInvalid;
+            }
+
+            bool seekPenalty;
+            int busType;
+            bool storageKnown = TryStorageCharacteristics(path, out seekPenalty, out busType);
+            r.SeekPenaltyKnown = storageKnown;
+            r.IncursSeekPenalty = seekPenalty;
+            r.BusTypeKnown = storageKnown;
+            r.BusType = busType;
+            r.Ok = true;
+            return r;
+        }
+        catch (Exception ex)
+        {
+            r.Error = ex.Message;
+            return r;
+        }
+    }
+}
+
+"@
+}
+
+# S1b: destructive overwrite/verify/delete helper. This code is called only
+# after the existing validated export, explicit confirmation, five-second
+# countdown, and a final source-identity/capability revalidation. It never
+# elevates and it deletes by the exact open file handle rather than by pathname.
+if (-not ("SourceDeletionDestructiveV1" -as [type])) {
+    Add-Type -TypeDefinition @"
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
+
+public sealed class SourceDeletionExecutionResultV1
+{
+    public bool Started;
+    public bool OverwriteVerified;
+    public bool DeleteAttempted;
+    public bool DeleteMarked;
+    public bool Deleted;
+    public string Error;
+    public long LogicalBytes;
+    public long WorkBytes;
+    public int NamedStreamsProcessed;
+}
+
+public static class SourceDeletionDestructiveV1
+{
+    private const uint GENERIC_READ = 0x80000000;
+    private const uint GENERIC_WRITE = 0x40000000;
+    private const uint DELETE = 0x00010000;
+    private const uint FILE_SHARE_READ = 0x00000001;
+    private const uint FILE_SHARE_WRITE = 0x00000002;
+    private const uint FILE_SHARE_DELETE = 0x00000004;
+    private const uint OPEN_EXISTING = 3;
+    private const int FileStandardInfo = 1;
+    private const int FileAttributeTagInfo = 9;
+    private const int FileIdInfo = 18;
+    private const int FileDispositionInfo = 4;
+    private const uint FILE_BEGIN = 0;
+    private const uint FILE_ATTRIBUTE_SPARSE_FILE = 0x00000200;
+    private const uint FILE_ATTRIBUTE_REPARSE_POINT = 0x00000400;
+    private const uint FILE_ATTRIBUTE_COMPRESSED = 0x00000800;
+    private const uint FILE_ATTRIBUTE_ENCRYPTED = 0x00004000;
+    private static readonly IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
+    private const int ERROR_INVALID_FUNCTION = 1;
+    private const int ERROR_HANDLE_EOF = 38;
+    private const int ERROR_NOT_SUPPORTED = 50;
+    private const int ERROR_INVALID_PARAMETER = 87;
+    private const int ERROR_NO_MORE_FILES = 18;
+    private const int BUFFER_SIZE = 1024 * 1024;
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct WIN32_FIND_STREAM_DATA
+    {
+        public long StreamSize;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 296)]
+        public string cStreamName;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct FILE_DISPOSITION_INFO
+    {
+        [MarshalAs(UnmanagedType.U1)]
+        public bool DeleteFile;
+    }
+
+    private sealed class StreamEntry
+    {
+        public string Name;
+        public long Length;
+    }
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern SafeFileHandle CreateFileW(
+        string lpFileName, uint dwDesiredAccess, uint dwShareMode, IntPtr lpSecurityAttributes,
+        uint dwCreationDisposition, uint dwFlagsAndAttributes, IntPtr hTemplateFile);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetFileInformationByHandleEx(
+        SafeFileHandle hFile, int fileInformationClass, byte[] lpFileInformation, uint dwBufferSize);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetFilePointerEx(
+        SafeFileHandle hFile, long liDistanceToMove, out long lpNewFilePointer, uint dwMoveMethod);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool WriteFile(
+        SafeFileHandle hFile, byte[] lpBuffer, uint nNumberOfBytesToWrite,
+        out uint lpNumberOfBytesWritten, IntPtr lpOverlapped);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool ReadFile(
+        SafeFileHandle hFile, byte[] lpBuffer, uint nNumberOfBytesToRead,
+        out uint lpNumberOfBytesRead, IntPtr lpOverlapped);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool FlushFileBuffers(SafeFileHandle hFile);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetFileInformationByHandle(
+        SafeFileHandle hFile, int fileInformationClass,
+        ref FILE_DISPOSITION_INFO lpFileInformation, uint dwBufferSize);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern IntPtr FindFirstStreamW(
+        string lpFileName, int infoLevel, out WIN32_FIND_STREAM_DATA lpFindStreamData, uint dwFlags);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool FindNextStreamW(
+        IntPtr hFindStream, out WIN32_FIND_STREAM_DATA lpFindStreamData);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool FindClose(IntPtr hFindFile);
+
+    private static string Win32Error(string prefix)
+    {
+        return prefix + " (Windows error " + Marshal.GetLastWin32Error().ToString() + ").";
+    }
+
+    private static string HexId(byte[] b, int offset, int count)
+    {
+        char[] chars = new char[count * 2];
+        const string hex = "0123456789ABCDEF";
+        for (int i = 0; i < count; i++)
+        {
+            byte v = b[offset + i];
+            chars[i * 2] = hex[v >> 4];
+            chars[i * 2 + 1] = hex[v & 0x0F];
+        }
+        return new string(chars);
+    }
+
+    private static bool TryReadSafetyInfo(
+        SafeFileHandle h, out ulong volumeSerial, out string fileId, out long length,
+        out uint links, out uint attrs, out string error)
+    {
+        volumeSerial = 0;
+        fileId = "";
+        length = 0;
+        links = 0;
+        attrs = 0;
+        error = "";
+
+        byte[] id = new byte[24];
+        if (!GetFileInformationByHandleEx(h, FileIdInfo, id, (uint)id.Length))
+        { error = Win32Error("Windows could not re-read the source identity"); return false; }
+        volumeSerial = BitConverter.ToUInt64(id, 0);
+        fileId = HexId(id, 8, 16);
+
+        byte[] standard = new byte[24];
+        if (!GetFileInformationByHandleEx(h, FileStandardInfo, standard, (uint)standard.Length))
+        { error = Win32Error("Windows could not re-read source file information"); return false; }
+        length = BitConverter.ToInt64(standard, 8);
+        links = BitConverter.ToUInt32(standard, 16);
+        if (standard[21] != 0)
+        { error = "The selected source is no longer a normal file."; return false; }
+
+        byte[] attrInfo = new byte[8];
+        if (!GetFileInformationByHandleEx(h, FileAttributeTagInfo, attrInfo, (uint)attrInfo.Length))
+        { error = Win32Error("Windows could not re-read source attributes"); return false; }
+        attrs = BitConverter.ToUInt32(attrInfo, 0);
+        return true;
+    }
+
+    private static bool TryEnumerateNamedStreams(string path, out List<StreamEntry> streams, out string error)
+    {
+        streams = new List<StreamEntry>();
+        error = "";
+        WIN32_FIND_STREAM_DATA data;
+        IntPtr find = FindFirstStreamW(path, 0, out data, 0);
+        if (find == INVALID_HANDLE_VALUE)
+        {
+            int code = Marshal.GetLastWin32Error();
+            if (code == ERROR_INVALID_FUNCTION || code == ERROR_NOT_SUPPORTED || code == ERROR_INVALID_PARAMETER || code == ERROR_HANDLE_EOF)
+                return true;
+            error = "Windows could not enumerate file data streams (Windows error " + code.ToString() + ").";
+            return false;
+        }
+
+        try
+        {
+            while (true)
+            {
+                string name = data.cStreamName ?? "";
+                if (!String.Equals(name, "::$DATA", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (data.StreamSize < 0)
+                    { error = "Windows reported an invalid named data-stream length."; return false; }
+                    StreamEntry e = new StreamEntry();
+                    e.Name = name;
+                    e.Length = data.StreamSize;
+                    streams.Add(e);
+                }
+
+                WIN32_FIND_STREAM_DATA next;
+                if (!FindNextStreamW(find, out next))
+                {
+                    int code = Marshal.GetLastWin32Error();
+                    if (code == ERROR_HANDLE_EOF || code == ERROR_NO_MORE_FILES) break;
+                    error = "Windows could not finish enumerating file data streams (Windows error " + code.ToString() + ").";
+                    return false;
+                }
+                data = next;
+            }
+        }
+        finally
+        {
+            FindClose(find);
+        }
+        return true;
+    }
+
+    private static SafeFileHandle OpenDataStream(string path, uint access)
+    {
+        return CreateFileW(path, access, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            IntPtr.Zero, OPEN_EXISTING, 0, IntPtr.Zero);
+    }
+
+    private static bool TryGetStreamLength(SafeFileHandle h, out long length, out string error)
+    {
+        length = 0;
+        error = "";
+        byte[] standard = new byte[24];
+        if (!GetFileInformationByHandleEx(h, FileStandardInfo, standard, (uint)standard.Length))
+        {
+            error = Win32Error("Windows could not read a data-stream length");
+            return false;
+        }
+        length = BitConverter.ToInt64(standard, 8);
+        if (length < 0)
+        {
+            error = "Windows reported an invalid data-stream length.";
+            return false;
+        }
+        return true;
+    }
+
+    private static bool SeekStart(SafeFileHandle h, out string error)
+    {
+        error = "";
+        long pos;
+        if (!SetFilePointerEx(h, 0, out pos, FILE_BEGIN))
+        { error = Win32Error("Windows could not seek within the source file"); return false; }
+        return true;
+    }
+
+    private static void Report(Action<long,long,string> progress, long done, long total, string phase)
+    {
+        if (progress == null) return;
+        try { progress(done, total, phase); } catch { }
+    }
+
+    private static bool OverwriteAndVerify(
+        SafeFileHandle h, long length, byte[] zeroBuffer, byte[] readBuffer,
+        ref long workDone, long workTotal, Action<long,long,string> progress, out string error)
+    {
+        error = "";
+        if (!SeekStart(h, out error)) return false;
+
+        long remaining = length;
+        while (remaining > 0)
+        {
+            uint request = (uint)Math.Min((long)zeroBuffer.Length, remaining);
+            uint written;
+            if (!WriteFile(h, zeroBuffer, request, out written, IntPtr.Zero))
+            {
+                error = Win32Error("Windows could not complete the source overwrite");
+                return false;
+            }
+            if (written != request)
+            {
+                error = "Windows completed only part of an overwrite write.";
+                return false;
+            }
+            remaining -= written;
+            workDone += written;
+            Report(progress, workDone, workTotal, "Overwriting original...");
+        }
+
+        if (!FlushFileBuffers(h))
+        {
+            error = Win32Error("Windows could not flush the overwritten source data");
+            return false;
+        }
+
+        if (!SeekStart(h, out error)) return false;
+        remaining = length;
+        while (remaining > 0)
+        {
+            uint request = (uint)Math.Min((long)readBuffer.Length, remaining);
+            uint read;
+            if (!ReadFile(h, readBuffer, request, out read, IntPtr.Zero))
+            {
+                error = Win32Error("Windows could not verify the source overwrite");
+                return false;
+            }
+            if (read == 0)
+            {
+                error = "The source became shorter while the overwrite was being verified.";
+                return false;
+            }
+            for (int i = 0; i < (int)read; i++)
+            {
+                if (readBuffer[i] != 0)
+                {
+                    error = "Overwrite verification found data that was not zero.";
+                    return false;
+                }
+            }
+            remaining -= read;
+            workDone += read;
+            Report(progress, workDone, workTotal, "Verifying overwrite...");
+        }
+
+        long finalLength;
+        string lengthError;
+        if (!TryGetStreamLength(h, out finalLength, out lengthError))
+        {
+            error = lengthError;
+            return false;
+        }
+        if (finalLength != length)
+        {
+            error = "A source data stream changed length during overwrite verification.";
+            return false;
+        }
+        return true;
+    }
+
+    public static SourceDeletionExecutionResultV1 Execute(
+        string path, ulong expectedVolumeSerial, string expectedFileIdHex,
+        long expectedLength, Action<long,long,string> progress)
+    {
+        SourceDeletionExecutionResultV1 r = new SourceDeletionExecutionResultV1();
+        r.Error = "";
+        if (String.IsNullOrWhiteSpace(path))
+        { r.Error = "The source path is unavailable."; return r; }
+
+        SafeFileHandle main = null;
+        try
+        {
+            // Enumerate named streams before taking the destructive DELETE
+            // handle. Some filesystem implementations may need to open their
+            // own metadata handle during FindFirstStreamW. Identity is checked
+            // again on the destructive handle before any byte is modified.
+            List<StreamEntry> named;
+            string streamError;
+            if (!TryEnumerateNamedStreams(path, out named, out streamError))
+            { r.Error = streamError; return r; }
+
+            main = CreateFileW(path, GENERIC_READ | GENERIC_WRITE | DELETE,
+                FILE_SHARE_READ | FILE_SHARE_WRITE, IntPtr.Zero, OPEN_EXISTING, 0, IntPtr.Zero);
+            if (main == null || main.IsInvalid)
+            { r.Error = Win32Error("Windows could not open the source for overwrite and deletion"); return r; }
+
+            ulong volumeSerial;
+            string fileId;
+            long mainLength;
+            uint links;
+            uint attrs;
+            string safetyError;
+            if (!TryReadSafetyInfo(main, out volumeSerial, out fileId, out mainLength, out links, out attrs, out safetyError))
+            { r.Error = safetyError; return r; }
+
+            if (volumeSerial != expectedVolumeSerial ||
+                !String.Equals(fileId, expectedFileIdHex ?? "", StringComparison.OrdinalIgnoreCase) ||
+                mainLength != expectedLength)
+            {
+                r.Error = "The original file changed or was replaced before overwrite began.";
+                return r;
+            }
+            if (links != 1)
+            { r.Error = "The original file now has more than one filesystem name."; return r; }
+
+            uint forbidden = FILE_ATTRIBUTE_SPARSE_FILE | FILE_ATTRIBUTE_REPARSE_POINT |
+                FILE_ATTRIBUTE_COMPRESSED | FILE_ATTRIBUTE_ENCRYPTED;
+            if ((attrs & forbidden) != 0)
+            { r.Error = "The original file now uses storage features that prevent safe overwrite verification."; return r; }
+
+            long logical = mainLength;
+            foreach (StreamEntry e in named)
+            {
+                if (e.Length > Int64.MaxValue - logical)
+                { r.Error = "The source data-stream sizes are too large to process safely."; return r; }
+                logical += e.Length;
+
+                using (SafeFileHandle probe = OpenDataStream(path + e.Name, GENERIC_READ | GENERIC_WRITE))
+                {
+                    if (probe == null || probe.IsInvalid)
+                    {
+                        r.Error = "Windows could not open every named data stream for overwrite.";
+                        return r;
+                    }
+                }
+            }
+
+            if (logical > (Int64.MaxValue / 2))
+            { r.Error = "The source is too large to track overwrite verification safely."; return r; }
+
+            r.LogicalBytes = logical;
+            r.WorkBytes = logical * 2;
+            long workDone = 0;
+            byte[] zeroBuffer = new byte[BUFFER_SIZE];
+            byte[] readBuffer = new byte[BUFFER_SIZE];
+
+            foreach (StreamEntry e in named)
+            {
+                using (SafeFileHandle stream = OpenDataStream(path + e.Name, GENERIC_READ | GENERIC_WRITE))
+                {
+                    if (stream == null || stream.IsInvalid)
+                    {
+                        r.Error = "A named data stream became unavailable before overwrite.";
+                        return r;
+                    }
+                    long currentStreamLength;
+                    string currentStreamError;
+                    if (!TryGetStreamLength(stream, out currentStreamLength, out currentStreamError))
+                    {
+                        r.Error = currentStreamError;
+                        return r;
+                    }
+                    if (currentStreamLength != e.Length)
+                    {
+                        r.Error = "A named data stream changed before overwrite began.";
+                        return r;
+                    }
+                    if (e.Length > 0) r.Started = true;
+                    string opError;
+                    if (!OverwriteAndVerify(stream, e.Length, zeroBuffer, readBuffer,
+                        ref workDone, r.WorkBytes, progress, out opError))
+                    {
+                        r.Error = opError;
+                        return r;
+                    }
+                    r.NamedStreamsProcessed++;
+                }
+            }
+
+            if (mainLength > 0) r.Started = true;
+            string mainError;
+            if (!OverwriteAndVerify(main, mainLength, zeroBuffer, readBuffer,
+                ref workDone, r.WorkBytes, progress, out mainError))
+            {
+                r.Error = mainError;
+                return r;
+            }
+
+            ulong finalVolumeSerial;
+            string finalFileId;
+            long finalMainLength;
+            uint finalLinks;
+            uint finalAttrs;
+            string finalSafetyError;
+            if (!TryReadSafetyInfo(main, out finalVolumeSerial, out finalFileId, out finalMainLength,
+                out finalLinks, out finalAttrs, out finalSafetyError))
+            {
+                r.Error = finalSafetyError;
+                return r;
+            }
+            if (finalVolumeSerial != expectedVolumeSerial ||
+                !String.Equals(finalFileId, expectedFileIdHex ?? "", StringComparison.OrdinalIgnoreCase) ||
+                finalMainLength != mainLength || finalLinks != 1)
+            {
+                r.Error = "The source changed while overwrite verification was in progress.";
+                return r;
+            }
+
+            r.OverwriteVerified = true;
+
+            // Even an empty file is destructively changed once deletion is attempted.
+            r.Started = true;
+            r.DeleteAttempted = true;
+            Report(progress, r.WorkBytes, r.WorkBytes, "Removing original file...");
+
+            FILE_DISPOSITION_INFO disposition = new FILE_DISPOSITION_INFO();
+            disposition.DeleteFile = true;
+            if (!SetFileInformationByHandle(main, FileDispositionInfo, ref disposition,
+                (uint)Marshal.SizeOf(typeof(FILE_DISPOSITION_INFO))))
+            {
+                r.Error = Win32Error("The source contents were verified, but Windows could not mark the file for deletion");
+                return r;
+            }
+            r.DeleteMarked = true;
+        }
+        catch (Exception ex)
+        {
+            r.Error = ex.Message;
+            return r;
+        }
+        finally
+        {
+            if (main != null) main.Dispose();
+        }
+
+        for (int i = 0; i < 20 && File.Exists(path); i++)
+            System.Threading.Thread.Sleep(50);
+
+        r.Deleted = !File.Exists(path);
+        if (!r.Deleted && String.IsNullOrWhiteSpace(r.Error))
+            r.Error = "The source contents were overwritten and verified, but Windows still reports the file as present.";
+        return r;
+    }
+}
 "@
 }
 
@@ -305,7 +1177,7 @@ public static class SecureFileDialogNativeV2
 # ----------------------------
 # Packaged media-tool bootstrap
 # ----------------------------
-# PS2EXE writes the two GZip payloads below before this script starts. For the
+# GZip tools remain assembly resources until the owning instance expands them. For the
 # packaged EXE only, expand them into a unique per-run directory under TEMP,
 # verify their SHA-256 pins before execution, and remove the runtime directory
 # when the GUI closes. The distributed application remains one EXE.
@@ -318,66 +1190,82 @@ $script:EmbeddedFFprobeRuntimePath = $null
 # executable before every frame-preview invocation.
 $script:ApprovedFFmpegLock = $null
 $script:ApprovedFFprobeLock = $null
-$script:EmbeddedFFmpegPayloadGzip = Join-Path $env:TEMP "TinyRedactionTool\payload\ffmpeg.exe.gz"
-$script:EmbeddedFFprobePayloadGzip = Join-Path $env:TEMP "TinyRedactionTool\payload\ffprobe.exe.gz"
+$script:EmbeddedFFmpegPayloadGzip = "ffmpeg.exe.gz"
+$script:EmbeddedFFprobePayloadGzip = "ffprobe.exe.gz"
 
-function Expand-EmbeddedGzipTool([string]$gzipPath, [string]$destinationPath) {
-    $input = $null
-    $gzip = $null
-    $output = $null
-    try {
-        $input = [System.IO.File]::OpenRead($gzipPath)
-        $gzip = New-Object System.IO.Compression.GZipStream($input, [System.IO.Compression.CompressionMode]::Decompress)
-        $output = [System.IO.File]::Create($destinationPath)
-        $gzip.CopyTo($output)
-        $output.Flush()
-    }
-    finally {
-        if ($output) { $output.Dispose() }
-        if ($gzip) { $gzip.Dispose() }
-        if ($input) { $input.Dispose() }
-    }
-
-    if (-not (Test-Path -LiteralPath $destinationPath -PathType Leaf) -or (Get-Item -LiteralPath $destinationPath).Length -lt 256KB) {
-        throw "Embedded media-tool payload could not be expanded."
+function Get-TRTRuntimeRoot {
+    $temp=[IO.Path]::GetFullPath([IO.Path]::GetTempPath())
+    if(Get-NetworkPathReason $temp){throw 'Packaged media tools require local temporary storage.'}
+    $parent=Join-Path $temp 'TinyRedactionTool'
+    if(Test-Path -LiteralPath $parent){if((Get-Item -LiteralPath $parent).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'Redirected runtime folder rejected.'}}
+    else{[void][IO.Directory]::CreateDirectory($parent)}
+    return $parent
+}
+function Remove-TRTRuntimeFolder([string]$target) {
+    $parent=Get-TRTRuntimeRoot;$target=[IO.Path]::GetFullPath($target)
+    if([IO.Path]::GetDirectoryName($target) -ne $parent -or [IO.Path]::GetFileName($target) -notmatch '^run-[a-f0-9]{32}$'){throw 'Runtime cleanup path rejected.'}
+    if(-not (Test-Path -LiteralPath $target)){return}
+    if((Get-Item -LiteralPath $target).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'Redirected runtime folder rejected.'}
+    $items=@(Get-ChildItem -LiteralPath $target -Force)
+    if(@($items|Where-Object{$_.PSIsContainer -or $_.Name -notin @('ffmpeg.exe','ffprobe.exe','.runtime.lock') -or ($_.Attributes -band [IO.FileAttributes]::ReparsePoint)}).Count){throw 'Unexpected runtime folder entry; cleanup stopped.'}
+    foreach($item in $items){Remove-Item -LiteralPath $item.FullName -Force -ErrorAction Stop}
+    [IO.Directory]::Delete($target,$false)
+}
+function Recover-OwnedRuntimeFolders {
+    $parent=Get-TRTRuntimeRoot
+    foreach($folder in @(Get-ChildItem -LiteralPath $parent -Directory -Filter 'run-*')){
+        if($folder.Name -notmatch '^run-[a-f0-9]{32}$' -or ($folder.Attributes -band [IO.FileAttributes]::ReparsePoint)){continue}
+        $marker=Join-Path $folder.FullName '.runtime.lock';$lease=$null
+        if(-not (Test-Path -LiteralPath $marker)){
+            # Only empty interrupted pre-lease folders qualify without a marker.
+            if(@(Get-ChildItem -LiteralPath $folder.FullName -Force).Count -eq 0){[IO.Directory]::Delete($folder.FullName,$false)}
+            continue
+        }
+        if((Get-Item -LiteralPath $marker).Attributes -band [IO.FileAttributes]::ReparsePoint){continue}
+        try{$lease=[IO.File]::Open($marker,[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)}catch{continue}
+        try{
+            $reader=[IO.StreamReader]::new($lease,[Text.Encoding]::ASCII,$false,1024,$true)
+            try{$tag=$reader.ReadToEnd()}finally{$reader.Dispose()}
+            # A crash can interrupt the initial marker write. Only a prefix of
+            # this version's marker qualifies; folder contents remain checked.
+            if(-not 'TRT-RUNTIME-v250-1'.StartsWith($tag,[StringComparison]::Ordinal)){continue}
+            $lease.Dispose();$lease=$null
+            Remove-TRTRuntimeFolder $folder.FullName
+        }finally{if($lease){$lease.Dispose()}}
     }
 }
 
+
+
+
+function Expand-EmbeddedGzipTool([string]$gzipPath,[string]$destinationPath) {
+    $payload=[Reflection.Assembly]::GetEntryAssembly().GetManifestResourceStream($gzipPath)
+    if(-not $payload){throw 'The packaged media resource is missing.'}
+    $gzip=$null;$output=$null
+    try{
+        $gzip=[IO.Compression.GZipStream]::new($payload,[IO.Compression.CompressionMode]::Decompress)
+        $output=[IO.File]::Open($destinationPath,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+        $gzip.CopyTo($output);$output.Flush($true)
+    }finally{if($output){$output.Dispose()};if($gzip){$gzip.Dispose()};$payload.Dispose()}
+    if((Get-Item -LiteralPath $destinationPath).Length -lt 256KB){throw 'Embedded media resource did not expand safely.'}
+}
+
 function Initialize-EmbeddedMediaTools {
-    # Plain .ps1 development mode deliberately skips this bootstrap and uses
-    # application-local binaries beside the script instead.
-    if (-not (Test-IsPackagedHost)) { return }
-
-    if (-not (Test-Path -LiteralPath $script:EmbeddedFFmpegPayloadGzip -PathType Leaf) -or
-        -not (Test-Path -LiteralPath $script:EmbeddedFFprobePayloadGzip -PathType Leaf)) {
-        throw "The packaged FFmpeg/FFprobe payload is missing."
-    }
-
-    $runDir = Join-Path $env:TEMP ("TinyRedactionTool\run-" + [guid]::NewGuid().ToString("N"))
-    New-Item -ItemType Directory -Path $runDir -Force | Out-Null
-
-    try {
-        $runtimeFFmpeg = Join-Path $runDir "ffmpeg.exe"
-        $runtimeFFprobe = Join-Path $runDir "ffprobe.exe"
-        Expand-EmbeddedGzipTool $script:EmbeddedFFmpegPayloadGzip $runtimeFFmpeg
-        Expand-EmbeddedGzipTool $script:EmbeddedFFprobePayloadGzip $runtimeFFprobe
-
-        $script:EmbeddedMediaRuntimeDir = $runDir
-        $script:EmbeddedFFmpegRuntimePath = $runtimeFFmpeg
-        $script:EmbeddedFFprobeRuntimePath = $runtimeFFprobe
-    }
-    catch {
-        Remove-Item -LiteralPath $runDir -Recurse -Force -ErrorAction SilentlyContinue
-        throw
-    }
-    finally {
-        # The staging payload contains only program binaries, not patient data.
-        # Remove it once the unique per-run copies have been created.
-        Remove-Item -LiteralPath $script:EmbeddedFFmpegPayloadGzip -Force -ErrorAction SilentlyContinue
-        Remove-Item -LiteralPath $script:EmbeddedFFprobePayloadGzip -Force -ErrorAction SilentlyContinue
-        $payloadDir = Split-Path -Parent $script:EmbeddedFFmpegPayloadGzip
-        if ($payloadDir) { Remove-Item -LiteralPath $payloadDir -Force -ErrorAction SilentlyContinue }
-    }
+    if(-not (Test-IsPackagedHost)){return}
+    Recover-OwnedRuntimeFolders
+    $parent=Get-TRTRuntimeRoot
+    $runDir=Join-Path $parent ('run-'+[guid]::NewGuid().ToString('N'))
+    [void][IO.Directory]::CreateDirectory($runDir)
+    $script:EmbeddedMediaRuntimeDir=$runDir
+    try{
+        $script:RuntimeToolLease=[IO.File]::Open((Join-Path $runDir '.runtime.lock'),[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
+        $tag=[Text.Encoding]::ASCII.GetBytes('TRT-RUNTIME-v250-1')
+        $script:RuntimeToolLease.Write($tag,0,$tag.Length);$script:RuntimeToolLease.Flush($true)
+        $runtimeFFmpeg=Join-Path $runDir 'ffmpeg.exe';$runtimeFFprobe=Join-Path $runDir 'ffprobe.exe'
+        Expand-EmbeddedGzipTool 'ffmpeg.exe.gz' $runtimeFFmpeg
+        Expand-EmbeddedGzipTool 'ffprobe.exe.gz' $runtimeFFprobe
+        $script:EmbeddedFFmpegRuntimePath=$runtimeFFmpeg;$script:EmbeddedFFprobeRuntimePath=$runtimeFFprobe
+    }catch{Remove-EmbeddedMediaTools;throw}
 }
 
 function Close-ApprovedMediaToolLocks {
@@ -391,14 +1279,14 @@ function Close-ApprovedMediaToolLocks {
 }
 
 function Remove-EmbeddedMediaTools {
-    # Release the trust locks only when the application is done using the tools;
-    # otherwise Windows correctly refuses to delete the verified executables.
     Close-ApprovedMediaToolLocks
-    if ($script:EmbeddedMediaRuntimeDir) {
-        Remove-Item -LiteralPath $script:EmbeddedMediaRuntimeDir -Recurse -Force -ErrorAction SilentlyContinue
-        $script:EmbeddedMediaRuntimeDir = $null
-        $script:EmbeddedFFmpegRuntimePath = $null
-        $script:EmbeddedFFprobeRuntimePath = $null
+    if($script:RuntimeToolLease){$script:RuntimeToolLease.Dispose();$script:RuntimeToolLease=$null}
+    if(-not $script:EmbeddedMediaRuntimeDir){return}
+    try{
+        Remove-TRTRuntimeFolder $script:EmbeddedMediaRuntimeDir
+        $script:EmbeddedMediaRuntimeDir=$null;$script:EmbeddedFFmpegRuntimePath=$null;$script:EmbeddedFFprobeRuntimePath=$null
+    }catch{
+        [Windows.Forms.MessageBox]::Show(('TRT runtime-tool cleanup failed; recovery will be retried on the next launch. '+$_.Exception.GetBaseException().Message),'Temporary cleanup','OK','Warning')|Out-Null
     }
 }
  
@@ -421,8 +1309,8 @@ function Remove-EmbeddedMediaTools {
 #
 # Then replace the two empty strings below with the resulting 64-character hashes
 # before packaging. Do not hash a different build and do not use placeholder values.
-$script:ExpectedFFmpegSha256 = ""
-$script:ExpectedFFprobeSha256 = ""
+$script:ExpectedFFmpegSha256 = "643D9CFE006D0F72763B7A46B66AC23067B6A8BF4C113044781C11E862C34AFC"
+$script:ExpectedFFprobeSha256 = "84F5DEDA1C8D648A588AEE7BAD7148EE0DA02569C39A7C1B41048729BE9763F2"
 
 function Test-IsPackagedHost {
     try {
@@ -547,6 +1435,15 @@ function Find-ApprovedMediaTool([string]$fileName, [string]$expectedHash, [strin
         [void]$candidates.Add($script:EmbeddedFFprobeRuntimePath)
     }
 
+    if(-not (Test-IsPackagedHost) -and $ApprovedMediaToolDirectory){
+        $toolRoot=[IO.Path]::GetFullPath($ApprovedMediaToolDirectory)
+        if(Get-NetworkPathReason $toolRoot){throw 'Approved media tools must be local.'}
+        foreach($name in @($fileName.Replace('.exe','-custom.exe'),$fileName)){
+            $toolPath=Join-Path $toolRoot $name
+            if((Test-Path -LiteralPath $toolPath -PathType Leaf) -and (Get-FileHash -LiteralPath $toolPath).Hash -eq $expectedHash){[void]$candidates.Add($toolPath)}
+        }
+        if(-not $candidates.Count){throw 'The explicit media-tool directory has no approved matching tool.'}
+    }
     try {
         $hostExe = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
         $hostName = [System.IO.Path]::GetFileNameWithoutExtension($hostExe)
@@ -656,6 +1553,363 @@ function Get-NetworkPathReason([string]$path) {
         }
     } catch {}
     return $null
+}
+
+# G2d: validate the deliberately small v1 managed-policy envelope and the supported
+# strengthening controls. Unknown controls still fail closed so a deployment
+# cannot silently believe an unsupported requirement is being enforced.
+function ConvertTo-ManagedPolicyV1([string]$path) {
+    if ([string]::IsNullOrWhiteSpace($path)) {
+        throw "No managed policy path was supplied."
+    }
+
+    try { $full = [System.IO.Path]::GetFullPath($path) }
+    catch { throw "The managed policy path is invalid." }
+
+    if (-not (Test-Path -LiteralPath $full -PathType Leaf)) {
+        throw "The managed policy file does not exist."
+    }
+
+    $networkReason = Get-NetworkPathReason $full
+    if ($networkReason) {
+        throw "Managed policy files must be stored on local storage."
+    }
+
+    try { $item = Get-Item -LiteralPath $full -Force -ErrorAction Stop }
+    catch { throw "Windows could not inspect the managed policy file." }
+
+    if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw "Managed policy files cannot be reparse points."
+    }
+    if ($item.Length -le 0 -or $item.Length -gt 65536) {
+        throw "The managed policy file must be between 1 byte and 64 KiB."
+    }
+
+    try {
+        $utf8 = [System.Text.UTF8Encoding]::new($false, $true)
+        $json = [System.IO.File]::ReadAllText($full, $utf8)
+    }
+    catch {
+        throw "The managed policy file must be valid UTF-8 text."
+    }
+
+    try { $obj = $json | ConvertFrom-Json -ErrorAction Stop }
+    catch { throw "The managed policy file is not valid JSON." }
+
+    if (-not ($obj -is [System.Management.Automation.PSCustomObject])) {
+        throw "The managed policy root must be a JSON object."
+    }
+
+    $allowed = @('schemaVersion','policyId','policyVersion','controls')
+    $names = @($obj.PSObject.Properties.Name)
+    foreach ($required in $allowed) {
+        if ($names -notcontains $required) {
+            throw "The managed policy is missing required property '$required'."
+        }
+    }
+    foreach ($name in $names) {
+        if ($allowed -notcontains $name) {
+            throw "The managed policy contains unsupported property '$name'."
+        }
+    }
+
+    if (-not (($obj.schemaVersion -is [int]) -or ($obj.schemaVersion -is [long])) -or [int64]$obj.schemaVersion -ne 1) {
+        throw "The managed policy schemaVersion is unsupported."
+    }
+
+    $policyId = [string]$obj.policyId
+    $policyVersion = [string]$obj.policyVersion
+    if ($policyId -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$') {
+        throw "policyId must be 1-64 characters using letters, numbers, dot, underscore or hyphen."
+    }
+    if ($policyVersion -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$') {
+        throw "policyVersion must be 1-32 characters using letters, numbers, dot, underscore or hyphen."
+    }
+
+    if (-not ($obj.controls -is [System.Management.Automation.PSCustomObject])) {
+        throw "controls must be a JSON object."
+    }
+
+    # G2d supports the accepted G2a network controls, G2b source-deletion disablement,
+    # G2c audio-retention disablement, and a managed switch that can prohibit Blur/Pixelate
+    # visual-obscuration redactions while retaining opaque Coloured Box redaction.
+    # Enumerate the property collection directly for Windows PowerShell 5.1 compatibility
+    # (the G1-r2 empty-object correction). False/absent controls preserve the accepted
+    # public/application behaviour rather than silently weakening it.
+    $allowedControls = @('blockNetworkSource','blockNetworkDestination','disableSourceDeletion','disableAudioRetention','disableVisualObscuration')
+    $blockNetworkSource = $false
+    $blockNetworkDestination = $false
+    $disableSourceDeletion = $false
+    $disableAudioRetention = $false
+    $disableVisualObscuration = $false
+    foreach ($controlProperty in $obj.controls.PSObject.Properties) {
+        $controlName = [string]$controlProperty.Name
+        if ($allowedControls -notcontains $controlName) {
+            throw "The managed policy contains unsupported control '$controlName'."
+        }
+        if (-not ($controlProperty.Value -is [bool])) {
+            throw "Managed control '$controlName' must be true or false."
+        }
+        if ($controlName -eq 'blockNetworkSource') {
+            $blockNetworkSource = [bool]$controlProperty.Value
+        }
+        elseif ($controlName -eq 'blockNetworkDestination') {
+            $blockNetworkDestination = [bool]$controlProperty.Value
+        }
+        elseif ($controlName -eq 'disableSourceDeletion') {
+            $disableSourceDeletion = [bool]$controlProperty.Value
+        }
+        elseif ($controlName -eq 'disableAudioRetention') {
+            $disableAudioRetention = [bool]$controlProperty.Value
+        }
+        elseif ($controlName -eq 'disableVisualObscuration') {
+            $disableVisualObscuration = [bool]$controlProperty.Value
+        }
+    }
+
+    return [pscustomobject]@{
+        SchemaVersion = 1
+        PolicyId = $policyId
+        PolicyVersion = $policyVersion
+        Path = $full
+        BlockNetworkSource = [bool]$blockNetworkSource
+        BlockNetworkDestination = [bool]$blockNetworkDestination
+        DisableSourceDeletion = [bool]$disableSourceDeletion
+        DisableAudioRetention = [bool]$disableAudioRetention
+        DisableVisualObscuration = [bool]$disableVisualObscuration
+    }
+}
+
+function Initialize-ManagedPolicy {
+    $candidate = $null
+    if ($script:ManagedPolicyExplicit) {
+        $candidate = $ManagedPolicyPath
+    }
+    elseif ($script:ManagedPolicyMachinePath -and (Test-Path -LiteralPath $script:ManagedPolicyMachinePath -PathType Leaf)) {
+        $candidate = $script:ManagedPolicyMachinePath
+    }
+
+    if ([string]::IsNullOrWhiteSpace($candidate)) {
+        $script:ManagedPolicy = $null
+        $script:ManagedPolicySource = $null
+        return
+    }
+
+    $policy = ConvertTo-ManagedPolicyV1 $candidate
+    $script:ManagedPolicy = $policy
+    $script:ManagedPolicySource = $policy.Path
+}
+
+try {
+    Initialize-ManagedPolicy
+}
+catch {
+    [System.Windows.Forms.MessageBox]::Show(
+        ("TinyRedactionTool could not load the configured managed policy.`r`n`r`n" + $_.Exception.Message + "`r`n`r`nThe application has not started."),
+        "Managed policy error",
+        "OK",
+        "Error"
+    ) | Out-Null
+    exit 2
+}
+
+function Normalize-DeletionPath([string]$path) {
+    if ([string]::IsNullOrWhiteSpace($path)) { return $null }
+    try { $full = [System.IO.Path]::GetFullPath($path) } catch { $full = $path }
+    if ($full.StartsWith('\\?\UNC\', [System.StringComparison]::OrdinalIgnoreCase)) {
+        return ('\\' + $full.Substring(8)).TrimEnd('\')
+    }
+    if ($full.StartsWith('\\?\', [System.StringComparison]::OrdinalIgnoreCase)) {
+        return $full.Substring(4).TrimEnd('\')
+    }
+    return $full.TrimEnd('\')
+}
+
+function Get-SourceDeletionCapability([string]$path) {
+    $result = [pscustomobject]@{
+        Class = 'Unavailable'
+        StatusText = 'Automatic deletion unavailable for this source.'
+        Reason = 'TinyRedactionTool could not reliably inspect this source.'
+        Inspection = $null
+        LastWriteTicks = 0L
+    }
+    if ([string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        $result.Reason = 'The original file is no longer available at the path that was opened.'
+        return $result
+    }
+
+    try { $inspection = [SourceDeletionNativeV1]::Inspect($path) } catch {
+        $result.Reason = 'Windows could not provide the file information needed for automatic deletion.'
+        return $result
+    }
+    $result.Inspection = $inspection
+    try { $result.LastWriteTicks = [System.IO.File]::GetLastWriteTimeUtc($path).Ticks } catch {}
+
+    if (-not $inspection -or -not $inspection.Ok) {
+        $result.Reason = 'Windows could not provide a stable identity for this file.'
+        return $result
+    }
+    if ((Get-NetworkPathReason $path) -or ($inspection.RemoteProtocolKnown -and $inspection.IsRemote)) {
+        $result.Reason = 'This file is stored on a shared or remote location.'
+        return $result
+    }
+    if ($inspection.NumberOfLinks -ne 1) {
+        $result.Reason = 'This file has more than one filesystem name, so TinyRedactionTool will not overwrite it automatically.'
+        return $result
+    }
+
+    $attrs = [uint32]$inspection.FileAttributes
+    $FILE_ATTRIBUTE_SPARSE_FILE = [uint32]0x00000200
+    $FILE_ATTRIBUTE_REPARSE_POINT = [uint32]0x00000400
+    $FILE_ATTRIBUTE_COMPRESSED = [uint32]0x00000800
+    $FILE_ATTRIBUTE_ENCRYPTED = [uint32]0x00004000
+    if (($attrs -band $FILE_ATTRIBUTE_REPARSE_POINT) -ne 0) {
+        $result.Reason = 'This file is provided through a redirected or synchronized location that cannot be safely verified.'
+        return $result
+    }
+    if (($attrs -band ($FILE_ATTRIBUTE_SPARSE_FILE -bor $FILE_ATTRIBUTE_COMPRESSED -bor $FILE_ATTRIBUTE_ENCRYPTED)) -ne 0) {
+        $result.Reason = 'This file uses storage features that prevent reliable overwrite verification.'
+        return $result
+    }
+    if (-not $inspection.CanWriteDelete) {
+        $result.Reason = 'Windows does not currently allow TinyRedactionTool to overwrite and delete this file.'
+        return $result
+    }
+    if (-not $inspection.SeekPenaltyKnown -or -not $inspection.BusTypeKnown) {
+        $result.Reason = 'TinyRedactionTool could not reliably determine how this file is stored.'
+        return $result
+    }
+    # Reject storage stacks whose physical backing is remote, virtual, pooled,
+    # or otherwise too indirect for a file-overwrite assurance claim.
+    if ([int]$inspection.BusType -in @(0,6,9,14,15,16)) {
+        $result.Reason = 'This file is stored through a device or storage layer that TinyRedactionTool cannot safely verify.'
+        return $result
+    }
+
+    if ($inspection.IncursSeekPenalty) {
+        $result.Class = 'VerifiedOverwrite'
+        $result.StatusText = 'Secure overwrite available.'
+        $result.Reason = 'TinyRedactionTool identified this as supported local storage where a complete overwrite can be verified.'
+    }
+    else {
+        $result.Class = 'BestEffortOverwrite'
+        $result.StatusText = 'Enhanced deletion available.'
+        $result.Reason = 'TinyRedactionTool can overwrite and verify the logical file, but this storage may retain inaccessible internal copies.'
+    }
+    return $result
+}
+
+function Test-SameSourceDeletionIdentity($baseline, $current) {
+    if (-not $baseline -or -not $current -or -not $baseline.Inspection -or -not $current.Inspection) { return $false }
+    $a = $baseline.Inspection
+    $b = $current.Inspection
+    if (-not $a.Ok -or -not $b.Ok) { return $false }
+    if ([uint64]$a.VolumeSerialNumber -ne [uint64]$b.VolumeSerialNumber) { return $false }
+    if (-not [string]::Equals([string]$a.FileIdHex, [string]$b.FileIdHex, [System.StringComparison]::OrdinalIgnoreCase)) { return $false }
+    if ([int64]$a.FileLength -ne [int64]$b.FileLength) { return $false }
+    if ([int64]$baseline.LastWriteTicks -ne [int64]$current.LastWriteTicks) { return $false }
+    return $true
+}
+
+function Test-DeletionOutputCollision([string]$sourcePath, [string]$destinationPath, $baselineIdentity) {
+    $srcNorm = Normalize-DeletionPath $sourcePath
+    $dstNorm = Normalize-DeletionPath $destinationPath
+    if ($srcNorm -and $dstNorm -and [string]::Equals($srcNorm, $dstNorm, [System.StringComparison]::OrdinalIgnoreCase)) { return $true }
+    if ($baselineIdentity -and (Test-Path -LiteralPath $destinationPath -PathType Leaf)) {
+        $destCap = Get-SourceDeletionCapability $destinationPath
+        if ($destCap.Inspection -and $destCap.Inspection.Ok -and $baselineIdentity.Inspection) {
+            if ([uint64]$destCap.Inspection.VolumeSerialNumber -eq [uint64]$baselineIdentity.Inspection.VolumeSerialNumber -and
+                [string]::Equals([string]$destCap.Inspection.FileIdHex, [string]$baselineIdentity.Inspection.FileIdHex, [System.StringComparison]::OrdinalIgnoreCase)) {
+                return $true
+            }
+        }
+    }
+    return $false
+}
+
+function Update-SourceDeletionUi {
+    if (-not $chkDeleteOriginal -or -not $lblDeleteCapability) { return }
+
+    # G2b managed control: an organisation may prohibit TinyRedactionTool's
+    # optional destructive source-deletion workflow. Keep the existing control
+    # visible so the restriction is explicit, but make it impossible to select.
+    if ($script:ManagedPolicy -and $script:ManagedPolicy.DisableSourceDeletion) {
+        $chkDeleteOriginal.Checked = $false
+        $chkDeleteOriginal.Enabled = $false
+        $script:deleteOriginalRequested = $false
+        $lblDeleteCapability.Text = 'Disabled by managed policy.'
+        if ($btnDeleteInfo) { $btnDeleteInfo.Enabled = $true }
+        $policyDeletionReason = 'The configured managed policy does not allow TinyRedactionTool to delete the original source file.'
+        $script:appToolTip.SetToolTip($lblDeleteCapability, $policyDeletionReason)
+        $script:appToolTip.SetToolTip($chkDeleteOriginal, $policyDeletionReason)
+        return
+    }
+
+    if (-not $videoPath) {
+        $chkDeleteOriginal.Checked = $false
+        $chkDeleteOriginal.Enabled = $false
+        $lblDeleteCapability.Text = 'Open a source to check deletion availability.'
+        if ($btnDeleteInfo) { $btnDeleteInfo.Enabled = $false }
+        $script:appToolTip.SetToolTip($lblDeleteCapability, '')
+        return
+    }
+    if ($btnDeleteInfo) { $btnDeleteInfo.Enabled = $true }
+    if (-not $sourceDeletionCapability) {
+        $chkDeleteOriginal.Checked = $false
+        $chkDeleteOriginal.Enabled = $false
+        $lblDeleteCapability.Text = 'Automatic deletion unavailable for this source.'
+        $script:appToolTip.SetToolTip($lblDeleteCapability, 'TinyRedactionTool could not reliably inspect this source.')
+        return
+    }
+    $available = ($sourceDeletionCapability.Class -in @('VerifiedOverwrite','BestEffortOverwrite'))
+    if (-not $available) { $chkDeleteOriginal.Checked = $false }
+    $chkDeleteOriginal.Enabled = $available
+    $lblDeleteCapability.Text = [string]$sourceDeletionCapability.StatusText
+    $script:appToolTip.SetToolTip($lblDeleteCapability, [string]$sourceDeletionCapability.Reason)
+    $script:appToolTip.SetToolTip($chkDeleteOriginal, [string]$sourceDeletionCapability.Reason)
+}
+
+function Reset-SourceDeletionState {
+    $script:sourceDeletionIdentity = $null
+    $script:sourceDeletionCapability = $null
+    $script:deleteOriginalRequested = $false
+    if ($chkDeleteOriginal) { $chkDeleteOriginal.Checked = $false }
+    Update-SourceDeletionUi
+}
+
+function Initialize-SourceDeletionStateForSource {
+    $script:deleteOriginalRequested = $false
+    if ($chkDeleteOriginal) { $chkDeleteOriginal.Checked = $false }
+    if (-not $videoPath) {
+        $script:sourceDeletionIdentity = $null
+        $script:sourceDeletionCapability = $null
+        Update-SourceDeletionUi
+        return
+    }
+    $cap = Get-SourceDeletionCapability $videoPath
+    $script:sourceDeletionIdentity = $cap
+    $script:sourceDeletionCapability = $cap
+    Update-SourceDeletionUi
+}
+
+function Revalidate-SourceDeletionRequest {
+    $result = [pscustomobject]@{ Ok = $false; Capability = $null; Error = '' }
+    if (-not $videoPath -or -not $sourceDeletionIdentity) {
+        $result.Error = 'The original file can no longer be identified safely.'
+        return $result
+    }
+    $current = Get-SourceDeletionCapability $videoPath
+    $result.Capability = $current
+    if (-not (Test-SameSourceDeletionIdentity $sourceDeletionIdentity $current)) {
+        $result.Error = 'The original file has changed or been replaced since it was opened.'
+        return $result
+    }
+    if ($current.Class -notin @('VerifiedOverwrite','BestEffortOverwrite')) {
+        $result.Error = [string]$current.Reason
+        return $result
+    }
+    $result.Ok = $true
+    return $result
 }
 
 function Get-SafeFFmpegError([string]$text, [string]$sensitivePath) {
@@ -1192,7 +2446,7 @@ function Test-ExportSecurity($ffmpeg, $ffprobe, [string]$path, [bool]$imageMode,
 
     # Allow only muxer/encoder bookkeeping that FFmpeg itself generates after
     # metadata stripping. Anything else fails closed rather than guessing
-    # whether an unfamiliar tag might have originated in the patient source.
+    # whether an unfamiliar tag might have originated in the source media.
     $allowedMetadata = @(
         'major_brand','minor_version','compatible_brands','encoder','handler_name',
         'vendor_id','duration','language','software'
@@ -1965,6 +3219,7 @@ function Get-ExportRedactionList($sourceList) {
             EndFrame = [int]$r.EndFrame
             BufferedStartFrame = [int]$r.BufferedStartFrame
             BufferedEndFrame = [int]$r.BufferedEndFrame
+            CommitOrder = if ($r.PSObject.Properties["CommitOrder"]) { [int]$r.CommitOrder } else { -1 }
         }
         [void]$list.Add($copy)
     }
@@ -2173,6 +3428,10 @@ try {
 } catch {}
  
 $videoPath = $null
+# S1b source-deletion state. Destructive execution remains strictly opt-in.
+$sourceDeletionIdentity = $null
+$sourceDeletionCapability = $null
+$deleteOriginalRequested = $false
 $isImageMode = $false
 $videoWidth = 0
 $videoHeight = 0
@@ -2285,16 +3544,30 @@ $script:editingPolygonVertex = $false
 $script:polygonVertexIndex = -1
 # ===== End Resize Slice 1/2/3 state =====
 
-# Drawing tool: "Rectangle", "Oval", or "Polygon" (the freeform tool). Rectangle
-# and Oval are drag-based and use the media-space $selection above; Polygon is
-# click-to-add-point and stores media-space PointF vertices below.
+# Active canvas tool. Rectangle/Oval use the media-space $selection; Polygon is
+# the existing closed Freeform path; Line/Polyline/Text are standalone drawing
+# annotations that never enter the security-redaction collection/filter graph.
 $toolMode = "Rectangle"
 $polygonActive = $false
 $polygonPoints = New-Object System.Collections.Generic.List[System.Drawing.PointF]
 $polygonMousePos = $null
 
 $pendingRedaction = $null
+$script:pendingAnnotation = $null
 $redactions = New-Object System.Collections.ArrayList
+# D1b: standalone drawing/annotation objects are deliberately separate from
+# security redactions. An annotation-only shape can never enter the redaction
+# filter graph merely because it happens to share canonical geometry helpers.
+$annotations = New-Object System.Collections.ArrayList
+# D1b-r2: security redactions and standalone annotations remain in separate
+# collections, but every committed still-image object receives one monotonic
+# commit order so normal front-to-back stacking can be reconstructed safely.
+$script:objectCommitCounter = 0
+
+function Get-NextObjectCommitOrder {
+    $script:objectCommitCounter = [int]$script:objectCommitCounter + 1
+    return [int]$script:objectCommitCounter
+}
 
 # Blur/Pixelate strength, 1 (lightest) - 10 (strongest). Whatever this is set
 # to at the moment a redaction is created gets baked into that redaction's own
@@ -2314,6 +3587,112 @@ $script:redactionEnhanced = $false
 # the user explicitly re-picks a color while that redaction is selected in
 # the Redactions list (see Get-ColorEditTarget / Set-ActiveRedactionColor).
 $redactionColor = [System.Drawing.Color]::Black
+
+# v2.3.0 D1b: Fill remains the security/effect switch; Outline is a separate
+# annotation presentation switch. All drawing widths are canonical media pixels.
+# The user-facing name is Outline; renderer fields use normal graphics terminology.
+$script:fillEnabled = $true
+$script:outlineEnabled = $false
+$script:outlineColor = [System.Drawing.Color]::Red
+$script:outlineWidth = 3
+$script:outlineDashStyle = "Solid"
+$script:outlineRectangleCornerStyle = "Square"
+$script:outlinePolygonJoinStyle = "Miter"
+$script:drawPolylineJoinStyle = "Miter"
+$script:drawEndpointStyle = "None"
+
+# D2 standalone Draw-tool draft state. Geometry is canonical media-space and
+# never enters the security-redaction collection/filter graph.
+$script:lineDrawing = $false
+$script:lineStart = $null
+$script:lineEnd = $null
+$script:polylineActive = $false
+$script:polylinePoints = New-Object System.Collections.Generic.List[System.Drawing.PointF]
+$script:polylineMousePos = $null
+$script:polylineGestureAxis = "None"
+$script:polylineGestureLastRaw = $null
+$script:polylineGestureThresholdView = 8.0
+
+# D3 Text Box draft/style state. Text geometry is canonical media-space and
+# font size is stored in media pixels so zoom changes only the preview scale.
+$script:textDrawing = $false
+$script:textDragStart = $null
+$script:textDraftActive = $false
+$script:textDraftRect = New-Object System.Drawing.RectangleF(0,0,0,0)
+# D5c-r2 floating Text editor is viewport-only UI state. It never participates
+# in annotation geometry, timing or export; $txtAnnotationText remains the
+# canonical UI-bound text value used by the already-tested annotation model.
+$script:floatingTextEditorVisible = $false
+$script:floatingTextEditorMode = "None"
+$script:floatingTextEditorTargetIndex = -1
+$script:floatingTextEditorOriginalText = ""
+$script:syncingFloatingTextEditor = $false
+
+# D4a: standalone drawing objects use the same draw -> adjust -> commit rhythm
+# as the established redaction drafts. Geometry remains canonical media-space.
+$script:lineDraftActive = $false
+$script:polylineDraftActive = $false
+$script:annotationDraftMoving = $false
+$script:annotationDraftMoveKind = "None"
+$script:annotationDraftMoveStart = $null
+$script:annotationDraftOrigTextRect = $null
+$script:annotationDraftOrigLineStart = $null
+$script:annotationDraftOrigLineEnd = $null
+$script:annotationDraftOrigPolylinePoints = $null
+
+# D4a-r2: Text Box keeps its own resize gesture state. This deliberately does
+# not reuse the security-redaction resize flags, so annotation editing cannot
+# accidentally alter redaction geometry/state.
+$script:textDraftResizing = $false
+$script:textDraftResizeHandle = "None"
+$script:textDraftResizeOrigRect = $null
+
+# D4b committed-annotation editing state. Selection originates in the
+# Annotations list; geometry edits never touch $redactions or security state.
+$script:selectedAnnotationIndex = -1
+$script:annotationCommittedMoving = $false
+$script:annotationCommittedMoveStart = $null
+$script:annotationCommittedOrig = $null
+$script:annotationCommittedTextResizing = $false
+$script:annotationCommittedTextResizeHandle = "None"
+$script:annotationCommittedTextResizeOrigRect = $null
+
+# D4d committed-annotation geometry editing. These remain deliberately
+# separate from redaction-editing state so drawing geometry can never mutate
+# the security-redaction collection by accident.
+$script:annotationCommittedResizing = $false
+$script:annotationCommittedResizeHandle = "None"
+$script:annotationCommittedResizeOrigRect = $null
+$script:annotationCommittedVertexEditing = $false
+$script:annotationCommittedVertexIndex = -1
+# D4e: prevents programmatic control synchronisation from being interpreted as
+# a user appearance edit when a committed annotation is selected.
+$script:syncingAnnotationAppearance = $false
+
+# D4c committed-redaction editing state. Selection originates in the Redactions
+# list and is enabled only for still images. Geometry changes update the existing
+# security-redaction object in place; mode, timing, strength, colour, outline
+# decoration and commit/layer order are intentionally left untouched.
+$script:selectedRedactionIndex = -1
+$script:redactionCommittedMoving = $false
+$script:redactionCommittedMoveStart = $null
+$script:redactionCommittedOrig = $null
+$script:redactionCommittedResizing = $false
+$script:redactionCommittedResizeHandle = "None"
+$script:redactionCommittedResizeOrigRect = $null
+$script:redactionCommittedPolygonEditing = $false
+$script:redactionCommittedPolygonVertexIndex = -1
+
+$script:textFontFamily = "Segoe UI"
+$script:textFontSizePx = 24
+$script:textBold = $false
+$script:textItalic = $false
+$script:textAlignment = "Left"
+$script:textColor = [System.Drawing.Color]::Red
+
+function Test-IsStandaloneDrawTool {
+    return [bool]($script:toolMode -eq "Line" -or $script:toolMode -eq "Polyline" -or $script:toolMode -eq "Text")
+}
 
 # Whether the eyedropper is currently armed, waiting for the user's next
 # click on the preview to sample a color from it.
@@ -2511,6 +3890,26 @@ function Style-FlatButton($button, [bool]$primary = $false, [int]$radius = 10) {
     Enable-RoundedPaint $button $radius
 }
 
+# S1c: unlike a generic primary button, Export is only a primary action when
+# there is committed content that can actually be written. A disabled blue
+# button looked actionable even though WinForms correctly rejected clicks.
+function Update-ExportButtonAppearance {
+    if (-not $btnExport) { return }
+    if ($btnExport.Enabled) {
+        $btnExport.BackColor = $script:cAccentCurrent
+        $btnExport.ForeColor = [System.Drawing.Color]::White
+        $btnExport.FlatAppearance.BorderColor = $script:cAccentCurrent
+        $btnExport.Cursor = [System.Windows.Forms.Cursors]::Hand
+    }
+    else {
+        $btnExport.BackColor = $script:cButtonCurrent
+        $btnExport.ForeColor = $script:cMutedCurrent
+        $btnExport.FlatAppearance.BorderColor = $script:cBorderCurrent
+        $btnExport.Cursor = [System.Windows.Forms.Cursors]::Default
+    }
+    $btnExport.Invalidate()
+}
+
 function Style-ChoiceButton($control) {
     $control.Appearance = "Button"
     $control.FlatStyle = "Flat"
@@ -2598,23 +3997,22 @@ $form.Text = "TinyRedactionTool"
 $form.StartPosition = "CenterScreen"
 $form.Size = New-Object System.Drawing.Size(1540,980)
 $form.MinimumSize = New-Object System.Drawing.Size(1320,820)
+# D5c-r2: open maximized by default while retaining the normal Windows title bar
+# and Restore/Minimize/Close behaviour. This is not borderless/kiosk fullscreen.
+$form.WindowState = [System.Windows.Forms.FormWindowState]::Maximized
 $form.KeyPreview = $true
 $form.Font = New-UIFont 9.0
 $form.AutoScaleMode = "Dpi"
 $form.BackColor = [System.Drawing.Color]::FromArgb(223,238,245)
 
-# WinForms does not automatically adopt the PS2EXE assembly icon for a Form
-# created dynamically from PowerShell. In packaged mode, explicitly assign the
-# icon embedded in TinyRedactionTool.exe so the window/taskbar uses the same
-# custom application icon as Explorer. This is presentation-only state.
-if (Test-IsPackagedHost) {
-    try {
-        $hostExe = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
-        $script:mainFormIcon = [System.Drawing.Icon]::ExtractAssociatedIcon($hostExe)
-        if ($script:mainFormIcon) { $form.Icon = $script:mainFormIcon }
-    } catch {}
-}
-
+# Supplied TRT icon: identical embedded asset for script and compiled host.
+$script:TRTIconBase64='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'
+$iconStream=[IO.MemoryStream]::new([Convert]::FromBase64String($script:TRTIconBase64))
+try{
+    $assetIcon=[Drawing.Icon]::new($iconStream)
+    try{$script:mainFormIcon=[Drawing.Icon]$assetIcon.Clone()}finally{$assetIcon.Dispose()}
+}finally{$iconStream.Dispose()}
+$form.Icon=$script:mainFormIcon;$form.ShowIcon=$true
 # Shared tooltip component for the icon-only toolbar/playback buttons, which
 # have no visible text of their own to explain what they do.
 $script:appToolTip = New-Object System.Windows.Forms.ToolTip
@@ -2637,7 +4035,7 @@ $form.Controls.Add($top)
 # single script file with no extra image asset to ship alongside it.
 # Decoded once at startup into an Image and shown in a PictureBox, in
 # place of the plain Unicode glyph the tile used before.
-$script:AppIconBase64 = "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"
+$script:AppIconBase64 = "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"
 
 function Get-AppIconImage {
     $bytes = [Convert]::FromBase64String($script:AppIconBase64)
@@ -2672,11 +4070,29 @@ $script:IconBase64 = @{
     "copy" = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAADp0lEQVR42u2cwWoUMRzGf5lORbGtij5Iq3jswYsHH8SjF8GDvoNH7z6CIIIg3kREUQ+e9AlELbXipdvZeNiEHcad3SmdSTLZ7wdhaRs6k3zJ/598mxkQQgghhBBCCCGEEEIIIQbHrPn1V2FzFn9jJPdoch6BF4DzbqSZxEa9BX7nGAKMKw+Bu8DFBEORBSrgOfAA+JVLSPJh55FrzBjKS6BwZfQJ3wDbwHfgxJVpwuXYiXBzqLxVRpjam8A515hm7LcJDJLmjLXAzlAXLCM00rrRNZZlqXH5IBsB2jraAkdOHBN4Nvjrbbf0iclNgGbHG7fk2wux9FsiwDNg3434IPuUMqGpbt1y70/Ee5iEvmBKAuAStIkQgopa6FtrAWxjJxrjutkIYFp+Nh32CiZQp0dnKAE2FizdbIc4Owk4Gjdc2LE5ClDRbrRdahnhBrg68KwMarTFEGCZ0eYTa1HbWTaF+RxgH7DIaCuWbA5Hw5iNNj8QX7vfn9SEssCtRht7XX71NfKnbid5z914taThq1YjIcoEuA3ccB0++hAkoy2BHHBWo81EEKXKSYC2TqwbbT4JmyV1+kzC0Yy2FHbCdaPtOnAIXAY+uk9b64ShzLhoRltKVoQ32o5qybmtzlBm3IQECekFeaNts0OdPkNQNKMtNQFOswztc9UUzWgLuQ8QEkACCAkgAYQEkABCAkgAIQEkgJAAEkCsoExwQBT0b0dDux1ddKizFgJYZl/G9H0+x/+/tpMPfzvUyVoAP+p2gFcDdsJuy4x4wuyr0kV11moGlMy+sw0luP/cW1InWwHa4vuQR0SKlo6tH9BdVGfQh8hjPaTnT083p3qM0wrFivxRDjkwigij/pDZEREvQqhnfu2STl5UTlznfwM+MD9+mSR+il4BDpifkPMNP3B/83WvAS9I//DuF+YPaRe5hCAD/ATuuMZtBQgxU+CxW+X403k+tt8HPvH/QyUV8JbZeaLBRn+sHOBnzPuA1/3RCIX+Pt4A7zoImOUqKETS9R3YdiBsy93HoseqpkPH/dj7gCqQ2KuScBXwfqKtgoQESI8ysNh9O52nGWRrfTh3KKezC9GczhQECOV0dmE3xbBbBrzOfiJtNrkLEMPp7JoLgjqdMQRIzelclRvKBAZGb/i3zD5l/iB0lWjxLwX5yvx1CmbsAvhGyOlMJCGFcDrPYoHUnc6sXtI9pulcpNBZQ+aElJmS+evphRBCCCGEEEIIIYQQQgghBPAPlM4RjvwKObMAAAAASUVORK5CYII="
     "moon" = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAFbElEQVR42u2cTYgcRRTHf90TF7Nh3TVKFDQedEk0JuCuJHqJGEHQiyBZvKkkEDyIePLiRUkuikLuGxDiweDRqx8gCuJBc1ARBRFFJVmM0QRBk53u9lCvmErZO9sf1TPTPe8PzXzQM939f/U+61WBQqFQKBQKhUKhUCgUCoWiICI5Wv0AbUHsEJ4Bqby2Gr0WDJCevKY5xC8A2+S7RDUg7H3FHqm3AQeA+4H9Qv4uYA04CFyQ81qvFZOklTPAE8B7wGUh1z8OOiZKEWDUW+KPAl97ZPeBdeCKfH6xJaa0VaP+cY/4vhyp8zkDPpHztyh9YcifA055xCeeBlhn+y+wrKanPuzoXQLODiE+80b/aTU94cjfD1wUYtc3IN6O/hT4B9jt+QxFAPL7Q8h3hfOOjv4wNt8lP9mEfHtOAhxyEjRFhXICwL4K5GfA96I9kVJZvaywDfiqoNnxzc/rGnrWNz1vFXC4eRqQAg+r/a9H/lMVyLcJ2B/ATY42KUqWGG7GFM6Sgnbfj/0/7GLoGY/oGinwPLBD3pe5rq1ufiHvNfYvSX6EKRv/5djyrIIGPNtFBxyP4P8z4DlgXsgva7/t+T95GqEoQFwkZmfNKSVkJY9EnPYBjYCqlRteqhD55EVA812MgJo0QdbZHhYSo5ra1EnnGzf4vymwiCk1q+kYgwAAnsRML4boWIhUAOXMD8BjgcizPkQFUHCkppL57qt5HduENQvsVCdc7j/vBrZXjP390X89cIsKoJytXnK0IQQW1ASVw67A/uQ+1YByhO0NRJj9/b1dLEU0pQEhEycrgAcxs2kJOh+wKVkLwO9eOaHOkWKqostdS+qa1ICQZeNESH+ka36gSSecNaBZK56fUQGMCD0R6JI4487MjLXpIRJMXekIOjW5qanYjpmCDOWE3d7QNUx3ROsX6DWhAXZkXsZ0sYW01zar3gG8INfSEvcQoX5Mue63olqQYNaD3SrXilUD8s3Qzw1FQ5mYoNco3+IyVQL4tsGIKAGeBh4VDVNT5BEEZjKmaPdzlU6JDDgvPkEXa+Ro1U7g78CRUF7D1meOALRG5JihGPiyAUecJ4RTjvapJjh1oDep3hNU9LD/vZpjBqfeDzxA+W7oOkJ4F7jRGQRRQG1upRmaAb5r0BnnCeGsCJ6agmj9OrRRmiFfCOvAcYmQXK3cMsRZ25He49pS+ixmZU7rnLxV23swa3urtKbXCVEzqRu9Aty+wf3FQ7LpOUxL/I+0eE8Ke8NnRqgF7gya/XwJs7r+CLCH/A6LWeAOTDffScnkM+A3BnsWRU3Y6aYFkAIPAR+NYRRZYbjXTIA/JVN3WyYXMc1kW73fvyxljx4t3RTKPvzpEWtBnkYUyUf6mO1w+hJAzLQ9ybM3vxu4yrVbz2RjEoYrEHu4PsoOkme6klfYB3h1jFpQZVVm3JWkzoZ41wGfN1yeCDHfcBG4q8GK8VjD0jvlAUeRIZcl/6q8X+lqScM+0IqjBemECMCSf9JLJDtbqDs2QULwC3qd35ElTwjJmEf+qhe1TU3J+lhOBDLqbHnVMZFTNaljhXCUwcasoyzauTZ/amfUrBCWGeyc2JRvcE3dBcz2OVNNvi+EOeAEg51x7WhNA5ga18ecYbCCR3ffykl49mJ21rrC//eM6LPxvhNumWE9x6e8j2lloatxfoiMuecJ4g3gF4bvpDgsqbsEvO0RPzEdddEEa0PklH9vwMxKHRJfsQezXGmr97tEnPkPwDfAp8AHwK9eSSSZpBE36WYpFlPiYl6Esuh9fx44h+nMzsvAk0lU+TYV8yLHzoc8XwVQ4b7zpghd269QKBQKhUKhUCgUCoVCoVAoFAqFwuA/cp9gBTN36BIAAAAASUVORK5CYII="
     "sun" = "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"
+    "line_draw" = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAABNElEQVR42u3WyREDIAzFUEj/PZMWcsl8L08FcJAY2+cAAAAAAAAAAAAAwPvXwx9uf5b/BMj//CdAfuw8AfIz/wmQX7hPgOy1cwVoLl+AsHwBwvIFCMvfHiAuf3OAEvK3Bigjf2OAUvK3BSgnf1OAkvK3BCgrf0OA0vKnBygvf3KAFvKnBmgjf2KAVvKnBWgnf1KAlvKnBGgrf0KA1vK7B2gvv3OAEfK7Bhgjv2OAUfK7BRgnv1OAkfK7BBgrv0OA0fKrBxgvv3KAFfKrBlgjv2KAVfKrBVgnv1KAlfKrBFgrv0KA1fLTAdbLTwYgPxiA/GAA8oMByA8GID8YgPxgAPKDAcgPBiA/GID8YADygwHIDwYgPxzgkp8fQZf8/BK+5OfP0Et+DR4FAAAAAAAAAAAA53wBcJg/dehdUlYAAAAASUVORK5CYII="
+    "polyline_draw" = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAABmElEQVR42u2aUW6DUAwEWd//zs4NqgbM89qZ+azaCDy7fhD1ugAAAAAAAAAAAAAAAOBVxAhukxXzDOZYNvy/fo6AA8O/JQEBtcP/WgICmkEAAhAAxXsdAYPerxBQn37RgAHJR0B9+m99rYOApuQjoPHJBwEm6UdAc/of23v5ZjVg+I+vMYyTluYNKQlImNc8jdM//hBOx4GcXt0cws2yEdD84BIks3fVTWpAbkt/p4A0k9AmNwYmOZuuR1sEbFlHIwWk2We1pt+1ATJrgrY0IL+42RMSLNaY8xng0ARtEZA3b1aN17OmAXkohTkt/U4rSAclWD3Chnn6u5qgLQKqb/apBLsXuGhOvw42Id3S/6YAl6Tli20cv4J06G/zMv7uKAanX+afZ90ATR6as4AcmlxtENC5Z0UD+gelifJiQfpHNyEWDke/JiA3JvMXXsSgQIBr+lX8e5YCpv//viY3IIckTO5nkl5OPodvcQMYfqMAhs9jKAIAAQiAJgFj3i43N0AMv38FieEDAAAAAAAAAAAAAAAAwP/4ABRpRHmTglTuAAAAAElFTkSuQmCC"
+    "text_draw" = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAADjUlEQVR42u2cXWhPYRzHP2MxZGJekprXyC7EMG9JXm4oVotEZIgLN4pWK6UkV+5I3i4kIilSysXmwgVzQytDiBUXprxOXjaGi/9Z/Z09tvM7/3OO7X++n3outv//eZ7zfL/P2zm/5/xBCCGEEEIIIYQQQgghhBBCCCGEEEKIVDMc+A78DpA6gNK+0Kh+fciAjcBAQ7uq1Wej5V7A3t+ZXgAFki0aZhjF70xLNQVFw/aQ+baq7+bOAOBtyBHwBSjWCMiNSqAkZN7BwHr14dy44evV942joEEShmect6fPFrQKuG00YbqmoHBU+67xHXAdOKfFOBme+XryUe//I4A2wwh4DRRKThtLHELOyfr8qnEaWi1JbZz1Cdjk+7zKaMBVSRqcod4ePlvAGsf9wXuDAe3AKEkbjB0+8X4CYx3fO2EcBXskbTAafMLd+Mf3FhkNeCBpe2a6Q7ju7mafG02Yq/uA7tnm+/sTcK2b75/PsXyRRSHQ4uuxJ3vIM8U4Aj4ARZLaTaVDsIUh1oye0kZJ7eaaT6inAfPtMhpQJ6m7Mgb44RNqX8C8Jd4+P6gBv4DxkvxvahwileYwenpK+yX53zzyCVRvzL8WBe1Ds8Ah0GZjGQO9HU5eBe2T4rRPmM/AkBDlnDIacE7SZ+K2rT5hzoQsa7HRgK/08qB9EmxxCLMkZFkFQLPRhJ1pN+CWT5DmHBfHg0YD7v7Pxv/vXcBkMmHH7OtoAR7mUGYJMNOYpwx4nMbef4hwB66iTofTKH4/4FUvMaCFFAbtV/YS8TvTmrQZcNknwMuI16QLKGjf7ULZFvM8vMpoQDswOi0G7HYIUB5xHYXAG6MJe9NiQCPhnvtbOWI0oCkN4s92NPxATHVVhFiMK/LdgGMke3r5idGA4/ksfhFdT7M1xlznfqMBH4FB+WrABkeDa2Ouc1KIaShvg/Z1jsZOSKDeO0YD6vNR/FK6vu2S1OtD1lMTiQXtkzwZt9VR38WE6r5E5sRFUArIszftXYGSDtwnnuPCemoi17hEr2K5o4E3E76GdSEW42VxX1T/mMue5009tcBIx6OCWcA0Mu98dXhbwN8RPoooA1YAm8gce5xoLGO+99zqJ5n3zH71lR5fniWmJX0jmmODVwj+0zZBU2scIyKuRbgYGBbyRi2Ku+KpBP9pm6AM9UZqn90FCSGEEEIIIYQQQgghhBBCCCGEEEIIIZLhD5O98y5U1JWPAAAAAElFTkSuQmCC"
 }
 
 $script:IconImageCache = @{}
 function Get-IconImage([string]$name) {
     if ($script:IconImageCache.ContainsKey($name)) { return $script:IconImageCache[$name] }
+    if($name -eq 'copy'){
+        $bmp=[Drawing.Bitmap]::new(96,96);$g=[Drawing.Graphics]::FromImage($bmp);$g.SmoothingMode='AntiAlias'
+        $pen=[Drawing.Pen]::new([Drawing.Color]::Black,6)
+        try{$g.DrawRectangle($pen,35,15,43,52);$g.DrawRectangle($pen,18,31,43,52)}finally{$pen.Dispose();$g.Dispose()}
+        $script:IconImageCache[$name]=$bmp;return $bmp
+    }
+    if($name -eq 'crop'){
+        $bmp=[Drawing.Bitmap]::new(96,96);$g=[Drawing.Graphics]::FromImage($bmp)
+        $g.SmoothingMode='AntiAlias';$pen=[Drawing.Pen]::new([Drawing.Color]::Black,6)
+        try{
+            $g.DrawLines($pen,[Drawing.PointF[]]@([Drawing.PointF]::new(24,9),[Drawing.PointF]::new(24,72),[Drawing.PointF]::new(87,72)))
+            $g.DrawLines($pen,[Drawing.PointF[]]@([Drawing.PointF]::new(9,24),[Drawing.PointF]::new(72,24),[Drawing.PointF]::new(72,87)))
+        }finally{$pen.Dispose();$g.Dispose()}
+        $script:IconImageCache[$name]=$bmp;return $bmp
+    }
     $bytes = [Convert]::FromBase64String($script:IconBase64[$name])
     $ms = New-Object System.IO.MemoryStream(,$bytes)
     $img = [System.Drawing.Image]::FromStream($ms)
@@ -2746,7 +4162,7 @@ function Update-ThemedIcons([System.Drawing.Color]$normalColor, [System.Drawing.
     foreach ($entry in $script:ThemedIconButtons) {
         $ctl = $entry.Control
         $isChecked = ($ctl -is [System.Windows.Forms.RadioButton]) -and $ctl.Checked
-        $color = if ($isChecked) { $accentColor } else { $normalColor }
+        $color = if($entry.IconName -eq 'crop' -and -not $ctl.Enabled){[Drawing.Color]::Gray}elseif ($isChecked) { $accentColor } else { $normalColor }
         $ctl.Image = Get-ThemedIconImage $entry.IconName $color
         $ctl.Invalidate()
     }
@@ -2797,6 +4213,20 @@ $script:appToolTip.SetToolTip($btnTheme, "Switch to Dark Mode")
 # Show-AboutDialog) with the full copyright/license/no-telemetry statement,
 # keeping the header itself uncluttered. Sits just left of the theme toggle,
 # in the same right-hand cluster.
+$btnClearScreen=New-Object System.Windows.Forms.Button
+$btnClearScreen.Text='Clear Screen'
+$btnClearScreen.Size=New-Object System.Drawing.Size(105,$script:UiIconButtonSize)
+$btnClearScreen.Anchor='Top,Right'
+Style-FlatButton $btnClearScreen $true
+$top.Controls.Add($btnClearScreen)
+$appToolTip.SetToolTip($btnClearScreen,'Unload the current image or video without deleting its source file')
+$btnClearScreen.Add_Click({
+    if($script:CaptureState.Busy -or $script:CaptureState.Recorder -or -not $form.Enabled){return}
+    Stop-Playback
+    if($script:floatingTextEditorVisible){Close-FloatingTextEditor $false}
+    Reset-LoadedSourceAfterDestructiveDeletion 'Ready.'
+    Remove-UnusedCaptureFiles
+})
 $btnInfo = New-Object System.Windows.Forms.Button
 $btnInfo.Text = ""
 $btnInfo.Size = New-Object System.Drawing.Size($script:UiIconButtonSize,$script:UiIconButtonSize)
@@ -2918,12 +4348,155 @@ function New-ToolbarIconButton($parent, [string]$iconName, [int]$x, [int]$y, [st
     return $b
 }
 
+$script:ImageCrop=$null
+$script:CropDraft=$null
+$script:CropGesture=$null
+
+function Get-CropBounds {
+    if($isImageMode -and $script:ImageCrop){return $script:ImageCrop}
+    return [Drawing.RectangleF]::new(0,0,$videoWidth,$videoHeight)
+}
+function Get-CropPixelRectangle([Drawing.RectangleF]$rect,[Drawing.RectangleF]$bounds) {
+    $left=[Math]::Max([int][Math]::Floor($bounds.Left),[int][Math]::Floor($rect.Left))
+    $top=[Math]::Max([int][Math]::Floor($bounds.Top),[int][Math]::Floor($rect.Top))
+    $right=[Math]::Min([int][Math]::Ceiling($bounds.Right),[int][Math]::Ceiling($rect.Right))
+    $bottom=[Math]::Min([int][Math]::Ceiling($bounds.Bottom),[int][Math]::Ceiling($rect.Bottom))
+    if($right -le $left -or $bottom -le $top){return $null}
+    return [Drawing.Rectangle]::FromLTRB($left,$top,$right,$bottom)
+}
+function Update-CropControls {
+    if(-not $rbCrop){return}
+    $rbCrop.Enabled=[bool]($videoPath -and $isImageMode -and -not $script:pendingAnnotation -and -not $pendingRedaction)
+    $appToolTip.SetToolTip($rbCrop,$(if($videoPath -and -not $isImageMode){'Video Crop not supported'}else{'Crop Image Tool'}))
+    if(-not $rbCrop.Enabled -and $rbCrop.Checked){$rbRectangle.Checked=$true}
+    Update-ThemedIcons $script:cTextCurrent $script:cAccentCurrent
+    if($isImageMode -and $toolMode -eq 'Crop'){
+        $btnAddRedaction.Visible=$true;$btnAddRedaction.Text='Confirm Crop'
+        $btnAddRedaction.Enabled=[bool]($script:CropDraft -and $script:CropDraft.Width -ge 1 -and $script:CropDraft.Height -ge 1)
+        Set-RedactionButtonColor $btnAddRedaction $(if($btnAddRedaction.Enabled){'green'}else{'grey'})
+        $lblToolHint.Text='Crop: drag a rectangle; adjust its eight handles or drag inside. Confirm Crop applies; Esc cancels.'
+    }
+}
+function Start-CropGesture($event) {
+    if($event.Button -ne [Windows.Forms.MouseButtons]::Left){return}
+    $point=ViewPoint-To-MediaPoint ([Drawing.PointF]::new($event.X,$event.Y)) $false
+    if(-not $point){return}
+    $bounds=Get-CropBounds
+    $kind='New'
+    if($script:CropDraft){
+        foreach($handle in @(Get-RectangleResizeHandleCenters $script:CropDraft)){
+            if([Math]::Abs($handle.X-$event.X) -le 8 -and [Math]::Abs($handle.Y-$event.Y) -le 8){$kind=$handle.Name;break}
+        }
+        if($kind -eq 'New' -and $script:CropDraft.Contains($point)){$kind='Move'}
+    }
+    if($kind -eq 'New' -and -not $bounds.Contains($point)){return}
+    $script:CropGesture=[pscustomobject]@{Kind=$kind;Start=$point;Rect=$script:CropDraft;Bounds=$bounds}
+    if($kind -eq 'New'){$script:CropDraft=[Drawing.RectangleF]::new($point.X,$point.Y,0,0)}
+    $picture.Capture=$true;$picture.Invalidate()
+}
+function Update-CropGesture($event) {
+    $gesture=$script:CropGesture
+    if(-not $gesture){
+        $cursor=[Windows.Forms.Cursors]::Cross
+        if($script:CropDraft){
+            $view=[Drawing.PointF]::new($event.X,$event.Y)
+            $handle=Get-RectangleResizeHandleAtViewPoint $view $script:CropDraft
+            if($handle -ne 'None'){$cursor=Get-RectangleResizeCursor $handle}
+            elseif((MediaRect-To-ViewRect $script:CropDraft).Contains($view)){$cursor=[Windows.Forms.Cursors]::SizeAll}
+        }
+        $picture.Cursor=$cursor;return
+    }
+    $point=ViewPoint-To-MediaPoint ([Drawing.PointF]::new($event.X,$event.Y)) $false
+    if(-not $point){return}
+    $b=$gesture.Bounds
+    $x=[Math]::Max($b.Left,[Math]::Min($b.Right,$point.X));$y=[Math]::Max($b.Top,[Math]::Min($b.Bottom,$point.Y))
+    if($gesture.Kind -eq 'Move'){
+        $r=$gesture.Rect
+        $left=[Math]::Max($b.Left,[Math]::Min($b.Right-$r.Width,$r.X+$x-$gesture.Start.X))
+        $top=[Math]::Max($b.Top,[Math]::Min($b.Bottom-$r.Height,$r.Y+$y-$gesture.Start.Y))
+        $script:CropDraft=[Drawing.RectangleF]::new($left,$top,$r.Width,$r.Height)
+    }else{
+        if($gesture.Kind -eq 'New'){$left=$gesture.Start.X;$top=$gesture.Start.Y;$right=$x;$bottom=$y}
+        else{
+            $r=$gesture.Rect;$left=$r.Left;$top=$r.Top;$right=$r.Right;$bottom=$r.Bottom
+            if($gesture.Kind.Contains('W')){$left=$x};if($gesture.Kind.Contains('E')){$right=$x}
+            if($gesture.Kind.Contains('N')){$top=$y};if($gesture.Kind.Contains('S')){$bottom=$y}
+        }
+        $script:CropDraft=[Drawing.RectangleF]::FromLTRB([Math]::Min($left,$right),[Math]::Min($top,$bottom),[Math]::Max($left,$right),[Math]::Max($top,$bottom))
+    }
+    Update-CropControls;$picture.Invalidate()
+}
+function Confirm-ImageCrop {
+    if(-not $isImageMode -or -not $script:CropDraft){return}
+    $rect=Get-CropPixelRectangle $script:CropDraft (Get-CropBounds)
+    if(-not $rect){return}
+    $script:ImageCrop=[Drawing.RectangleF]$rect
+    $script:CropDraft=$null;$script:CropGesture=$null;$picture.Capture=$false
+    Reset-ViewportState
+    $rbRectangle.Checked=$true
+    Update-RedactionButtons;Update-ZoomHud;$picture.Invalidate()
+    $status.Text="Image cropped to $($rect.Width) x $($rect.Height). Original unchanged."
+}
+function Draw-CropGuide($graphics) {
+    if(-not $isImageMode -or $toolMode -ne 'Crop' -or -not $script:CropDraft){return}
+    $view=MediaRect-To-ViewRect $script:CropDraft
+    if(-not $view -or $view.Width -le 0 -or $view.Height -le 0){return}
+    $area=MediaRect-To-ViewRect (Get-CropBounds)
+    $shade=[Drawing.Region]::new($area);$shade.Exclude($view)
+    $brush=[Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(145,0,0,0))
+    $pen=[Drawing.Pen]::new([Drawing.Color]::DodgerBlue,1)
+    try{
+        $graphics.FillRegion($brush,$shade)
+        $graphics.DrawRectangle($pen,$view.X,$view.Y,$view.Width,$view.Height)
+        foreach($fraction in @((1.0/3),(2.0/3))){
+            $x=$view.Left+$view.Width*$fraction;$y=$view.Top+$view.Height*$fraction
+            $graphics.DrawLine($pen,[single]$x,[single]$view.Top,[single]$x,[single]$view.Bottom)
+            $graphics.DrawLine($pen,[single]$view.Left,[single]$y,[single]$view.Right,[single]$y)
+        }
+        foreach($handle in @(Get-RectangleResizeHandleCenters $script:CropDraft)){
+            $graphics.FillRectangle([Drawing.Brushes]::White,[single]($handle.X-4),[single]($handle.Y-4),8,8)
+            $graphics.DrawRectangle($pen,[single]($handle.X-4),[single]($handle.Y-4),8,8)
+        }
+    }finally{$shade.Dispose();$brush.Dispose();$pen.Dispose()}
+}
+function Add-ImageCropFilter([string]$filter,[string]$label) {
+    if(-not $isImageMode -or -not $script:ImageCrop){return [pscustomobject]@{Filter=$filter;Label=$label;Width=$videoWidth;Height=$videoHeight}}
+    $r=Get-CropPixelRectangle $script:ImageCrop ([Drawing.RectangleF]::new(0,0,$videoWidth,$videoHeight))
+    if(-not $r){throw 'Invalid confirmed image crop.'}
+    $prefix=if($filter){';'}else{''}
+    return [pscustomobject]@{Filter=($filter+$prefix+"[$label]crop=$($r.Width):$($r.Height):$($r.X):$($r.Y):exact=1[imagecrop]");Label='imagecrop';Width=$r.Width;Height=$r.Height}
+}
+function Fit-InspectorContents {
+    if(-not $right -or -not $right.Visible -or $script:FittingInspector){return}
+    $script:FittingInspector=$true
+    try{
+        $right.SuspendLayout()
+        $right.AutoScrollPosition=[Drawing.Point]::Empty
+        $limit=[Math]::Max(240,$right.ClientSize.Width-$right.Padding.Right-[Windows.Forms.SystemInformation]::VerticalScrollBarWidth)
+        foreach($ctl in $right.Controls){
+            if(-not $script:InspectorWidths.ContainsKey($ctl)){$script:InspectorWidths[$ctl]=@($ctl.Left,$ctl.Width)}
+            $ctl.Left=[Math]::Min($script:InspectorWidths[$ctl][0],$limit-20)
+            $ctl.Width=[Math]::Max(20,[Math]::Min($script:InspectorWidths[$ctl][1],$limit-$ctl.Left))
+        }
+        foreach($list in @($lvRedactions,$lvAnnotations)){
+            $available=[Math]::Max(220,$list.ClientSize.Width-[Windows.Forms.SystemInformation]::VerticalScrollBarWidth-4)
+            $list.Columns[0].Width=26;$list.Columns[1].Width=65
+            if($isImageMode){$list.Columns[2].Width=$available-91;$list.Columns[3].Width=0}
+            else{$list.Columns[2].Width=80;$list.Columns[3].Width=$available-171}
+        }
+        $right.AutoScrollMinSize=[Drawing.Size]::Empty
+        Position-RightPanelToggle
+    }finally{$right.ResumeLayout($true);$script:FittingInspector=$false}
+}
+
 $rbRectangle = New-ToolbarIconButton $toolbar "rectangle" $script:UiGap 22 "Rectangle Selection"
 $rbRectangle.Checked = $true
 $rbOval = New-ToolbarIconButton $toolbar "oval" $script:UiGap 60 "Oval Selection"
 $rbFreeform = New-ToolbarIconButton $toolbar "freeform" $script:UiGap 98 "Freeform Selection"
 $rbZoom = New-ToolbarIconButton $toolbar "zoom" $script:UiGap 136 "Zoom Tool - left click in, right click out; right-drag pans; mouse wheel zooms around pointer"
 
+$rbCrop = New-ToolbarIconButton $toolbar "crop" $script:UiGap 174 "Crop Image Tool"
+$rbCrop.Enabled=$false
 Add-Rule $toolbar $script:UiGap 176 ($script:ToolbarWidth - (2 * $script:UiGap)) | Out-Null
 
 $lblStyleHeading = New-Object System.Windows.Forms.Label
@@ -2947,6 +4520,77 @@ $rbModeBlack = New-ToolbarIconButton $modeRow "black" $script:UiGap 0 "Coloured 
 $rbModeBlack.Checked = $true   # Secure opaque redaction is the default mode
 $rbModeBlur = New-ToolbarIconButton $modeRow "blur" $script:UiGap 38 "Blur - visual obscuration only; use Coloured Box for secure redaction"
 $rbModePixelate = New-ToolbarIconButton $modeRow "pixelate" $script:UiGap 76 "Pixelate - visual obscuration only; use Coloured Box for secure redaction"
+
+# G2d managed control: a deployment may prohibit Blur/Pixelate because they are
+# visual-obscuration methods rather than guaranteed irreversible redaction. Keep
+# the icons visible so the restriction is obvious, but leave Coloured Box usable.
+if ($script:ManagedPolicy -and $script:ManagedPolicy.DisableVisualObscuration) {
+    $rbModeBlack.Checked = $true
+    $rbModeBlur.Checked = $false
+    $rbModePixelate.Checked = $false
+    $rbModeBlur.Enabled = $false
+    $rbModePixelate.Enabled = $false
+    $script:appToolTip.SetToolTip($rbModeBlur, "Blur disabled by managed policy. Use Coloured Box for secure redaction.")
+    $script:appToolTip.SetToolTip($rbModePixelate, "Pixelate disabled by managed policy. Use Coloured Box for secure redaction.")
+
+    # G2d-r5: WinForms ToolTip does not display normally for disabled child controls.
+    # Keep Blur/Pixelate genuinely disabled, but let their enabled parent panel surface
+    # the same control-specific message when the pointer is over either disabled icon.
+    $script:managedVisualTooltipTarget = ''
+    $modeRow.Add_MouseMove({
+        param($sender,$e)
+        if (-not ($script:ManagedPolicy -and $script:ManagedPolicy.DisableVisualObscuration)) { return }
+
+        $target = ''
+        $message = ''
+        if ($rbModeBlur.Bounds.Contains($e.Location)) {
+            $target = 'Blur'
+            $message = 'Blur disabled by managed policy. Use Coloured Box for secure redaction.'
+        }
+        elseif ($rbModePixelate.Bounds.Contains($e.Location)) {
+            $target = 'Pixelate'
+            $message = 'Pixelate disabled by managed policy. Use Coloured Box for secure redaction.'
+        }
+
+        if ($target -ne $script:managedVisualTooltipTarget) {
+            $script:appToolTip.Hide($modeRow)
+            $script:managedVisualTooltipTarget = $target
+            if ($message) {
+                $script:appToolTip.Show($message, $modeRow, ($e.X + 14), ($e.Y + 18), 5000)
+            }
+        }
+    })
+    $modeRow.Add_MouseLeave({
+        $script:appToolTip.Hide($modeRow)
+        $script:managedVisualTooltipTarget = ''
+    })
+}
+
+# D2: standalone drawing tools are isolated in their own RadioButton parent so
+# they do not disturb the Style choice group. CheckedChanged handlers below
+# explicitly arbitrate them against Rectangle/Oval/Freeform/Zoom.
+Add-Rule $toolbar $script:UiGap 318 ($script:ToolbarWidth - (2 * $script:UiGap)) | Out-Null
+$lblDrawHeading = New-Object System.Windows.Forms.Label
+$lblDrawHeading.Text = "Draw"
+$lblDrawHeading.TextAlign = "MiddleCenter"
+$lblDrawHeading.Location = New-Object System.Drawing.Point(0,326)
+$lblDrawHeading.Size = New-Object System.Drawing.Size($script:ToolbarWidth,14)
+$lblDrawHeading.Font = New-UIFont 7.2 ([System.Drawing.FontStyle]::Bold)
+$lblDrawHeading.Tag = "muted"
+$toolbar.Controls.Add($lblDrawHeading)
+
+$drawRow = New-Object System.Windows.Forms.Panel
+$drawRow.Location = New-Object System.Drawing.Point(0,344)
+$drawRow.Size = New-Object System.Drawing.Size($script:ToolbarWidth,110)
+$toolbar.Controls.Add($drawRow)
+
+$rbText = New-ToolbarIconButton $drawRow "text_draw" $script:UiGap 0 "Text Box Annotation - drag a box, then type in the floating editor"
+$rbLine = New-ToolbarIconButton $drawRow "line_draw" $script:UiGap 38 "Line Annotation - drag start to end; Shift constrains angle"
+$rbPolyline = New-ToolbarIconButton $drawRow "polyline_draw" $script:UiGap 76 "Polyline Annotation - hold the left mouse button and draw; release to finish"
+$rbText.Enabled = $false
+$rbLine.Enabled = $false
+$rbPolyline.Enabled = $false
+foreach($control in $toolbar.Controls){if($control -ne $rbCrop -and $control.Top -ge 176){$control.Top+=38}}
 
 # CENTER -------------------------------------------------------------
 $center = New-Object System.Windows.Forms.Panel
@@ -3088,7 +4732,7 @@ $scrubberMarkers = New-Object System.Windows.Forms.Panel
 # Sits in its own compact row directly below the seek bar, keeping the red
 # redaction-range marks clear of the seek track itself.
 $scrubberMarkers.Location = New-Object System.Drawing.Point(10,48)
-$scrubberMarkers.Size = New-Object System.Drawing.Size(670,8)
+$scrubberMarkers.Size = New-Object System.Drawing.Size(670,10)
 # No Anchor - same Anchor-baseline-timing issue as $seekBar just above.
 # It stays 10px inset on each side and Update-PolishedLayout resizes it from
 # the live bottom-panel width. Parent + child invalidation there also clears
@@ -3096,6 +4740,7 @@ $scrubberMarkers.Size = New-Object System.Drawing.Size(670,8)
 # pixels from being left behind after panel/window layout changes.
 $scrubberMarkers.Tag = "marker"
 $bottom.Controls.Add($scrubberMarkers)
+$script:appToolTip.SetToolTip($scrubberMarkers, "Red = redactions   |   Violet = annotations")
 $scrubberMarkers.BringToFront()
 
 # Icon-only playback/frame-step buttons (Button, not RadioButton - no
@@ -3311,7 +4956,7 @@ $chkEnhanced.Add_CheckedChanged({
 })
 
 function Update-StrengthSliderVisibility {
-    $show = $rbModeBlur.Checked -or $rbModePixelate.Checked
+    $show = ($rbModeBlur.Checked -or $rbModePixelate.Checked) -and (-not $isImageMode -or $script:fillEnabled)
     $chkEnhanced.Visible = $show
     $lblStrength.Visible = $show
     $sliderStrength.Visible = $show
@@ -3323,6 +4968,10 @@ function Update-StrengthSliderVisibility {
         if ($script:redactionEnhanced) { $lblStrength.Text = "$modeName Strength: 5 (Aggressive)" }
         else { $lblStrength.Text = "$modeName Strength: $($sliderStrength.Value)" }
     }
+    # D5b-r3: the transport cluster reserves more left-side room while these
+    # controls are visible. Reflow immediately when the mode/visibility changes
+    # rather than waiting for a later window resize.
+    if (Get-Command Update-PolishedLayout -ErrorAction SilentlyContinue) { Update-PolishedLayout }
 }
 
 # Coloured Box color picker: a clickable swatch showing the current
@@ -3414,7 +5063,7 @@ function Set-ActiveRedactionColor([System.Drawing.Color]$color) {
 # called from Apply-Theme, which already re-runs on every Shape/Style
 # CheckedChanged (see the foreach below) as well as at startup.
 function Update-ColorPickerVisibility {
-    $show = $rbModeBlack.Checked
+    $show = $rbModeBlack.Checked -and (-not $isImageMode -or $script:fillEnabled)
     $lblColor.Visible = $show
     $swatchColor.Visible = $show
     $btnEyedropper.Visible = $show
@@ -3596,7 +5245,7 @@ $right.Visible = $false
 
 function Position-RightPanelToggle {
     if (-not $btnRightPanelToggle -or -not $rightHost) { return }
-    $x = [Math]::Max(0, $rightHost.ClientSize.Width - $btnRightPanelToggle.Width - $script:UiGap)
+    $x = [Math]::Max(0, $rightHost.ClientSize.Width - $btnRightPanelToggle.Width - $script:UiGap - $(if($right.Visible -and $right.VerticalScroll.Visible){[Windows.Forms.SystemInformation]::VerticalScrollBarWidth}else{0}))
     $btnRightPanelToggle.Location = New-Object System.Drawing.Point($x,$script:UiGap)
     $btnRightPanelToggle.BringToFront()
 }
@@ -3641,6 +5290,7 @@ function Set-RightPanelCollapsed([bool]$collapsed) {
     Update-PolishedLayout
     Position-RightPanelToggle
     Update-RightPanelToggleAppearance
+    if($lblDeleteCapability){Update-InspectorSectionLayout}
 
     # The timeline controls are manually resized by Update-PolishedLayout.
     # Invalidating the whole bottom region (children included) is important:
@@ -3651,6 +5301,7 @@ function Set-RightPanelCollapsed([bool]$collapsed) {
     $bottom.Invalidate($true)
     $seekBar.Invalidate()
     $scrubberMarkers.Invalidate()
+    if ($script:floatingTextEditorVisible) { Update-FloatingTextEditorPosition }
     $picture.Invalidate()
 }
 
@@ -3674,8 +5325,11 @@ function Update-PolishedLayout {
     $infoX = [Math]::Max(0, $themeX - $script:UiGap - $btnInfo.Width)
     $btnInfo.Location = New-Object System.Drawing.Point($infoX,15)
 
+    $clearX = [Math]::Max(0, $infoX - $script:UiGap - $btnClearScreen.Width)
+    $btnClearScreen.Location = New-Object System.Drawing.Point($clearX,15)
+
     # File labels stretch only through the remaining header space.
-    $fileInfoW = [Math]::Max(60, $infoX - $lblFile.Left - 10)
+    $fileInfoW = [Math]::Max(60, $clearX - $lblFile.Left - 10)
     $lblFile.Size = New-Object System.Drawing.Size($fileInfoW,22)
     $lblHint.Size = New-Object System.Drawing.Size($fileInfoW,20)
 
@@ -3712,13 +5366,13 @@ function Update-PolishedLayout {
         $cancelW = $script:CompactButtonWidth
         $exportW = $script:ExportButtonWidth
         $actionGap = $script:UiGap
-        $exportX = [Math]::Max(0, $rowW - $script:UiGap - $exportW)
+        $copySpace=if($btnCopyImage -and $btnCopyImage.Visible){$script:CompactButtonHeight+$actionGap}else{0};$exportX = [Math]::Max(0, $rowW - $script:UiGap - $exportW-$copySpace)
         $cancelX = [Math]::Max(0, $exportX - $actionGap - $cancelW)
 
         # wider than the other compact action buttons so its label remains on one line.
         # Reserve enough room at the left for the colour picker or strength
         # slider, then center the transport cluster in the remaining middle.
-        $clusterZoneLeft = if ($chkEnhanced -and $chkEnhanced.Visible) { 280 } else { 180 }
+        $clusterZoneLeft = if (($rbModeBlur.Checked -or $rbModePixelate.Checked) -and (-not $isImageMode -or $script:fillEnabled)) { 280 } else { 180 }
         $clusterZoneRight = [Math]::Max($clusterZoneLeft, $cancelX - $gap)
         $clusterZoneW = [Math]::Max(0, $clusterZoneRight - $clusterZoneLeft)
         $x = $clusterZoneLeft + [Math]::Max(0, [int](($clusterZoneW - $totalW) / 2))
@@ -3751,6 +5405,7 @@ function Update-PolishedLayout {
 
         $btnCancelRedaction.Location = New-Object System.Drawing.Point($cancelX,$yCompact)
         $btnExport.Location = New-Object System.Drawing.Point($exportX,$yCompact)
+        if($btnCopyImage){$btnCopyImage.Location=[Drawing.Point]::new($exportX+$exportW+$actionGap,$yCompact)}
     }
 }
 
@@ -3793,7 +5448,7 @@ $lblSelStatus = New-Object System.Windows.Forms.Label
 $lblSelStatus.Text = "Selection: none"
 $lblSelStatus.Location = New-Object System.Drawing.Point(0,34)
 $lblSelStatus.Size = New-Object System.Drawing.Size(325,34)
-$lblSelStatus.Font = New-UIFont 8.5
+$lblSelStatus.Font = New-UIFont 8.2
 $lblSelStatus.Tag = "muted"
 $right.Controls.Add($lblSelStatus)
 
@@ -3824,29 +5479,35 @@ function Update-SelectionFields($vr, [string]$statusText = "Selection: none") {
 
 $lblToolHint = New-Object System.Windows.Forms.Label
 $lblToolHint.Text = "Freeform: click points, then click the yellow start point to close."
-$lblToolHint.Location = New-Object System.Drawing.Point(0,72)
+$lblToolHint.Location = New-Object System.Drawing.Point(0,68)
 $lblToolHint.Size = New-Object System.Drawing.Size(325,28)
-$lblToolHint.Font = New-UIFont 8.0
+$lblToolHint.Font = New-UIFont 8.2
 $lblToolHint.Tag = "muted"
 $right.Controls.Add($lblToolHint)
 
 $lblSecurityNote = New-Object System.Windows.Forms.Label
-$lblSecurityNote.Location = New-Object System.Drawing.Point(0,102)
-$lblSecurityNote.Size = New-Object System.Drawing.Size(325,40)
-$lblSecurityNote.Font = New-UIFont 8.0
+$lblSecurityNote.Location = New-Object System.Drawing.Point(0,96)
+$lblSecurityNote.Size = New-Object System.Drawing.Size(325,32)
+$lblSecurityNote.Font = New-UIFont 8.2
 $lblSecurityNote.Tag = "muted"
 $right.Controls.Add($lblSecurityNote)
 
 $lblBufferNote = New-Object System.Windows.Forms.Label
 $lblBufferNote.Text = "Every redaction is padded automatically by $BUFFER_FRAMES frames before and after the marked range."
-$lblBufferNote.Location = New-Object System.Drawing.Point(0,146)
-$lblBufferNote.Size = New-Object System.Drawing.Size(325,34)
-$lblBufferNote.Font = New-UIFont 8.0
+$lblBufferNote.Location = New-Object System.Drawing.Point(0,128)
+$lblBufferNote.Size = New-Object System.Drawing.Size(325,48)
+$lblBufferNote.Font = New-UIFont 8.2
 $lblBufferNote.Tag = "muted"
 $right.Controls.Add($lblBufferNote)
 
 function Update-SecurityModeNote {
-    if ($rbModeBlack.Checked) {
+    if ($isImageMode -and -not $script:fillEnabled) {
+        $lblSecurityNote.Text = "Annotation only: the outline is visual markup and does not redact or obscure source pixels."
+    }
+    elseif ($script:ManagedPolicy -and $script:ManagedPolicy.DisableVisualObscuration) {
+        $lblSecurityNote.Text = "Managed policy: Blur and Pixelate are disabled. Use Coloured Box for secure redaction."
+    }
+    elseif ($rbModeBlack.Checked) {
         $lblSecurityNote.Text = "Secure Redaction: an opaque Coloured Box replaces the selected source pixels."
     }
     else {
@@ -3874,7 +5535,8 @@ function Show-CompactWarningDialog(
     [string]$SecondaryText = "",
     [bool]$ShowSuppression = $true,
     [string]$BoldToken = "",
-    [bool]$SuppressionDefaultChecked = $false
+    [bool]$SuppressionDefaultChecked = $false,
+    [bool]$DefaultSecondary = $false
 ) {
     $isDark = $script:isDarkMode
     $cBg     = if ($isDark) { [System.Drawing.Color]::FromArgb(60,63,71) } else { [System.Drawing.Color]::FromArgb(223,238,245) }
@@ -4006,12 +5668,28 @@ function Show-CompactWarningDialog(
     $primary = New-Object System.Windows.Forms.Button
     $primary.Text = $PrimaryText
     $primary.Size = New-Object System.Drawing.Size($primaryW,$buttonH)
-    $primary.Location = New-Object System.Drawing.Point(($dlgW - $margin - $primaryW),$y)
+    if ($DefaultSecondary -and -not [string]::IsNullOrWhiteSpace($SecondaryText)) {
+        # Destructive confirmations put the destructive action on the left and
+        # the safe/default action on the right, matching the visible focus.
+        $primary.Location = New-Object System.Drawing.Point(($dlgW - $margin - $secondaryW - $buttonGap - $primaryW),$y)
+    }
+    else {
+        $primary.Location = New-Object System.Drawing.Point(($dlgW - $margin - $primaryW),$y)
+    }
     $primary.DialogResult = [System.Windows.Forms.DialogResult]::OK
-    Style-FlatButton $primary $true 7
-    $primary.BackColor = $cAccent
-    $primary.ForeColor = [System.Drawing.Color]::White
-    $primary.FlatAppearance.BorderColor = $cAccent
+    if ($DefaultSecondary -and -not [string]::IsNullOrWhiteSpace($SecondaryText)) {
+        Style-FlatButton $primary $false 7
+        $primary.BackColor = $cButton
+        $primary.ForeColor = $cText
+        $primary.FlatAppearance.BorderSize = 1
+        $primary.FlatAppearance.BorderColor = $cBorder
+    }
+    else {
+        Style-FlatButton $primary $true 7
+        $primary.BackColor = $cAccent
+        $primary.ForeColor = [System.Drawing.Color]::White
+        $primary.FlatAppearance.BorderColor = $cAccent
+    }
     $dlg.Controls.Add($primary)
 
     $secondary = $null
@@ -4019,16 +5697,25 @@ function Show-CompactWarningDialog(
         $secondary = New-Object System.Windows.Forms.Button
         $secondary.Text = $SecondaryText
         $secondary.Size = New-Object System.Drawing.Size($secondaryW,$buttonH)
-        $secondary.Location = New-Object System.Drawing.Point(($primary.Left - $buttonGap - $secondaryW),$y)
+        if ($DefaultSecondary) {
+            $secondary.Location = New-Object System.Drawing.Point(($dlgW - $margin - $secondaryW),$y)
+            Style-FlatButton $secondary $true 7
+            $secondary.BackColor = $cAccent
+            $secondary.ForeColor = [System.Drawing.Color]::White
+            $secondary.FlatAppearance.BorderColor = $cAccent
+        }
+        else {
+            $secondary.Location = New-Object System.Drawing.Point(($primary.Left - $buttonGap - $secondaryW),$y)
+            Style-FlatButton $secondary $false 7
+            # Explicitly theme the secondary button so Enable-RoundedPaint draws
+            # the complete rounded outline instead of exposing fragments of the
+            # native WinForms flat-button border.
+            $secondary.BackColor = $cButton
+            $secondary.ForeColor = $cText
+            $secondary.FlatAppearance.BorderSize = 1
+            $secondary.FlatAppearance.BorderColor = $cBorder
+        }
         $secondary.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
-        Style-FlatButton $secondary $false 7
-        # Explicitly theme the secondary button so Enable-RoundedPaint draws
-        # the complete rounded outline instead of exposing fragments of the
-        # native WinForms flat-button border.
-        $secondary.BackColor = $cButton
-        $secondary.ForeColor = $cText
-        $secondary.FlatAppearance.BorderSize = 1
-        $secondary.FlatAppearance.BorderColor = $cBorder
         $dlg.Controls.Add($secondary)
         $dlg.CancelButton = $secondary
     }
@@ -4036,7 +5723,13 @@ function Show-CompactWarningDialog(
         $dlg.CancelButton = $primary
     }
 
-    $dlg.AcceptButton = $primary
+    if ($DefaultSecondary -and $secondary) {
+        $dlg.AcceptButton = $secondary
+        $dlg.Add_Shown({ $secondary.Select() }.GetNewClosure())
+    }
+    else {
+        $dlg.AcceptButton = $primary
+    }
     $dlg.ClientSize = New-Object System.Drawing.Size($dlgW,($primary.Bottom + 12))
 
     $result = $dlg.ShowDialog($form)
@@ -4050,6 +5743,447 @@ function Show-CompactWarningDialog(
     return [pscustomobject]@{
         Accepted = $accepted
         Suppress = $suppress
+    }
+}
+
+
+# S1c: information/success companion to Show-CompactWarningDialog. The export
+# and destructive-deletion success path now uses one coherent themed dialog
+# family instead of alternating between stock MessageBox and custom forms.
+function Show-CompactInformationDialog(
+    [string]$WindowTitle,
+    [string]$Heading,
+    [string]$Body,
+    [string]$ButtonText = "OK"
+) {
+    $isDark = $script:isDarkMode
+    $cBg     = if ($isDark) { [System.Drawing.Color]::FromArgb(60,63,71) } else { [System.Drawing.Color]::FromArgb(223,238,245) }
+    $cText   = if ($isDark) { [System.Drawing.Color]::FromArgb(241,245,249) } else { [System.Drawing.Color]::FromArgb(18,27,42) }
+    $cMuted  = if ($isDark) { [System.Drawing.Color]::FromArgb(202,208,216) } else { [System.Drawing.Color]::FromArgb(78,91,110) }
+    $cAccent = if ($isDark) { [System.Drawing.Color]::FromArgb(70,150,255) } else { [System.Drawing.Color]::FromArgb(18,113,255) }
+
+    $dlgW = 450
+    $margin = 14
+    $iconW = 34
+    $textX = $margin + $iconW + 10
+    $textW = $dlgW - $textX - $margin
+
+    $dlg = New-Object System.Windows.Forms.Form
+    $dlg.Text = $WindowTitle
+    $dlg.StartPosition = "CenterParent"
+    $dlg.FormBorderStyle = "FixedDialog"
+    $dlg.MaximizeBox = $false
+    $dlg.MinimizeBox = $false
+    $dlg.ShowInTaskbar = $false
+    $dlg.BackColor = $cBg
+    $dlg.Font = New-UIFont 8.7
+    $dlg.AutoScaleMode = "Dpi"
+
+    $icon = New-Object System.Windows.Forms.PictureBox
+    $icon.Image = [System.Drawing.SystemIcons]::Information.ToBitmap()
+    $icon.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::CenterImage
+    $icon.Location = New-Object System.Drawing.Point($margin,16)
+    $icon.Size = New-Object System.Drawing.Size($iconW,$iconW)
+    $dlg.Controls.Add($icon)
+
+    $headingLabel = New-Object System.Windows.Forms.Label
+    $headingLabel.Text = $Heading
+    $headingLabel.Font = New-UIFont 9.0 ([System.Drawing.FontStyle]::Bold)
+    $headingLabel.ForeColor = $cText
+    $headingLabel.BackColor = [System.Drawing.Color]::Transparent
+    $headingLabel.Location = New-Object System.Drawing.Point($textX,14)
+    $headingLabel.Size = New-Object System.Drawing.Size($textW,20)
+    $dlg.Controls.Add($headingLabel)
+
+    $message = New-Object System.Windows.Forms.Label
+    $message.Text = $Body
+    $message.Font = New-UIFont 8.4
+    $message.ForeColor = $cMuted
+    $message.BackColor = [System.Drawing.Color]::Transparent
+    $message.AutoSize = $true
+    $message.MaximumSize = New-Object System.Drawing.Size($textW,0)
+    $pref = $message.GetPreferredSize((New-Object System.Drawing.Size($textW,0)))
+    $message.AutoSize = $false
+    $message.Location = New-Object System.Drawing.Point($textX,38)
+    $message.Size = New-Object System.Drawing.Size($textW,([Math]::Max(36,$pref.Height + 2)))
+    $dlg.Controls.Add($message)
+
+    $button = New-Object System.Windows.Forms.Button
+    $button.Text = $ButtonText
+    $button.Size = New-Object System.Drawing.Size(74,28)
+    $button.Location = New-Object System.Drawing.Point(($dlgW - $margin - 74),($message.Bottom + 12))
+    $button.DialogResult = [System.Windows.Forms.DialogResult]::OK
+    Style-FlatButton $button $true 7
+    $button.BackColor = $cAccent
+    $button.ForeColor = [System.Drawing.Color]::White
+    $button.FlatAppearance.BorderColor = $cAccent
+    $dlg.Controls.Add($button)
+    $dlg.AcceptButton = $button
+    $dlg.CancelButton = $button
+    $dlg.ClientSize = New-Object System.Drawing.Size($dlgW,($button.Bottom + 12))
+    $dlg.Add_Shown({ $button.Select() }.GetNewClosure())
+
+    [void]$dlg.ShowDialog($form)
+
+    if ($icon.Image) { $icon.Image.Dispose() }
+    $dlg.Dispose()
+}
+
+function Show-DeleteOriginalConfirmation($capability) {
+    $body = "The export was completed successfully. Do you want to overwrite and delete the original file? This cannot be undone."
+    if ($capability -and $capability.Class -eq 'BestEffortOverwrite') {
+        $body += "`r`n`r`nThis storage may retain inaccessible internal copies even after the file is overwritten and deleted."
+    }
+    $result = Show-CompactWarningDialog `
+        'Delete original file?' `
+        'Delete original file?' `
+        $body `
+        'Proceed' `
+        'No' `
+        $false `
+        '' `
+        $false `
+        $true
+    return [bool]$result.Accepted
+}
+
+function Show-DeleteOriginalCountdown {
+    $isDark = $script:isDarkMode
+    $cBg     = if ($isDark) { [System.Drawing.Color]::FromArgb(60,63,71) } else { [System.Drawing.Color]::FromArgb(223,238,245) }
+    $cText   = if ($isDark) { [System.Drawing.Color]::FromArgb(241,245,249) } else { [System.Drawing.Color]::FromArgb(18,27,42) }
+    $cMuted  = if ($isDark) { [System.Drawing.Color]::FromArgb(202,208,216) } else { [System.Drawing.Color]::FromArgb(78,91,110) }
+    $cButton = if ($isDark) { [System.Drawing.Color]::FromArgb(71,75,84) } else { [System.Drawing.Color]::FromArgb(240,248,251) }
+    $cBorder = if ($isDark) { [System.Drawing.Color]::FromArgb(100,105,117) } else { [System.Drawing.Color]::FromArgb(190,209,218) }
+
+    $dlg = New-Object System.Windows.Forms.Form
+    $dlg.Text = 'Deletion countdown'
+    $dlg.StartPosition = 'CenterParent'
+    $dlg.FormBorderStyle = 'FixedDialog'
+    $dlg.MaximizeBox = $false
+    $dlg.MinimizeBox = $false
+    $dlg.ShowInTaskbar = $false
+    $dlg.BackColor = $cBg
+    $dlg.ClientSize = New-Object System.Drawing.Size(390,190)
+    $dlg.AutoScaleMode = 'Dpi'
+
+    $label = New-Object System.Windows.Forms.Label
+    $label.Text = 'Deletion will begin in'
+    $label.Font = New-UIFont 9.2 ([System.Drawing.FontStyle]::Bold)
+    $label.ForeColor = $cText
+    $label.TextAlign = 'MiddleCenter'
+    $label.Location = New-Object System.Drawing.Point(20,18)
+    $label.Size = New-Object System.Drawing.Size(350,28)
+    $dlg.Controls.Add($label)
+
+    $countLabel = New-Object System.Windows.Forms.Label
+    $countLabel.Text = '5'
+    $countLabel.Font = New-UIFont 28 ([System.Drawing.FontStyle]::Bold)
+    $countLabel.ForeColor = $cText
+    $countLabel.TextAlign = 'MiddleCenter'
+    $countLabel.Location = New-Object System.Drawing.Point(20,48)
+    $countLabel.Size = New-Object System.Drawing.Size(350,66)
+    $dlg.Controls.Add($countLabel)
+
+    $note = New-Object System.Windows.Forms.Label
+    $note.Text = 'You can still cancel. No source data has been changed.'
+    $note.Font = New-UIFont 8.2
+    $note.ForeColor = $cMuted
+    $note.TextAlign = 'MiddleCenter'
+    $note.Location = New-Object System.Drawing.Point(20,112)
+    $note.Size = New-Object System.Drawing.Size(350,26)
+    $dlg.Controls.Add($note)
+
+    $cancel = New-Object System.Windows.Forms.Button
+    $cancel.Text = 'Cancel'
+    $cancel.Size = New-Object System.Drawing.Size(82,28)
+    $cancel.Location = New-Object System.Drawing.Point(154,148)
+    $cancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+    Style-FlatButton $cancel $false 7
+    $cancel.BackColor = $cButton
+    $cancel.ForeColor = $cText
+    $cancel.FlatAppearance.BorderColor = $cBorder
+    $dlg.Controls.Add($cancel)
+    $dlg.CancelButton = $cancel
+
+    # Keep countdown state on the Form itself rather than in an event-local
+    # PowerShell variable. Event-handler scopes can otherwise make the captured
+    # integer appear to reset on each Timer tick (5 -> 4 -> 4 -> 4...).
+    $dlg.Tag = 5
+    $timer = New-Object System.Windows.Forms.Timer
+    $timer.Interval = 1000
+    $timer.Add_Tick({
+        $next = ([int]$dlg.Tag) - 1
+        $dlg.Tag = $next
+        if ($next -le 0) {
+            $timer.Stop()
+            $dlg.DialogResult = [System.Windows.Forms.DialogResult]::OK
+            $dlg.Close()
+        }
+        else {
+            $countLabel.Text = [string]$next
+        }
+    }.GetNewClosure())
+    $dlg.Add_Shown({ $cancel.Select(); $timer.Start() }.GetNewClosure())
+
+    $result = $dlg.ShowDialog($form)
+    $timer.Stop()
+    $timer.Dispose()
+    $dlg.Dispose()
+    return ($result -eq [System.Windows.Forms.DialogResult]::OK)
+}
+
+function Show-DeleteOriginalProgressDialog {
+    $isDark = $script:isDarkMode
+    $cBg     = if ($isDark) { [System.Drawing.Color]::FromArgb(60,63,71) } else { [System.Drawing.Color]::FromArgb(223,238,245) }
+    $cText   = if ($isDark) { [System.Drawing.Color]::FromArgb(241,245,249) } else { [System.Drawing.Color]::FromArgb(18,27,42) }
+    $cMuted  = if ($isDark) { [System.Drawing.Color]::FromArgb(202,208,216) } else { [System.Drawing.Color]::FromArgb(78,91,110) }
+
+    $dlg = New-Object System.Windows.Forms.Form
+    $dlg.Text = 'Deleting original'
+    $dlg.StartPosition = 'CenterParent'
+    $dlg.FormBorderStyle = 'FixedDialog'
+    $dlg.MaximizeBox = $false
+    $dlg.MinimizeBox = $false
+    $dlg.ControlBox = $false
+    $dlg.ShowInTaskbar = $false
+    $dlg.BackColor = $cBg
+    $dlg.ClientSize = New-Object System.Drawing.Size(430,164)
+    $dlg.AutoScaleMode = 'Dpi'
+
+    $label = New-Object System.Windows.Forms.Label
+    $label.Text = 'Preparing deletion...'
+    $label.Font = New-UIFont 9.2 ([System.Drawing.FontStyle]::Bold)
+    $label.ForeColor = $cText
+    $label.TextAlign = 'MiddleCenter'
+    $label.Location = New-Object System.Drawing.Point(20,18)
+    $label.Size = New-Object System.Drawing.Size(390,30)
+    $dlg.Controls.Add($label)
+
+    $bar = New-Object System.Windows.Forms.ProgressBar
+    $bar.Minimum = 0
+    $bar.Maximum = 100
+    $bar.Value = 0
+    $bar.Style = 'Continuous'
+    $bar.Location = New-Object System.Drawing.Point(30,60)
+    $bar.Size = New-Object System.Drawing.Size(370,24)
+    $dlg.Controls.Add($bar)
+
+    $detail = New-Object System.Windows.Forms.Label
+    $detail.Text = 'This step cannot be cancelled once overwriting has started.'
+    $detail.Font = New-UIFont 8.2
+    $detail.ForeColor = $cMuted
+    $detail.TextAlign = 'MiddleCenter'
+    $detail.Location = New-Object System.Drawing.Point(20,96)
+    $detail.Size = New-Object System.Drawing.Size(390,40)
+    $dlg.Controls.Add($detail)
+
+    $state = [pscustomobject]@{
+        Form = $dlg
+        Label = $label
+        Progress = $bar
+        AllowClose = $false
+    }
+    $dlg.Add_FormClosing({
+        param($sender,$e)
+        if (-not $state.AllowClose) { $e.Cancel = $true }
+    }.GetNewClosure())
+
+    return $state
+}
+
+function Reset-LoadedSourceAfterDestructiveDeletion([string]$readyStatus) {
+    Stop-Playback
+
+    if ($previewImage) {
+        try { $previewImage.Dispose() } catch {}
+        $script:previewImage = $null
+    }
+
+    $script:ImageCrop=$null;$script:CropDraft=$null;$script:CropGesture=$null
+    $script:videoPath = $null
+    $script:isImageMode = $false
+    $script:sourceDisplayWidth = 0
+    $script:sourceDisplayHeight = 0
+    $script:videoWidth = 0
+    $script:videoHeight = 0
+    $script:videoDuration = 0.0
+    $script:fps = 0.0
+    $script:totalFrames = 0
+    $script:currentFrame = 0
+    $script:previewSeconds = 0.0
+    $script:loadedFrame = -1
+    $script:frameTimeline = $null
+    $script:sourceHasAudio = $false
+    $script:userRotation = 0
+    $chkAudio.Checked = $false
+
+    $lblFile.Text = 'No Video | Image Loaded'
+    $lblPosValue.Text = '00:00:00.000'
+    $lblFrameCount.Text = 'Frame 0 / 0'
+    $seekBar.Enabled = $false
+    $seekBar.Invalidate()
+    $btnPrevFrame.Enabled = $false
+    $btnNextFrame.Enabled = $false
+    $btnPlayPause.Enabled = $false
+    $script:appToolTip.SetToolTip($btnPlayPause, 'Play')
+    $btnOpen.Text = 'Open Video | Image'
+
+    Reset-ViewportState
+    Reset-RedactionState
+    Reset-SourceDeletionState
+    Apply-ModeLabels
+    Update-TransportButtonVisuals
+    Update-RedactionButtons
+    Update-PreviewCursor
+    if ($picture) { $picture.Invalidate() }
+    $status.Text = if ([string]::IsNullOrWhiteSpace($readyStatus)) { 'Ready.' } else { $readyStatus }
+}
+
+function Invoke-S1bDeleteOriginalFlow {
+    while ($true) {
+        $check = Revalidate-SourceDeletionRequest
+        if (-not $check.Ok) {
+            $chkDeleteOriginal.Checked = $false
+            $script:deleteOriginalRequested = $false
+            $script:sourceDeletionCapability = $check.Capability
+            Update-SourceDeletionUi
+            [System.Windows.Forms.MessageBox]::Show(
+                "Deletion could not begin. The original file was not changed.`r`n`r`n$($check.Error)",
+                'Original file unchanged', 'OK', 'Information') | Out-Null
+            return
+        }
+
+        if (-not (Show-DeleteOriginalConfirmation $check.Capability)) {
+            $chkDeleteOriginal.Checked = $false
+            $script:deleteOriginalRequested = $false
+            return
+        }
+
+        if (-not (Show-DeleteOriginalCountdown)) {
+            # Cancel remains fully non-destructive and returns to confirmation.
+            continue
+        }
+
+        # Last non-destructive gate, immediately before the helper opens the
+        # exact source for overwrite/delete and re-checks the handle identity.
+        $finalCheck = Revalidate-SourceDeletionRequest
+        if (-not $finalCheck.Ok) {
+            $chkDeleteOriginal.Checked = $false
+            $script:deleteOriginalRequested = $false
+            $script:sourceDeletionCapability = $finalCheck.Capability
+            Update-SourceDeletionUi
+            [System.Windows.Forms.MessageBox]::Show(
+                "Deletion could not begin. The original file was not changed.`r`n`r`n$($finalCheck.Error)",
+                'Original file unchanged', 'OK', 'Information') | Out-Null
+            return
+        }
+
+        $sourcePathForDeletion = [string]$videoPath
+        $identity = $finalCheck.Capability.Inspection
+        if (-not $identity -or -not $identity.Ok) {
+            $chkDeleteOriginal.Checked = $false
+            $script:deleteOriginalRequested = $false
+            [System.Windows.Forms.MessageBox]::Show(
+                'Deletion could not begin. The original file was not changed.',
+                'Original file unchanged', 'OK', 'Information') | Out-Null
+            return
+        }
+
+        $progressUi = Show-DeleteOriginalProgressDialog
+        $progressUi.Form.Show($form)
+        $progressUi.Form.BringToFront()
+        [System.Windows.Forms.Application]::DoEvents()
+
+        $progressScript = {
+            param([long]$done,[long]$total,[string]$phase)
+            try {
+                $pct = if ($total -gt 0) {
+                    [int][Math]::Max(0,[Math]::Min(100,[Math]::Round(([double]$done / [double]$total) * 100.0)))
+                } else { 100 }
+                $progressUi.Label.Text = if ([string]::IsNullOrWhiteSpace($phase)) { 'Deleting original...' } else { $phase }
+                if ($progressUi.Progress.Value -ne $pct) { $progressUi.Progress.Value = $pct }
+                [System.Windows.Forms.Application]::DoEvents()
+            } catch {}
+        }.GetNewClosure()
+        $progressCallback = [System.Action[System.Int64,System.Int64,System.String]]$progressScript
+
+        $execution = $null
+        try {
+            $form.Enabled = $false
+            $execution = [SourceDeletionDestructiveV1]::Execute(
+                $sourcePathForDeletion,
+                [uint64]$identity.VolumeSerialNumber,
+                [string]$identity.FileIdHex,
+                [long]$identity.FileLength,
+                $progressCallback)
+        }
+        catch {
+            $execution = [pscustomobject]@{
+                Started = $false
+                OverwriteVerified = $false
+                DeleteAttempted = $false
+                Deleted = $false
+                Error = $_.Exception.Message
+            }
+        }
+        finally {
+            $form.Enabled = $true
+            if ($progressUi -and $progressUi.Form) {
+                $progressUi.AllowClose = $true
+                try { $progressUi.Form.Close() } catch {}
+                try { $progressUi.Form.Dispose() } catch {}
+            }
+        }
+
+        $chkDeleteOriginal.Checked = $false
+        $script:deleteOriginalRequested = $false
+
+        if (-not $execution -or -not $execution.Started) {
+            # No destructive byte was written and delete was not attempted.
+            $message = 'Deletion could not begin. The original file was not changed.'
+            if ($execution -and -not [string]::IsNullOrWhiteSpace([string]$execution.Error)) {
+                $message += "`r`n`r`n$($execution.Error)"
+            }
+            $script:sourceDeletionCapability = Get-SourceDeletionCapability $sourcePathForDeletion
+            Update-SourceDeletionUi
+            [System.Windows.Forms.MessageBox]::Show(
+                $message, 'Original file unchanged', 'OK', 'Information') | Out-Null
+            return
+        }
+
+        if (-not $execution.OverwriteVerified) {
+            $message = 'Deletion could not complete. The original file may have been partially overwritten and may be unusable.'
+            if (-not [string]::IsNullOrWhiteSpace([string]$execution.Error)) {
+                $message += "`r`n`r`n$($execution.Error)"
+            }
+            [System.Windows.Forms.MessageBox]::Show(
+                $message, 'Deletion incomplete', 'OK', 'Error') | Out-Null
+            Reset-LoadedSourceAfterDestructiveDeletion 'Source deletion did not complete.'
+            return
+        }
+
+        if (-not $execution.Deleted) {
+            $message = 'The original file contents were overwritten and verified, but Windows could not remove the file.'
+            if (-not [string]::IsNullOrWhiteSpace([string]$execution.Error)) {
+                $message += "`r`n`r`n$($execution.Error)"
+            }
+            [System.Windows.Forms.MessageBox]::Show(
+                $message, 'Original file not removed', 'OK', 'Warning') | Out-Null
+            Reset-LoadedSourceAfterDestructiveDeletion 'Original contents were overwritten, but the file was not removed.'
+            return
+        }
+
+        $successMessage = if ($finalCheck.Capability.Class -eq 'BestEffortOverwrite') {
+            "The original file was overwritten, verified through Windows, and deleted.`r`n`r`nThis storage may retain inaccessible internal copies."
+        } else {
+            'The original file was overwritten, verified, and deleted.'
+        }
+        Show-CompactInformationDialog `
+            'Original file deleted' `
+            'Original file deleted' `
+            $successMessage
+        Reset-LoadedSourceAfterDestructiveDeletion 'Original file deleted. Ready.'
+        return
     }
 }
 
@@ -4090,9 +6224,28 @@ For maximum obscuration, use Black Box or Coloured Box.
 }
 
 
+# G2a-G2d managed policies may strengthen the existing network warnings into a hard
+# block. This dialog deliberately contains no source/destination path or filename.
+function Show-ManagedNetworkLocationBlock([ValidateSet("Source","Destination")][string]$kind) {
+    if ($kind -eq "Source") {
+        $messageText = "The configured managed policy does not allow media to be opened from UNC or mapped-network locations. Choose a file on local storage."
+    }
+    else {
+        $messageText = "The configured managed policy does not allow exports to UNC or mapped-network locations. Choose a local save location."
+    }
+
+    [System.Windows.Forms.MessageBox]::Show(
+        $messageText,
+        "Managed policy restriction",
+        "OK",
+        "Warning"
+    ) | Out-Null
+}
+
 # Network-backed paths are allowed, but require informed consent rather than a
-# hard block. The two warning classes have independent session suppression so
-# accepting a network source does not also suppress the later export warning.
+# hard block unless a validated managed policy explicitly strengthens that
+# source/destination decision. The two warning classes have independent session
+# suppression so accepting a network source does not also suppress export warnings.
 function Show-NetworkLocationWarning([ValidateSet("Source","Destination")][string]$kind) {
     if ($kind -eq "Source") {
         if ($script:suppressNetworkSourceWarning) { return $true }
@@ -4142,6 +6295,9 @@ function Show-NetworkLocationWarning([ValidateSet("Source","Destination")][strin
 # from this file's redaction-building code regardless of where the
 # controls it reads live.
 function Get-SelectedMode {
+    # G2d defence in depth: even if a disabled style control is manipulated
+    # programmatically, managed policy cannot create a new Blur/Pixelate redaction.
+    if ($script:ManagedPolicy -and $script:ManagedPolicy.DisableVisualObscuration) { return "Black box" }
     if ($rbModeBlack.Checked) { return "Black box" }
     if ($rbModePixelate.Checked) { return "Pixelate" }
     return "Blur"
@@ -4171,16 +6327,1231 @@ function Get-FFmpegColorHex([System.Drawing.Color]$c) {
     return "0x{0:X2}{1:X2}{2:X2}" -f $c.R, $c.G, $c.B
 }
 
-Add-Rule $right 0 184 325 | Out-Null
-Add-SectionTitle $right "Redactions" 0 198 330 | Out-Null
+$ruleAppearance = Add-Rule $right 0 184 325
+$lblAppearanceTitle = Add-SectionTitle $right "Appearance" 0 198 330
+
+# D1b: Fill and Outline are independent on still-image Rectangle/Oval/Freeform
+# shapes. Fill-off + Outline-on is annotation-only and is never presented as a
+# security redaction. Video keeps the proven v2.2 redaction-only behaviour.
+$chkFill = New-Object System.Windows.Forms.CheckBox
+$chkFill.Text = "Fill"
+$chkFill.Checked = $script:fillEnabled
+$chkFill.Location = New-Object System.Drawing.Point(0,228)
+$chkFill.Size = New-Object System.Drawing.Size(68,24)
+$chkFill.Font = New-UIFont 8.5
+$right.Controls.Add($chkFill)
+$script:appToolTip.SetToolTip($chkFill, "Apply the selected redaction/effect inside the shape")
+
+$chkOutline = New-Object System.Windows.Forms.CheckBox
+$chkOutline.Text = "Outline"
+$chkOutline.Checked = $script:outlineEnabled
+$chkOutline.Location = New-Object System.Drawing.Point(76,228)
+$chkOutline.Size = New-Object System.Drawing.Size(82,24)
+$chkOutline.Font = New-UIFont 8.5
+$right.Controls.Add($chkOutline)
+$script:appToolTip.SetToolTip($chkOutline, "Draw an annotation outline on top")
+
+$lblOutlineWidth = New-Object System.Windows.Forms.Label
+$lblOutlineWidth.Text = "Width"
+$lblOutlineWidth.Location = New-Object System.Drawing.Point(164,232)
+$lblOutlineWidth.Size = New-Object System.Drawing.Size(42,20)
+$lblOutlineWidth.Font = New-UIFont 8.0
+$lblOutlineWidth.Tag = "muted"
+$right.Controls.Add($lblOutlineWidth)
+
+$numOutlineWidth = New-Object System.Windows.Forms.NumericUpDown
+$numOutlineWidth.Minimum = 1
+$numOutlineWidth.Maximum = 20
+$numOutlineWidth.DecimalPlaces = 0
+$numOutlineWidth.Value = [decimal]$script:outlineWidth
+$numOutlineWidth.Location = New-Object System.Drawing.Point(208,228)
+$numOutlineWidth.Size = New-Object System.Drawing.Size(52,24)
+$numOutlineWidth.Font = New-UIFont 8.5
+$numOutlineWidth.Tag = "input"
+$right.Controls.Add($numOutlineWidth)
+$script:appToolTip.SetToolTip($numOutlineWidth, "Outline width in media pixels")
+
+$swatchOutlineColor = New-Object System.Windows.Forms.Panel
+$swatchOutlineColor.Location = New-Object System.Drawing.Point(272,228)
+$swatchOutlineColor.Size = New-Object System.Drawing.Size(32,24)
+$swatchOutlineColor.Cursor = [System.Windows.Forms.Cursors]::Hand
+$swatchOutlineColor.BackColor = $script:outlineColor
+$right.Controls.Add($swatchOutlineColor)
+$script:appToolTip.SetToolTip($swatchOutlineColor, "Annotation / outline colour")
+$swatchOutlineColor.Add_Paint({
+    param($sender,$e)
+    $borderColor = if ($script:fieldBorderColor) { $script:fieldBorderColor } else { [System.Drawing.Color]::Gray }
+    $pen = New-Object System.Drawing.Pen($borderColor, 1)
+    $rect = New-Object System.Drawing.Rectangle(0,0,($sender.Width-1),($sender.Height-1))
+    $e.Graphics.DrawRectangle($pen, $rect)
+    $pen.Dispose()
+})
+
+$lblOutlineDash = New-Object System.Windows.Forms.Label
+$lblOutlineDash.Text = "Line style"
+$lblOutlineDash.Location = New-Object System.Drawing.Point(0,258)
+$lblOutlineDash.Size = New-Object System.Drawing.Size(150,18)
+$lblOutlineDash.Font = New-UIFont 8.0
+$lblOutlineDash.Tag = "muted"
+$right.Controls.Add($lblOutlineDash)
+
+$cmbOutlineDash = New-Object System.Windows.Forms.ComboBox
+$cmbOutlineDash.DropDownStyle = "DropDownList"
+$cmbOutlineDash.Items.AddRange(@("Solid","Dash","Dot","Dash-Dot","Dash-Dot-Dot"))
+$cmbOutlineDash.SelectedIndex = 0
+$cmbOutlineDash.Location = New-Object System.Drawing.Point(0,276)
+$cmbOutlineDash.Size = New-Object System.Drawing.Size(150,26)
+$cmbOutlineDash.Font = New-UIFont 8.3
+$cmbOutlineDash.Tag = "input"
+$right.Controls.Add($cmbOutlineDash)
+
+$lblOutlineJoin = New-Object System.Windows.Forms.Label
+$lblOutlineJoin.Text = "Corners"
+$lblOutlineJoin.Location = New-Object System.Drawing.Point(174,258)
+$lblOutlineJoin.Size = New-Object System.Drawing.Size(150,18)
+$lblOutlineJoin.Font = New-UIFont 8.0
+$lblOutlineJoin.Tag = "muted"
+$right.Controls.Add($lblOutlineJoin)
+
+$cmbOutlineJoin = New-Object System.Windows.Forms.ComboBox
+$cmbOutlineJoin.DropDownStyle = "DropDownList"
+$cmbOutlineJoin.Location = New-Object System.Drawing.Point(174,276)
+$cmbOutlineJoin.Size = New-Object System.Drawing.Size(150,26)
+$cmbOutlineJoin.Font = New-UIFont 8.3
+$cmbOutlineJoin.Tag = "input"
+$right.Controls.Add($cmbOutlineJoin)
+
+$lblAppearanceStatus = New-Object System.Windows.Forms.Label
+$lblAppearanceStatus.Location = New-Object System.Drawing.Point(0,307)
+$lblAppearanceStatus.Size = New-Object System.Drawing.Size(325,40)
+$lblAppearanceStatus.Font = New-UIFont 8.2
+$lblAppearanceStatus.Tag = "muted"
+$right.Controls.Add($lblAppearanceStatus)
+
+$lblDrawEnds = New-Object System.Windows.Forms.Label
+$lblDrawEnds.Text = "Ends"
+$lblDrawEnds.Location = New-Object System.Drawing.Point(0,307)
+$lblDrawEnds.Size = New-Object System.Drawing.Size(150,18)
+$lblDrawEnds.Font = New-UIFont 8.0
+$lblDrawEnds.Tag = "muted"
+$lblDrawEnds.Visible = $false
+$right.Controls.Add($lblDrawEnds)
+
+$cmbDrawEnds = New-Object System.Windows.Forms.ComboBox
+$cmbDrawEnds.DropDownStyle = "DropDownList"
+$cmbDrawEnds.Items.AddRange(@("None","Arrow at end","Arrow at start","Arrows both ends"))
+$cmbDrawEnds.SelectedIndex = 0
+$cmbDrawEnds.Location = New-Object System.Drawing.Point(0,325)
+$cmbDrawEnds.Size = New-Object System.Drawing.Size(130,26)
+$cmbDrawEnds.Font = New-UIFont 8.3
+$cmbDrawEnds.Tag = "input"
+$cmbDrawEnds.Visible = $false
+$right.Controls.Add($cmbDrawEnds)
+
+# D4a explicit pre-commit confirmation for Line/Polyline. Keeping these in
+# Appearance (rather than Redaction Area) preserves the visual separation
+# between security redactions and annotation-only drawing objects.
+$btnAddDraw = New-Object System.Windows.Forms.Button
+$btnAddDraw.Text = "Create Annotation"
+$btnAddDraw.Location = New-Object System.Drawing.Point(141,325)
+$btnAddDraw.Size = New-Object System.Drawing.Size(131,26)
+$btnAddDraw.Visible = $false
+Style-FlatButton $btnAddDraw $true
+$right.Controls.Add($btnAddDraw)
+
+$btnCancelDraw = New-Object System.Windows.Forms.Button
+$btnCancelDraw.Text = "Cancel"
+$btnCancelDraw.Location = New-Object System.Drawing.Point(280,325)
+$btnCancelDraw.Size = New-Object System.Drawing.Size(45,26)
+$btnCancelDraw.Font = New-UIFont 7.4
+$btnCancelDraw.Visible = $false
+Style-FlatButton $btnCancelDraw
+$right.Controls.Add($btnCancelDraw)
+
+# D3 Text Box editor. It is context-sensitive and appears only while Text is
+# selected; line/shape appearance controls remain untouched for their tools.
+$textAppearancePanel = New-Object System.Windows.Forms.Panel
+$textAppearancePanel.Location = New-Object System.Drawing.Point(0,446)
+$textAppearancePanel.Size = New-Object System.Drawing.Size(325,200)
+$textAppearancePanel.Visible = $false
+$textAppearancePanel.Tag = "panel"
+$right.Controls.Add($textAppearancePanel)
+
+$lblTextContent = New-Object System.Windows.Forms.Label
+$lblTextContent.Text = "Text"
+$lblTextContent.Location = New-Object System.Drawing.Point(0,0)
+$lblTextContent.Size = New-Object System.Drawing.Size(50,18)
+$lblTextContent.Font = New-UIFont 8.0
+$lblTextContent.Tag = "muted"
+$textAppearancePanel.Controls.Add($lblTextContent)
+
+$txtAnnotationText = New-Object System.Windows.Forms.TextBox
+$txtAnnotationText.Multiline = $true
+$txtAnnotationText.AcceptsReturn = $true
+$txtAnnotationText.ScrollBars = "Vertical"
+$txtAnnotationText.Location = New-Object System.Drawing.Point(0,18)
+$txtAnnotationText.Size = New-Object System.Drawing.Size(325,54)
+$txtAnnotationText.Font = New-UIFont 8.5
+$txtAnnotationText.Tag = "input"
+$textAppearancePanel.Controls.Add($txtAnnotationText)
+
+$lblTextFont = New-Object System.Windows.Forms.Label
+$lblTextFont.Text = "Font"
+$lblTextFont.Location = New-Object System.Drawing.Point(0,78)
+$lblTextFont.Size = New-Object System.Drawing.Size(150,18)
+$lblTextFont.Font = New-UIFont 8.0
+$lblTextFont.Tag = "muted"
+$textAppearancePanel.Controls.Add($lblTextFont)
+
+$lblTextSize = New-Object System.Windows.Forms.Label
+$lblTextSize.Text = "Size (px)"
+$lblTextSize.Location = New-Object System.Drawing.Point(218,78)
+$lblTextSize.Size = New-Object System.Drawing.Size(70,18)
+$lblTextSize.Font = New-UIFont 8.0
+$lblTextSize.Tag = "muted"
+$textAppearancePanel.Controls.Add($lblTextSize)
+
+$cmbTextFont = New-Object System.Windows.Forms.ComboBox
+$cmbTextFont.DropDownStyle = "DropDownList"
+$cmbTextFont.Location = New-Object System.Drawing.Point(0,96)
+$cmbTextFont.Size = New-Object System.Drawing.Size(208,26)
+$cmbTextFont.Font = New-UIFont 8.3
+$cmbTextFont.Tag = "input"
+$textAppearancePanel.Controls.Add($cmbTextFont)
+
+try {
+    $installedFonts = New-Object System.Drawing.Text.InstalledFontCollection
+    $fontNames = @($installedFonts.Families | ForEach-Object { $_.Name } | Sort-Object -Unique)
+    foreach ($fontName in $fontNames) { [void]$cmbTextFont.Items.Add($fontName) }
+    $installedFonts.Dispose()
+}
+catch {
+    [void]$cmbTextFont.Items.Add("Segoe UI")
+}
+if ($cmbTextFont.Items.Count -eq 0) { [void]$cmbTextFont.Items.Add("Segoe UI") }
+$fontIdx = $cmbTextFont.Items.IndexOf($script:textFontFamily)
+if ($fontIdx -lt 0) { $fontIdx = 0; $script:textFontFamily = [string]$cmbTextFont.Items[0] }
+$cmbTextFont.SelectedIndex = $fontIdx
+
+$numTextSize = New-Object System.Windows.Forms.NumericUpDown
+$numTextSize.Minimum = 6
+$numTextSize.Maximum = 200
+$numTextSize.DecimalPlaces = 0
+$numTextSize.Value = [decimal]$script:textFontSizePx
+$numTextSize.Location = New-Object System.Drawing.Point(218,96)
+$numTextSize.Size = New-Object System.Drawing.Size(62,24)
+$numTextSize.Font = New-UIFont 8.5
+$numTextSize.Tag = "input"
+$textAppearancePanel.Controls.Add($numTextSize)
+
+$swatchTextColor = New-Object System.Windows.Forms.Panel
+$swatchTextColor.Location = New-Object System.Drawing.Point(290,96)
+$swatchTextColor.Size = New-Object System.Drawing.Size(32,24)
+$swatchTextColor.Cursor = [System.Windows.Forms.Cursors]::Hand
+$swatchTextColor.BackColor = $script:textColor
+$textAppearancePanel.Controls.Add($swatchTextColor)
+$script:appToolTip.SetToolTip($swatchTextColor, "Text colour")
+$swatchTextColor.Add_Paint({
+    param($sender,$e)
+    $borderColor = if ($script:fieldBorderColor) { $script:fieldBorderColor } else { [System.Drawing.Color]::Gray }
+    $pen = New-Object System.Drawing.Pen($borderColor, 1)
+    $rect = New-Object System.Drawing.Rectangle(0,0,($sender.Width-1),($sender.Height-1))
+    $e.Graphics.DrawRectangle($pen, $rect)
+    $pen.Dispose()
+})
+
+$chkTextBold = New-Object System.Windows.Forms.CheckBox
+$chkTextBold.Appearance = "Button"
+$chkTextBold.FlatStyle = "Flat"
+$chkTextBold.Text = "B"
+$chkTextBold.TextAlign = "MiddleCenter"
+$chkTextBold.Location = New-Object System.Drawing.Point(0,130)
+$chkTextBold.Size = New-Object System.Drawing.Size(34,28)
+$chkTextBold.Font = New-UIFont 9.0 ([System.Drawing.FontStyle]::Bold)
+$chkTextBold.Tag = "choice"
+Enable-RoundedPaint $chkTextBold 8
+$textAppearancePanel.Controls.Add($chkTextBold)
+
+$chkTextItalic = New-Object System.Windows.Forms.CheckBox
+$chkTextItalic.Appearance = "Button"
+$chkTextItalic.FlatStyle = "Flat"
+$chkTextItalic.Text = "I"
+$chkTextItalic.TextAlign = "MiddleCenter"
+$chkTextItalic.Location = New-Object System.Drawing.Point(40,130)
+$chkTextItalic.Size = New-Object System.Drawing.Size(34,28)
+$chkTextItalic.Font = New-UIFont 9.0 ([System.Drawing.FontStyle]::Italic)
+$chkTextItalic.Tag = "choice"
+Enable-RoundedPaint $chkTextItalic 8
+$textAppearancePanel.Controls.Add($chkTextItalic)
+
+$cmbTextAlign = New-Object System.Windows.Forms.ComboBox
+$cmbTextAlign.DropDownStyle = "DropDownList"
+$cmbTextAlign.Items.AddRange(@("Left","Centre","Right"))
+$cmbTextAlign.SelectedIndex = 0
+$cmbTextAlign.Location = New-Object System.Drawing.Point(84,130)
+$cmbTextAlign.Size = New-Object System.Drawing.Size(55,28)
+$cmbTextAlign.Font = New-UIFont 8.3
+$cmbTextAlign.Tag = "input"
+$textAppearancePanel.Controls.Add($cmbTextAlign)
+
+$btnAddText = New-Object System.Windows.Forms.Button
+$btnAddText.Text = "Create Annotation"
+$btnAddText.Location = New-Object System.Drawing.Point(145,130)
+$btnAddText.Size = New-Object System.Drawing.Size(131,28)
+Style-FlatButton $btnAddText $true
+$textAppearancePanel.Controls.Add($btnAddText)
+
+$btnCancelText = New-Object System.Windows.Forms.Button
+$btnCancelText.Text = "Cancel"
+$btnCancelText.Location = New-Object System.Drawing.Point(282,130)
+$btnCancelText.Size = New-Object System.Drawing.Size(43,28)
+$btnCancelText.Font = New-UIFont 7.4
+Style-FlatButton $btnCancelText
+$textAppearancePanel.Controls.Add($btnCancelText)
+
+$lblTextStatus = New-Object System.Windows.Forms.Label
+$lblTextStatus.Text = "Drag a text box on the preview first."
+$lblTextStatus.Location = New-Object System.Drawing.Point(0,162)
+$lblTextStatus.Size = New-Object System.Drawing.Size(325,36)
+$lblTextStatus.Font = New-UIFont 8.2
+$lblTextStatus.Tag = "muted"
+$textAppearancePanel.Controls.Add($lblTextStatus)
+
+# D5c-r2: compact floating Text editor hosted by the preview itself. Styling
+# remains in the existing Appearance panel; this control is deliberately only
+# a convenient, live multiline text-entry surface next to the annotation.
+$floatingTextEditor = New-Object System.Windows.Forms.Panel
+$floatingTextEditor.Size = New-Object System.Drawing.Size(548,124)
+$floatingTextEditor.Visible = $false
+$floatingTextEditor.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+$floatingTextEditor.Tag = "floatingtexteditor"
+$picture.Controls.Add($floatingTextEditor)
+
+$lblFloatingTextEditor = New-Object System.Windows.Forms.Label
+$lblFloatingTextEditor.Text = "Tips: Enter for multi-line text. Ctrl+Enter or click outside to close. Create Annotation to commit."
+$lblFloatingTextEditor.Location = New-Object System.Drawing.Point(2,103)
+$lblFloatingTextEditor.Size = New-Object System.Drawing.Size(540,18)
+$lblFloatingTextEditor.Font = New-UIFont 7.8
+$lblFloatingTextEditor.Tag = "muted"
+$floatingTextEditor.Controls.Add($lblFloatingTextEditor)
+
+$txtFloatingAnnotationText = New-Object System.Windows.Forms.TextBox
+$txtFloatingAnnotationText.Multiline = $true
+$txtFloatingAnnotationText.AcceptsReturn = $true
+$txtFloatingAnnotationText.ScrollBars = "Vertical"
+$txtFloatingAnnotationText.Location = New-Object System.Drawing.Point(2,45)
+$txtFloatingAnnotationText.Size = New-Object System.Drawing.Size(540,58)
+$txtFloatingAnnotationText.Font = New-UIFont 9.0
+$txtFloatingAnnotationText.Tag = "input"
+$floatingTextEditor.Controls.Add($txtFloatingAnnotationText)
+
+# D5c-r2: viewport-only controls mirror the accepted Appearance controls.
+$floatingTextTools = New-Object System.Windows.Forms.Panel
+$floatingTextTools.SetBounds(2,18,510,26)
+$floatingTextEditor.Controls.Add($floatingTextTools)
+$floatingDrawTools = New-Object System.Windows.Forms.Panel
+$floatingDrawTools.SetBounds(38,18,474,26)
+$floatingTextEditor.Controls.Add($floatingDrawTools)
+$floatingAnnotationColor = New-Object System.Windows.Forms.Button
+$floatingAnnotationColor.SetBounds(4,20,24,22)
+$floatingTextEditor.Controls.Add($floatingAnnotationColor)
+$floatingAnnotationColor.Add_Click({
+    $script:floatingAnnotationColorDialog = $true
+    try {
+        $target = if ($txtFloatingAnnotationText.Visible) { $swatchTextColor } else { $swatchOutlineColor }
+        # Raise the established swatch Click handler; it owns color validation.
+        $clickMethod = [System.Windows.Forms.Control].GetMethod('OnClick',[System.Reflection.BindingFlags]'Instance,NonPublic')
+        $clickMethod.Invoke($target,@([System.EventArgs]::Empty)) | Out-Null
+        $floatingAnnotationColor.BackColor = $target.BackColor
+    } finally { $script:floatingAnnotationColorDialog = $false }
+})
+$floatingClose = New-Object System.Windows.Forms.Button
+$floatingClose.Text = '×'
+$floatingClose.SetBounds(523,0,22,19)
+$floatingClose.FlatStyle = 'Flat'
+$floatingClose.FlatAppearance.BorderSize = 0
+$floatingClose.Add_Click({ Close-FloatingTextEditor $false })
+$floatingTextEditor.Controls.Add($floatingClose)
+$floatingTitle = New-Object System.Windows.Forms.Label
+$floatingTitle.Text = 'Text'
+$floatingTitle.SetBounds(262,0,110,18)
+$floatingTextEditor.Controls.Add($floatingTitle)
+
+function New-FloatingCombo($hostPanel,$backing,$x,$width) {
+    $mirror = New-Object System.Windows.Forms.ComboBox
+    $mirror.DropDownStyle = 'DropDownList'
+    $mirror.SetBounds($x,2,$width,24)
+    foreach ($item in $backing.Items) { [void]$mirror.Items.Add($item) }
+    $mirror.SelectedIndex = $backing.SelectedIndex
+    $hostPanel.Controls.Add($mirror)
+    $mirror.Add_SelectedIndexChanged({
+        if (-not $script:syncingFloatingToolbar) { $backing.SelectedIndex = $mirror.SelectedIndex }
+    }.GetNewClosure())
+    $backing.Add_SelectedIndexChanged({
+        $script:syncingFloatingToolbar = $true
+        try {
+            if ($mirror.Items.Count -ne $backing.Items.Count -or (($mirror.Items -join '|') -ne ($backing.Items -join '|'))) {
+                $mirror.Items.Clear()
+                foreach ($item in $backing.Items) { [void]$mirror.Items.Add($item) }
+            }
+            $mirror.SelectedIndex = $backing.SelectedIndex
+        } finally { $script:syncingFloatingToolbar = $false }
+    }.GetNewClosure())
+    return $mirror
+}
+function New-FloatingNumber($hostPanel,$backing,$x,$width) {
+    $mirror = New-Object System.Windows.Forms.NumericUpDown
+    $mirror.Minimum = $backing.Minimum; $mirror.Maximum = $backing.Maximum
+    $mirror.DecimalPlaces = $backing.DecimalPlaces; $mirror.Increment = $backing.Increment
+    $mirror.Value = $backing.Value
+    $mirror.SetBounds($x,2,$width,24)
+    $hostPanel.Controls.Add($mirror)
+    $mirror.Add_ValueChanged({ if (-not $script:syncingFloatingToolbar) { $backing.Value = $mirror.Value } }.GetNewClosure())
+    $backing.Add_ValueChanged({
+        $script:syncingFloatingToolbar = $true
+        try { $mirror.Value = $backing.Value } finally { $script:syncingFloatingToolbar = $false }
+    }.GetNewClosure())
+    return $mirror
+}
+$floatingFont = New-FloatingCombo $floatingTextTools $cmbTextFont 36 205
+$floatingSize = New-FloatingNumber $floatingTextTools $numTextSize 246 62
+foreach ($spec in @(@($chkTextBold,'B',316),@($chkTextItalic,'I',345))) {
+    $backing=$spec[0]
+    $mirror=New-Object System.Windows.Forms.CheckBox
+    $mirror.Appearance='Button'; $mirror.Text=$spec[1]; $mirror.TextAlign='MiddleCenter'
+    $mirror.Font=$backing.Font
+    $mirror.SetBounds($spec[2],2,26,24)
+    $floatingTextTools.Controls.Add($mirror)
+    $mirror.Add_CheckedChanged({ if (-not $script:syncingFloatingToolbar) { $backing.Checked=$mirror.Checked } }.GetNewClosure())
+    $backing.Add_CheckedChanged({
+        $script:syncingFloatingToolbar=$true
+        try { $mirror.Checked=$backing.Checked } finally { $script:syncingFloatingToolbar=$false }
+    }.GetNewClosure())
+}
+$script:floatingAlignButtons=@()
+foreach ($spec in @(@('≡',0,385),@('≡',1,414),@('≡',2,443))) {
+    $alignment=[int]$spec[1]
+    $button=New-Object System.Windows.Forms.CheckBox
+    $button.Appearance='Button'; $button.Text=$spec[0]
+    $button.TextAlign=@('MiddleLeft','MiddleCenter','MiddleRight')[$alignment]
+    $button.SetBounds($spec[2],2,26,24)
+    $floatingTextTools.Controls.Add($button)
+    $script:floatingAlignButtons += $button
+    $button.Add_Click({ $cmbTextAlign.SelectedIndex=$alignment }.GetNewClosure())
+}
+$cmbTextAlign.Add_SelectedIndexChanged({
+    for($i=0;$i -lt 3;$i++) { $script:floatingAlignButtons[$i].Checked=($i -eq $cmbTextAlign.SelectedIndex) }
+})
+$floatingWidth = New-FloatingNumber $floatingDrawTools $numOutlineWidth 0 58
+$floatingDash = New-FloatingCombo $floatingDrawTools $cmbOutlineDash 66 113
+$floatingEnds = New-FloatingCombo $floatingDrawTools $cmbDrawEnds 187 145
+$floatingJoin = New-FloatingCombo $floatingDrawTools $cmbOutlineJoin 340 125
+$script:appToolTip.SetToolTip($floatingWidth,'Line width')
+$script:appToolTip.SetToolTip($floatingDash,'Line dash')
+$script:appToolTip.SetToolTip($floatingEnds,'Arrow endpoints')
+$script:appToolTip.SetToolTip($floatingJoin,'Polyline join')
+
+function Set-FloatingAnnotationToolbar([string]$kind) {
+    $isText = $kind -eq 'Text'
+    $floatingTitle.Text=$kind
+    $txtFloatingAnnotationText.Visible=$isText
+    $floatingTextTools.Visible=$isText; $floatingDrawTools.Visible=-not $isText
+    $floatingJoin.Visible=$kind -eq 'Polyline'
+    $floatingAnnotationColor.BackColor=if($isText) { $swatchTextColor.BackColor } else { $swatchOutlineColor.BackColor }
+    $floatingTextEditor.Height=if($isText) {124} else {68}
+    $lblFloatingTextEditor.Top=if($isText) {103} else {46}
+    $lblFloatingTextEditor.Text=if($isText) {'Tips: Enter for multi-line text. Ctrl+Enter or click outside to close. Create Annotation to commit.'} else {'Click outside to close. Double-click to reopen. Create Annotation to commit.'}
+    for($i=0;$i -lt 3;$i++) { $script:floatingAlignButtons[$i].Checked=($i -eq $cmbTextAlign.SelectedIndex) }
+}
+
+# Observe mouse clicks throughout the application's message loop. Never swallow
+# the click: Create/Begin/End retain their original event and timing semantics.
+Add-Type -ReferencedAssemblies System.Windows.Forms,System.Drawing -TypeDefinition @'
+using System;
+using System.Windows.Forms;
+using System.Runtime.InteropServices;
+public sealed class TRTAnnotationOutsideClickFilter : IMessageFilter {
+    [StructLayout(LayoutKind.Sequential)] private struct RECT { public int L,T,R,B; }
+    [StructLayout(LayoutKind.Sequential)] private struct COMBOBOXINFO {
+        public int Size; public RECT Item, Button; public int State;
+        public IntPtr Combo, Edit, List;
+    }
+    [DllImport("user32.dll")] private static extern bool GetComboBoxInfo(IntPtr handle, ref COMBOBOXINFO info);
+    private bool IsEditorPopup(Control parent, IntPtr handle) {
+        foreach (Control child in parent.Controls) {
+            ComboBox combo = child as ComboBox;
+            if (combo != null && combo.IsHandleCreated) {
+                COMBOBOXINFO info = new COMBOBOXINFO();
+                info.Size = Marshal.SizeOf(typeof(COMBOBOXINFO));
+                if (GetComboBoxInfo(combo.Handle, ref info) && info.List == handle) return true;
+            }
+            if (IsEditorPopup(child, handle)) return true;
+        }
+        return false;
+    }
+    public event EventHandler OutsideClick;
+    public Control Editor;
+    public bool PreFilterMessage(ref Message m) {
+        if (Editor == null || !Editor.Visible) return false;
+        if (m.Msg == 0x201 || m.Msg == 0x204 || m.Msg == 0x207 ||
+            m.Msg == 0x20B || m.Msg == 0xA1 || m.Msg == 0xA4 || m.Msg == 0xA7) {
+            Control c = Control.FromChildHandle(m.HWnd);
+            if (c != Editor && (c == null || !Editor.Contains(c)) && !IsEditorPopup(Editor, m.HWnd)) {
+                if (OutsideClick != null) OutsideClick(this, EventArgs.Empty);
+            }
+        }
+        return false;
+    }
+}
+'@
+$script:floatingOutsideFilter=New-Object TRTAnnotationOutsideClickFilter
+$script:floatingOutsideFilter.Editor=$floatingTextEditor
+$script:floatingOutsideFilter.Add_OutsideClick({
+    if ($script:floatingAnnotationColorDialog) { return }
+    $script:suppressFloatingOutsidePreviewClick = $picture.RectangleToScreen($picture.ClientRectangle).Contains([System.Windows.Forms.Cursor]::Position)
+    Close-FloatingTextEditor $false
+})
+[System.Windows.Forms.Application]::AddMessageFilter($script:floatingOutsideFilter)
+$form.Add_Deactivate({
+    if ($script:floatingTextEditorVisible -and -not $script:floatingAnnotationColorDialog) { Close-FloatingTextEditor $false }
+})
+$form.Add_FormClosed({ [System.Windows.Forms.Application]::RemoveMessageFilter($script:floatingOutsideFilter) })
+
+function Register-FloatingAnnotationKeys($control) {
+    if ($control -ne $txtFloatingAnnotationText) {
+        $control.Add_KeyDown({
+            param($sender,$e)
+            if ($e.Control -and $e.KeyCode -eq [System.Windows.Forms.Keys]::Enter) {
+                Close-FloatingTextEditor $false
+                $e.Handled=$true; $e.SuppressKeyPress=$true
+            }
+        })
+    }
+    foreach($child in $control.Controls) { Register-FloatingAnnotationKeys $child }
+}
+Register-FloatingAnnotationKeys $floatingTextEditor
+
+
+function Get-FloatingTextEditorMediaRect {
+    if (-not $script:floatingTextEditorVisible) { return $null }
+    if ($script:floatingTextEditorMode -eq "Draft") {
+        if ($toolMode -eq "Text" -and $script:textDraftActive) { return $script:textDraftRect }
+        if ($toolMode -eq "Line" -and $script:lineDraftActive) {
+            return Get-AnnotationMediaBounds (New-LineDrawingAnnotation $script:lineStart $script:lineEnd $script:outlineColor $script:outlineWidth $script:outlineDashStyle $script:drawEndpointStyle -1)
+        }
+        if ($toolMode -eq "Polyline" -and $script:polylineDraftActive) {
+            return Get-AnnotationMediaBounds (New-PolylineDrawingAnnotation $script:polylinePoints $script:outlineColor $script:outlineWidth $script:outlineDashStyle $script:drawPolylineJoinStyle $script:drawEndpointStyle -1)
+        }
+        return $null
+    }
+    if ($script:floatingTextEditorMode -eq "Committed") {
+        $idx = [int]$script:floatingTextEditorTargetIndex
+        if ($idx -ge 0 -and $idx -lt $annotations.Count) {
+            $a = $annotations[$idx]
+            if ($a -and $a.Kind -in @("Text","Line","Polyline")) { return Get-AnnotationMediaBounds $a }
+        }
+    }
+    return $null
+}
+
+function Update-FloatingTextEditorPosition {
+    if (-not $floatingTextEditor -or -not $script:floatingTextEditorVisible -or -not $floatingTextEditor.Visible) { return }
+    $mediaRect = Get-FloatingTextEditorMediaRect
+    if (-not $mediaRect) { $floatingTextEditor.Visible = $false; $script:floatingTextEditorVisible = $false; return }
+    $viewRect = MediaRect-To-ViewRect $mediaRect
+    if (-not $viewRect) { return }
+
+    $margin = 8
+    $w = [int]$floatingTextEditor.Width
+    $h = [int]$floatingTextEditor.Height
+    $x = [int][Math]::Round([double]$viewRect.X + (([double]$viewRect.Width - $w) / 2.0))
+    $yBelow = [int][Math]::Round([double]$viewRect.Bottom + $margin)
+    $yAbove = [int][Math]::Round([double]$viewRect.Top - $h - $margin)
+    $y = if (($yBelow + $h) -le ($picture.ClientSize.Height - $margin)) { $yBelow } else { $yAbove }
+    $x = [Math]::Max($margin,[Math]::Min($x,[Math]::Max($margin,$picture.ClientSize.Width - $w - $margin)))
+    $y = [Math]::Max($margin,[Math]::Min($y,[Math]::Max($margin,$picture.ClientSize.Height - $h - $margin)))
+    $newLocation = New-Object System.Drawing.Point($x,$y)
+    if ($floatingTextEditor.Location -ne $newLocation) { $floatingTextEditor.Location = $newLocation }
+}
+
+function Set-FloatingTextEditorText([string]$value) {
+    if (-not $txtFloatingAnnotationText) { return }
+    $script:syncingFloatingTextEditor = $true
+    try { $txtFloatingAnnotationText.Text = if ($null -eq $value) { "" } else { [string]$value } }
+    finally { $script:syncingFloatingTextEditor = $false }
+}
+
+function Show-FloatingTextEditor([string]$mode = "Draft") {
+    if (-not $floatingTextEditor -or -not $txtFloatingAnnotationText) { return $false }
+    $value = ""
+    $targetIndex = -1
+    if ($mode -eq "Committed") {
+        $a = Get-SelectedAppearanceAnnotation
+        if (-not $a -or $a.Kind -notin @("Text","Line","Polyline")) { return $false }
+        $targetIndex = [int]$script:selectedAnnotationIndex
+        $value = [string]$a.Text
+    }
+    else {
+        if (-not (($toolMode -eq "Text" -and $script:textDraftActive) -or ($toolMode -eq "Line" -and $script:lineDraftActive) -or ($toolMode -eq "Polyline" -and $script:polylineDraftActive))) { return $false }
+        $mode = "Draft"
+        $value = [string]$txtAnnotationText.Text
+    }
+
+    $kind = if ($mode -eq "Committed") { [string]$a.Kind } else { [string]$toolMode }
+    Set-FloatingAnnotationToolbar $kind
+    $script:floatingTextEditorMode = $mode
+    $script:floatingTextEditorTargetIndex = $targetIndex
+    $script:floatingTextEditorOriginalText = $value
+    $script:floatingTextEditorVisible = $true
+    Set-FloatingTextEditorText $value
+    $floatingTextEditor.Visible = $true
+    Update-FloatingTextEditorPosition
+    $floatingTextEditor.BringToFront()
+    if ($kind -eq "Text") { $txtFloatingAnnotationText.Focus() } else { $floatingAnnotationColor.Focus() }
+    $txtFloatingAnnotationText.SelectionStart = $txtFloatingAnnotationText.TextLength
+    $txtFloatingAnnotationText.SelectionLength = 0
+    return $true
+}
+
+function Close-FloatingTextEditor([bool]$cancel = $false) {
+    if (-not $floatingTextEditor) { return }
+    $mode = [string]$script:floatingTextEditorMode
+    $idx = [int]$script:floatingTextEditorTargetIndex
+    $original = [string]$script:floatingTextEditorOriginalText
+
+    if ($mode -eq "Committed" -and $idx -ge 0 -and $idx -lt $annotations.Count) {
+        $a = $annotations[$idx]
+        if ($a -and $a.Kind -eq "Text") {
+            if ($cancel) { $a.Text = $original }
+            # Empty committed input is never stored. On a normal close, restore
+            # the editor UI to the annotation's last valid live value; Escape
+            # instead restores the value that existed when editing began.
+            if ($script:selectedAnnotationIndex -eq $idx -and ($cancel -or [string]::IsNullOrWhiteSpace($txtFloatingAnnotationText.Text))) {
+                $oldSync = $script:syncingAnnotationAppearance
+                $script:syncingAnnotationAppearance = $true
+                try { $txtAnnotationText.Text = [string]$a.Text } finally { $script:syncingAnnotationAppearance = $oldSync }
+            }
+        }
+    }
+
+    $floatingTextEditor.Visible = $false
+    $script:floatingTextEditorVisible = $false
+    $script:floatingTextEditorMode = "None"
+    $script:floatingTextEditorTargetIndex = -1
+    $script:floatingTextEditorOriginalText = ""
+    if ($picture) { $picture.Invalidate() }
+}
+
+function Get-SelectedDrawEndpointStyle {
+    switch ([string]$cmbDrawEnds.SelectedItem) {
+        "Arrow at end"       { return "ArrowEnd" }
+        "Arrow at start"     { return "ArrowStart" }
+        "Arrows both ends"   { return "ArrowBoth" }
+        default                { return "None" }
+    }
+}
+
+function Get-SelectedOutlineDashStyle {
+    switch ([string]$cmbOutlineDash.SelectedItem) {
+        "Dash"         { return "Dash" }
+        "Dot"          { return "Dot" }
+        "Dash-Dot"     { return "DashDot" }
+        "Dash-Dot-Dot" { return "DashDotDot" }
+        default          { return "Solid" }
+    }
+}
+
+function Get-SelectedAppearanceAnnotation {
+    if (-not $annotations) { return $null }
+    $idx = [int]$script:selectedAnnotationIndex
+    if ($idx -lt 0 -or $idx -ge $annotations.Count) { return $null }
+    return $annotations[$idx]
+}
+
+function Set-OutlineJoinChoices {
+    if (-not $cmbOutlineJoin) { return }
+    $a = Get-SelectedAppearanceAnnotation
+    $context = if ($a) {
+        if ($a.Kind -eq "ShapeOutline") { [string]$a.Shape } else { [string]$a.Kind }
+    } else { [string]$toolMode }
+
+    $oldSync = $script:syncingAnnotationAppearance
+    $script:syncingAnnotationAppearance = $true
+    try {
+        $cmbOutlineJoin.Items.Clear()
+        if ($context -eq "Polygon" -or $context -eq "Polyline") {
+            $lblOutlineJoin.Text = "Joins"
+            $cmbOutlineJoin.Items.AddRange(@("Miter","Round"))
+            $want = if ($a) { [string]$a.JoinStyle } elseif ($context -eq "Polyline") { $script:drawPolylineJoinStyle } else { $script:outlinePolygonJoinStyle }
+            $idx = $cmbOutlineJoin.Items.IndexOf($want)
+            $cmbOutlineJoin.SelectedIndex = if ($idx -ge 0) { $idx } else { 0 }
+        }
+        elseif ($context -eq "Oval" -or $context -eq "Line") {
+            $lblOutlineJoin.Text = if ($context -eq "Line") { "Joins" } else { "Corners / joins" }
+            [void]$cmbOutlineJoin.Items.Add("Not applicable")
+            $cmbOutlineJoin.SelectedIndex = 0
+        }
+        else {
+            $lblOutlineJoin.Text = "Corners"
+            $cmbOutlineJoin.Items.AddRange(@("Square","Round"))
+            $want = if ($a) { [string]$a.JoinStyle } else { $script:outlineRectangleCornerStyle }
+            $idx = $cmbOutlineJoin.Items.IndexOf($want)
+            $cmbOutlineJoin.SelectedIndex = if ($idx -ge 0) { $idx } else { 0 }
+        }
+    }
+    finally { $script:syncingAnnotationAppearance = $oldSync }
+}
+
+function Get-CurrentOutlineJoinStyle {
+    if ($toolMode -eq "Polygon") { return $script:outlinePolygonJoinStyle }
+    if ($toolMode -eq "Polyline") { return $script:drawPolylineJoinStyle }
+    if ($toolMode -eq "Oval") { return "Round" }
+    return $script:outlineRectangleCornerStyle
+}
+
+function Sync-DraftAppearanceDefaultsToControls {
+    $oldSync = $script:syncingAnnotationAppearance
+    $script:syncingAnnotationAppearance = $true
+    try {
+        $numOutlineWidth.Value = [decimal][Math]::Max([double]$numOutlineWidth.Minimum,[Math]::Min([double]$numOutlineWidth.Maximum,[double]$script:outlineWidth))
+        $swatchOutlineColor.BackColor = $script:outlineColor
+        $swatchOutlineColor.Invalidate()
+        $dashDisplay = switch ([string]$script:outlineDashStyle) {
+            "DashDot" { "Dash-Dot" }
+            "DashDotDot" { "Dash-Dot-Dot" }
+            default { [string]$script:outlineDashStyle }
+        }
+        $dashIdx = $cmbOutlineDash.Items.IndexOf($dashDisplay)
+        $cmbOutlineDash.SelectedIndex = if ($dashIdx -ge 0) { $dashIdx } else { 0 }
+        $endDisplay = switch ([string]$script:drawEndpointStyle) {
+            "ArrowEnd" { "Arrow at end" }
+            "ArrowStart" { "Arrow at start" }
+            "ArrowBoth" { "Arrows both ends" }
+            default { "None" }
+        }
+        $endIdx = $cmbDrawEnds.Items.IndexOf($endDisplay)
+        $cmbDrawEnds.SelectedIndex = if ($endIdx -ge 0) { $endIdx } else { 0 }
+
+        $fontIdx = $cmbTextFont.Items.IndexOf([string]$script:textFontFamily)
+        if ($fontIdx -ge 0) { $cmbTextFont.SelectedIndex = $fontIdx }
+        $numTextSize.Value = [decimal][Math]::Max([double]$numTextSize.Minimum,[Math]::Min([double]$numTextSize.Maximum,[double]$script:textFontSizePx))
+        $chkTextBold.Checked = [bool]$script:textBold
+        $chkTextItalic.Checked = [bool]$script:textItalic
+        $alignIdx = $cmbTextAlign.Items.IndexOf([string]$script:textAlignment)
+        $cmbTextAlign.SelectedIndex = if ($alignIdx -ge 0) { $alignIdx } else { 0 }
+        $swatchTextColor.BackColor = $script:textColor
+        $swatchTextColor.Invalidate()
+        Set-OutlineJoinChoices
+    }
+    finally { $script:syncingAnnotationAppearance = $oldSync }
+}
+
+function Sync-SelectedAnnotationAppearanceToControls {
+    $a = Get-SelectedAppearanceAnnotation
+    if (-not $a) { return }
+
+    $oldSync = $script:syncingAnnotationAppearance
+    $script:syncingAnnotationAppearance = $true
+    try {
+        if ($a.Kind -eq "Text") {
+            $txtAnnotationText.Text = [string]$a.Text
+            $fontIdx = $cmbTextFont.Items.IndexOf([string]$a.FontFamily)
+            if ($fontIdx -ge 0) { $cmbTextFont.SelectedIndex = $fontIdx }
+            $size = [decimal][Math]::Max([double]$numTextSize.Minimum,[Math]::Min([double]$numTextSize.Maximum,[double]$a.FontSizePx))
+            $numTextSize.Value = $size
+            $chkTextBold.Checked = [bool]$a.Bold
+            $chkTextItalic.Checked = [bool]$a.Italic
+            $alignIdx = $cmbTextAlign.Items.IndexOf([string]$a.Alignment)
+            $cmbTextAlign.SelectedIndex = if ($alignIdx -ge 0) { $alignIdx } else { 0 }
+            $swatchTextColor.BackColor = $a.TextColor
+            $swatchTextColor.Invalidate()
+        }
+        else {
+            $width = [decimal][Math]::Max([double]$numOutlineWidth.Minimum,[Math]::Min([double]$numOutlineWidth.Maximum,[double]$a.StrokeWidth))
+            $numOutlineWidth.Value = $width
+            $swatchOutlineColor.BackColor = $a.StrokeColor
+            $swatchOutlineColor.Invalidate()
+            $dashDisplay = switch ([string]$a.DashStyle) {
+                "DashDot" { "Dash-Dot" }
+                "DashDotDot" { "Dash-Dot-Dot" }
+                default { [string]$a.DashStyle }
+            }
+            $dashIdx = $cmbOutlineDash.Items.IndexOf($dashDisplay)
+            $cmbOutlineDash.SelectedIndex = if ($dashIdx -ge 0) { $dashIdx } else { 0 }
+            Set-OutlineJoinChoices
+            if ($a.Kind -eq "Line" -or $a.Kind -eq "Polyline") {
+                $endDisplay = switch ([string]$a.EndpointStyle) {
+                    "ArrowEnd" { "Arrow at end" }
+                    "ArrowStart" { "Arrow at start" }
+                    "ArrowBoth" { "Arrows both ends" }
+                    default { "None" }
+                }
+                $endIdx = $cmbDrawEnds.Items.IndexOf($endDisplay)
+                $cmbDrawEnds.SelectedIndex = if ($endIdx -ge 0) { $endIdx } else { 0 }
+            }
+        }
+    }
+    finally { $script:syncingAnnotationAppearance = $oldSync }
+}
+
+function Update-AppearanceStatus {
+    if (-not $videoPath) {
+        $lblAppearanceStatus.Text = "Appearance options for redactions and annotations."
+        return
+    }
+    $selectedA = Get-SelectedAppearanceAnnotation
+    if ($selectedA) {
+        switch ([string]$selectedA.Kind) {
+            "Text" { $lblAppearanceStatus.Text = "Text annotation selected — edit content/style here; drag or resize it on the preview."; return }
+            "Line" { $lblAppearanceStatus.Text = "Line annotation selected — edit its appearance here or geometry on the preview."; return }
+            "Polyline" { $lblAppearanceStatus.Text = "Polyline selected — edit appearance here or move its vertices on the preview."; return }
+            default { $lblAppearanceStatus.Text = "Outline annotation selected — edit its appearance here or geometry on the preview."; return }
+        }
+    }
+    if ($toolMode -eq "Text") {
+        $lblAppearanceStatus.Text = if (-not $isImageMode -and $script:pendingAnnotation) {
+            "Annotation range in progress — move through the video, then use End Annotation."
+        } elseif (-not $isImageMode -and $script:textDraftActive) {
+            "Text ready — adjust it as needed, then use Begin Annotation below the preview."
+        } elseif ($isImageMode) {
+            "Text Box annotation — drag a box, type in the floating editor, then close the editor and choose Create Annotation."
+        } else {
+            "Text Box annotation — drag a box and type in the floating editor; Begin Annotation sets its first frame."
+        }
+        return
+    }
+    if ($toolMode -eq "Line") {
+        $lblAppearanceStatus.Text = if (-not $isImageMode -and $script:pendingAnnotation) {
+            "Annotation range in progress — move through the video, then use End Annotation."
+        } elseif ($script:lineDraftActive) {
+            if ($isImageMode) { "Line ready — drag the line to reposition it, then choose Create Annotation." }
+            else { "Line ready — reposition it if needed, then use Begin Annotation below the preview." }
+        } else {
+            "Line annotation — drag from start to end. Hold Shift to constrain to 45° increments."
+        }
+        return
+    }
+    if ($toolMode -eq "Polyline") {
+        $lblAppearanceStatus.Text = if (-not $isImageMode -and $script:pendingAnnotation) {
+            "Annotation range in progress — move through the video, then use End Annotation."
+        } elseif ($script:polylineDraftActive) {
+            if ($isImageMode) { "Polyline ready — drag the path to reposition it, then choose Create Annotation." }
+            else { "Polyline ready — reposition it if needed, then use Begin Annotation below the preview." }
+        } else {
+            "Polyline annotation — hold the left mouse button and draw; release to prepare it for positioning."
+        }
+        return
+    }
+    if (-not $chkFill.Checked -and -not $chkOutline.Checked) {
+        $lblAppearanceStatus.Text = "Choose Fill, Outline, or both before creating the shape."
+    }
+    elseif (-not $chkFill.Checked -and $chkOutline.Checked) {
+        $lblAppearanceStatus.Text = "Annotation only — this does not redact or obscure media."
+    }
+    elseif ($chkFill.Checked -and $chkOutline.Checked) {
+        $lblAppearanceStatus.Text = "Redaction/effect with a separate annotation outline."
+    }
+    else {
+        $lblAppearanceStatus.Text = "Fill uses the selected redaction/effect."
+    }
+}
+
+function Update-OutlineControlsAvailability {
+    if($script:ExportBusy){return}
+    $supported = [bool]($videoPath -and -not $pendingRedaction -and -not $script:pendingAnnotation)
+    $selectedA = Get-SelectedAppearanceAnnotation
+    $editingCommitted = [bool]($null -ne $selectedA)
+    $selectedKind = if ($selectedA) { [string]$selectedA.Kind } else { "" }
+    $textContext = [bool](($editingCommitted -and $selectedKind -eq "Text") -or (-not $editingCommitted -and $toolMode -eq "Text"))
+    $drawTool = [bool]((-not $editingCommitted) -and (Test-IsStandaloneDrawTool))
+    $nonTextAnnotationEdit = [bool]($editingCommitted -and $selectedKind -ne "Text")
+    $drawContext = [bool]($drawTool -or $nonTextAnnotationEdit)
+
+    # Text has its own compact editor. A selected committed Text annotation
+    # temporarily owns Appearance regardless of which toolbar tool remains active.
+    foreach ($ctl in @($chkFill,$chkOutline,$lblOutlineWidth,$numOutlineWidth,$swatchOutlineColor)) {
+        if ($ctl) { $ctl.Visible = -not $textContext }
+    }
+    foreach ($ctl in @($lblOutlineDash,$cmbOutlineDash,$lblOutlineJoin,$cmbOutlineJoin,$lblAppearanceStatus)) {
+        if ($ctl) { $ctl.Visible = [bool](-not $textContext) }
+    }
+    if ($textAppearancePanel) { $textAppearancePanel.Visible = $textContext }
+
+    if ($textContext) {
+        $txtAnnotationText.Enabled = [bool]($supported -and ($editingCommitted -or $script:textDraftActive))
+        $cmbTextFont.Enabled = $supported
+        $numTextSize.Enabled = $supported
+        $swatchTextColor.Enabled = $supported
+        $chkTextBold.Enabled = $supported
+        $chkTextItalic.Enabled = $supported
+        $cmbTextAlign.Enabled = $supported
+        if ($editingCommitted) {
+            $btnAddText.Visible = $true
+            $btnAddText.Text = "Create Annotation"
+            $btnAddText.Enabled = $supported
+            $btnCancelText.Visible = $false
+            $lblTextStatus.Text = "Changes apply to the selected Text annotation. Drag or resize it on the preview as needed."
+        }
+        else {
+            $btnAddText.Text = "Create Annotation"
+            $btnAddText.Visible = $true
+            $btnAddText.Enabled = [bool]($supported -and $script:textDraftActive -and -not [string]::IsNullOrWhiteSpace($txtAnnotationText.Text))
+            $btnCancelText.Visible = [bool]$isImageMode
+            $btnCancelText.Enabled = [bool]($isImageMode -and $supported -and ($script:textDraftActive -or $script:textDrawing))
+            $lblTextStatus.Text = if ($script:textDraftActive) {
+                if ($isImageMode) { "Drag the box to reposition it. Enter adds a line; Ctrl+Enter closes; Create Annotation commits." }
+                elseif ($script:pendingAnnotation) { "Range started. Move to the final frame, then use End Annotation." }
+                else { "Drag the box to reposition it. Begin Annotation sets the first frame." }
+            } elseif ($script:textDrawing) {
+                "Drag to size the text box."
+            } else {
+                "Drag a text box on the preview first."
+            }
+        }
+        foreach ($ctl in @($lblDrawEnds,$cmbDrawEnds,$btnAddDraw,$btnCancelDraw)) { if ($ctl) { $ctl.Visible = $false } }
+        Update-AppearanceStatus
+        return
+    }
+
+    # Standalone Draw tools and selected committed non-Text annotations are
+    # annotation-only. Hide Fill/Outline switches so security semantics cannot
+    # be confused with visual appearance editing.
+    $chkFill.Visible = -not $drawContext
+    $chkOutline.Visible = -not $drawContext
+    if ($drawContext) {
+        $lblOutlineWidth.Left = 0
+        $numOutlineWidth.Left = 44
+        $swatchOutlineColor.Left = 108
+    }
+    else {
+        $lblOutlineWidth.Left = 164
+        $numOutlineWidth.Left = 208
+        $swatchOutlineColor.Left = 272
+    }
+
+    $chkFill.Enabled = $supported -and $isImageMode -and -not $drawContext
+    $chkOutline.Enabled = $supported -and $isImageMode -and -not $drawContext
+    $styleEnabled = [bool]($supported -and ($drawContext -or ($isImageMode -and $chkOutline.Checked)))
+    $lblOutlineWidth.Enabled = $styleEnabled
+    $numOutlineWidth.Enabled = $styleEnabled
+    $swatchOutlineColor.Enabled = $styleEnabled
+    $lblOutlineDash.Enabled = $styleEnabled
+    $cmbOutlineDash.Enabled = $styleEnabled
+
+    $contextKind = if ($selectedA) {
+        if ($selectedA.Kind -eq "ShapeOutline") { [string]$selectedA.Shape } else { [string]$selectedA.Kind }
+    } else { [string]$toolMode }
+    $joinApplies = [bool]($styleEnabled -and ($contextKind -eq "Rectangle" -or $contextKind -eq "Polygon" -or $contextKind -eq "Polyline"))
+    $lblOutlineJoin.Enabled = $joinApplies
+    $cmbOutlineJoin.Enabled = $joinApplies
+
+    $endsApply = [bool]($styleEnabled -and ($contextKind -eq "Line" -or $contextKind -eq "Polyline"))
+    $lblDrawEnds.Visible = [bool]$endsApply
+    $cmbDrawEnds.Visible = [bool]$endsApply
+    $lblDrawEnds.Enabled = $endsApply
+    $cmbDrawEnds.Enabled = $endsApply
+
+    if ($btnAddDraw) {
+        $btnAddDraw.Visible = [bool]($drawTool -or ($selectedA -and $selectedA.Kind -in @("Line","Polyline")))
+        $btnAddDraw.Text = "Create Annotation"
+        $btnAddDraw.Enabled = [bool]($supported -and (($selectedA -and $selectedA.Kind -in @("Line","Polyline")) -or ($toolMode -eq "Line" -and $script:lineDraftActive) -or ($toolMode -eq "Polyline" -and $script:polylineDraftActive)))
+    }
+    if ($btnCancelDraw) {
+        $btnCancelDraw.Visible = [bool]($drawTool -and $isImageMode)
+        $btnCancelDraw.Enabled = [bool]($isImageMode -and $supported -and (($toolMode -eq "Line" -and ($script:lineDrawing -or $script:lineDraftActive)) -or ($toolMode -eq "Polyline" -and ($script:polylineActive -or $script:polylineDraftActive))))
+    }
+
+    $oldSync = $script:syncingAnnotationAppearance
+    $script:syncingAnnotationAppearance = $true
+    try { Set-OutlineJoinChoices } finally { $script:syncingAnnotationAppearance = $oldSync }
+    Update-AppearanceStatus
+}
+
+$chkFill.Add_CheckedChanged({
+    $script:fillEnabled = [bool]$chkFill.Checked
+    Update-SecurityModeNote
+    Update-AppearanceStatus
+    Update-StrengthSliderVisibility
+    Update-ColorPickerVisibility
+    Update-OutlineControlsAvailability
+    Update-RedactionButtons
+    if ($isImageMode -and $picture) { $picture.Invalidate() }
+})
+
+$chkOutline.Add_CheckedChanged({
+    $script:outlineEnabled = [bool]$chkOutline.Checked
+    Update-OutlineControlsAvailability
+    Update-RedactionButtons
+    if ($isImageMode -and $picture) { $picture.Invalidate() }
+})
+
+$numOutlineWidth.Add_ValueChanged({
+    if ($script:syncingAnnotationAppearance) { return }
+    $a = Get-SelectedAppearanceAnnotation
+    if ($a -and $a.Kind -ne "Text") { $a.StrokeWidth = [double]$numOutlineWidth.Value }
+    else { $script:outlineWidth = [int]$numOutlineWidth.Value }
+    if ($isImageMode -and $picture) { $picture.Invalidate() }
+})
+
+$cmbOutlineDash.Add_SelectedIndexChanged({
+    if ($script:syncingAnnotationAppearance) { return }
+    $dash = Get-SelectedOutlineDashStyle
+    $a = Get-SelectedAppearanceAnnotation
+    if ($a -and $a.Kind -ne "Text") { $a.DashStyle = $dash }
+    else { $script:outlineDashStyle = $dash }
+    if ($isImageMode -and $picture) { $picture.Invalidate() }
+})
+
+$cmbOutlineJoin.Add_SelectedIndexChanged({
+    if ($script:syncingAnnotationAppearance -or $cmbOutlineJoin.SelectedIndex -lt 0) { return }
+    $a = Get-SelectedAppearanceAnnotation
+    if ($a -and $a.Kind -ne "Text") {
+        if ($a.Kind -eq "Polyline" -or ($a.Kind -eq "ShapeOutline" -and ($a.Shape -eq "Rectangle" -or $a.Shape -eq "Polygon"))) {
+            $a.JoinStyle = [string]$cmbOutlineJoin.SelectedItem
+        }
+    }
+    elseif ($toolMode -eq "Polygon") {
+        $script:outlinePolygonJoinStyle = [string]$cmbOutlineJoin.SelectedItem
+    }
+    elseif ($toolMode -eq "Polyline") {
+        $script:drawPolylineJoinStyle = [string]$cmbOutlineJoin.SelectedItem
+    }
+    elseif ($toolMode -eq "Rectangle") {
+        $script:outlineRectangleCornerStyle = [string]$cmbOutlineJoin.SelectedItem
+    }
+    if ($isImageMode -and $picture) { $picture.Invalidate() }
+})
+
+$cmbDrawEnds.Add_SelectedIndexChanged({
+    if ($script:syncingAnnotationAppearance) { return }
+    $ends = Get-SelectedDrawEndpointStyle
+    $a = Get-SelectedAppearanceAnnotation
+    if ($a -and ($a.Kind -eq "Line" -or $a.Kind -eq "Polyline")) { $a.EndpointStyle = $ends }
+    else { $script:drawEndpointStyle = $ends }
+    if ($isImageMode -and $picture) { $picture.Invalidate() }
+})
+
+$swatchOutlineColor.Add_Click({
+    if (-not $swatchOutlineColor.Enabled) { return }
+    $a = Get-SelectedAppearanceAnnotation
+    $dlg = New-Object System.Windows.Forms.ColorDialog
+    try {
+        $dlg.FullOpen = $true
+        $dlg.Color = if ($a -and $a.Kind -ne "Text") { $a.StrokeColor } else { $script:outlineColor }
+        if ($dlg.ShowDialog($form) -eq [System.Windows.Forms.DialogResult]::OK) {
+            if ($a -and $a.Kind -ne "Text") { $a.StrokeColor = $dlg.Color }
+            else { $script:outlineColor = $dlg.Color }
+            $swatchOutlineColor.BackColor = $dlg.Color
+            $swatchOutlineColor.Invalidate()
+            if ($isImageMode -and $picture) { $picture.Invalidate() }
+        }
+    }
+    finally { $dlg.Dispose() }
+})
+
+$cmbTextFont.Add_SelectedIndexChanged({
+    if ($script:syncingAnnotationAppearance -or $cmbTextFont.SelectedIndex -lt 0) { return }
+    $a = Get-SelectedAppearanceAnnotation
+    if ($a -and $a.Kind -eq "Text") { $a.FontFamily = [string]$cmbTextFont.SelectedItem }
+    else { $script:textFontFamily = [string]$cmbTextFont.SelectedItem }
+    if ($isImageMode -and $picture) { $picture.Invalidate() }
+})
+$numTextSize.Add_ValueChanged({
+    if ($script:syncingAnnotationAppearance) { return }
+    $a = Get-SelectedAppearanceAnnotation
+    if ($a -and $a.Kind -eq "Text") { $a.FontSizePx = [double]$numTextSize.Value }
+    else {
+        $script:textFontSizePx = [int]$numTextSize.Value
+        if ($script:textDraftActive -and $lblTextStatus) { $lblTextStatus.Text = "Font size changed. Drag the Text Box handles if more room is needed." }
+    }
+    if ($isImageMode -and $picture) { $picture.Invalidate() }
+})
+$chkTextBold.Add_CheckedChanged({
+    if ($script:syncingAnnotationAppearance) { return }
+    $a = Get-SelectedAppearanceAnnotation
+    if ($a -and $a.Kind -eq "Text") { $a.Bold = [bool]$chkTextBold.Checked }
+    else { $script:textBold = [bool]$chkTextBold.Checked }
+    Apply-Theme
+    if ($isImageMode -and $picture) { $picture.Invalidate() }
+})
+$chkTextItalic.Add_CheckedChanged({
+    if ($script:syncingAnnotationAppearance) { return }
+    $a = Get-SelectedAppearanceAnnotation
+    if ($a -and $a.Kind -eq "Text") { $a.Italic = [bool]$chkTextItalic.Checked }
+    else { $script:textItalic = [bool]$chkTextItalic.Checked }
+    Apply-Theme
+    if ($isImageMode -and $picture) { $picture.Invalidate() }
+})
+$cmbTextAlign.Add_SelectedIndexChanged({
+    if ($script:syncingAnnotationAppearance -or $cmbTextAlign.SelectedIndex -lt 0) { return }
+    $a = Get-SelectedAppearanceAnnotation
+    if ($a -and $a.Kind -eq "Text") { $a.Alignment = [string]$cmbTextAlign.SelectedItem }
+    else { $script:textAlignment = [string]$cmbTextAlign.SelectedItem }
+    if ($isImageMode -and $picture) { $picture.Invalidate() }
+})
+$swatchTextColor.Add_Click({
+    if (-not $swatchTextColor.Enabled) { return }
+    $a = Get-SelectedAppearanceAnnotation
+    $dlg = New-Object System.Windows.Forms.ColorDialog
+    try {
+        $dlg.FullOpen = $true
+        $dlg.Color = if ($a -and $a.Kind -eq "Text") { $a.TextColor } else { $script:textColor }
+        if ($dlg.ShowDialog($form) -eq [System.Windows.Forms.DialogResult]::OK) {
+            if ($a -and $a.Kind -eq "Text") {
+                $a.TextColor = $dlg.Color
+                $a.StrokeColor = $dlg.Color
+            }
+            else { $script:textColor = $dlg.Color }
+            $swatchTextColor.BackColor = $dlg.Color
+            $swatchTextColor.Invalidate()
+            if ($isImageMode -and $picture) { $picture.Invalidate() }
+        }
+    }
+    finally { $dlg.Dispose() }
+})
+$txtAnnotationText.Add_TextChanged({
+    if ($script:syncingAnnotationAppearance) { return }
+    $a = Get-SelectedAppearanceAnnotation
+    if ($a -and $a.Kind -eq "Text") {
+        if (-not [string]::IsNullOrWhiteSpace($txtAnnotationText.Text)) {
+            $a.Text = $txtAnnotationText.Text
+            $lblTextStatus.Text = "Changes apply immediately. Use Done when finished."
+        }
+        else {
+            $lblTextStatus.Text = "Text cannot be empty; the committed annotation keeps its previous text until valid text is entered."
+        }
+    }
+    else {
+        Update-OutlineControlsAvailability
+        Update-RedactionButtons
+    }
+    if ($script:floatingTextEditorVisible -and -not $script:syncingFloatingTextEditor) {
+        Set-FloatingTextEditorText $txtAnnotationText.Text
+    }
+    if ($picture) { $picture.Invalidate() }
+})
+$txtAnnotationText.Add_KeyDown({
+    param($sender,$e)
+    if ($e.Control -and $e.KeyCode -eq [System.Windows.Forms.Keys]::Enter) {
+        Close-FloatingTextEditor $false
+        $e.Handled = $true; $e.SuppressKeyPress = $true
+    }
+})
+
+$txtFloatingAnnotationText.Add_TextChanged({
+    if ($script:syncingFloatingTextEditor) { return }
+    $script:syncingFloatingTextEditor = $true
+    try { $txtAnnotationText.Text = $txtFloatingAnnotationText.Text }
+    finally { $script:syncingFloatingTextEditor = $false }
+    if ($picture) { $picture.Invalidate() }
+})
+
+$txtFloatingAnnotationText.Add_KeyDown({
+    param($sender,$e)
+    if ($e.Control -and $e.KeyCode -eq [System.Windows.Forms.Keys]::Enter) {
+        Close-FloatingTextEditor $false
+        $e.Handled = $true; $e.SuppressKeyPress = $true
+    }
+    elseif ($e.KeyCode -eq [System.Windows.Forms.Keys]::Escape) {
+        if ($script:floatingTextEditorMode -eq "Committed") {
+            Close-FloatingTextEditor $true
+            Sync-SelectedAnnotationAppearanceToControls
+        } else {
+            Close-FloatingTextEditor $false
+            Reset-DrawingState
+            Update-SelectionFields $null
+            Update-RedactionButtons
+        }
+        $e.Handled = $true; $e.SuppressKeyPress = $true
+    }
+})
+
+function Confirm-TextAnnotation {
+    Close-FloatingTextEditor $false
+    $a = Get-SelectedAppearanceAnnotation
+    if ($a -and $a.Kind -eq "Text") {
+        if ([string]::IsNullOrWhiteSpace($txtAnnotationText.Text)) {
+            [System.Windows.Forms.MessageBox]::Show("Text cannot be empty.","Text annotation","OK","Information") | Out-Null
+            $oldSync=$script:syncingAnnotationAppearance; $script:syncingAnnotationAppearance=$true
+            try { $txtAnnotationText.Text=[string]$a.Text } finally { $script:syncingAnnotationAppearance=$oldSync }
+            return
+        }
+        if ($lvAnnotations.SelectedItems.Count -gt 0) { $lvAnnotations.SelectedItems[0].Selected = $false }
+        $script:selectedAnnotationIndex = -1
+        Update-InspectorSectionLayout
+        $picture.Invalidate()
+        return
+    }
+    if (-not $isImageMode) {
+        Update-RedactionButtons
+        if ($btnStartRedaction.Enabled) { $btnStartRedaction.PerformClick() }
+        return
+    }
+    [void](Commit-TextDraft)
+}
+$btnAddText.Add_Click({Confirm-TextAnnotation})
+$btnCancelText.Add_Click({
+    Reset-DrawingState
+    Update-SelectionFields $null
+    Update-RedactionButtons
+    Update-InspectorSectionLayout
+    $picture.Invalidate()
+})
+function Confirm-DrawingAnnotation {
+    if (-not $videoPath) { return }
+    Close-FloatingTextEditor $false
+    $selectedDraw = Get-SelectedAppearanceAnnotation
+    if ($selectedDraw -and $selectedDraw.Kind -in @("Line","Polyline")) {
+        if ($lvAnnotations.SelectedItems.Count -gt 0) { $lvAnnotations.SelectedItems[0].Selected = $false }
+        $script:selectedAnnotationIndex = -1
+        Update-InspectorSectionLayout
+        $picture.Invalidate()
+        return
+    }
+    if (-not $isImageMode) {
+        Update-RedactionButtons
+        if ($btnStartRedaction.Enabled) { $btnStartRedaction.PerformClick() }
+        return
+    }
+    if ($toolMode -eq "Line" -and $script:lineDraftActive -and $script:lineStart -and $script:lineEnd) {
+        if (Add-LineDrawingAnnotation $script:lineStart $script:lineEnd) {
+            Reset-DrawingState
+            Update-SelectionFields $null
+            Update-RedactionButtons
+            Update-InspectorSectionLayout
+            $picture.Invalidate()
+        }
+        return
+    }
+    if ($toolMode -eq "Polyline" -and $script:polylineDraftActive) {
+        if (Complete-PolylineDrawing) {
+            Update-InspectorSectionLayout
+            $picture.Invalidate()
+        }
+    }
+}
+$btnAddDraw.Add_Click({Confirm-DrawingAnnotation})
+$btnCancelDraw.Add_Click({
+    Reset-DrawingState
+    Update-SelectionFields $null
+    Update-RedactionButtons
+    Update-InspectorSectionLayout
+    $picture.Invalidate()
+})
+
+Set-OutlineJoinChoices
+Update-OutlineControlsAvailability
+
+$ruleRedactions = Add-Rule $right 0 352 325
+$lblRedactionsTitle = Add-SectionTitle $right "Redactions" 0 366 330
 
 $lvRedactions = New-Object System.Windows.Forms.ListView
 $lvRedactions.View = "Details"
 $lvRedactions.FullRowSelect = $true
 $lvRedactions.GridLines = $false
 $lvRedactions.MultiSelect = $false
-$lvRedactions.Location = New-Object System.Drawing.Point(0,230)
-$lvRedactions.Size = New-Object System.Drawing.Size(325,140)
+$lvRedactions.Location = New-Object System.Drawing.Point(0,398)
+$lvRedactions.Size = New-Object System.Drawing.Size(325,120)
 $lvRedactions.BorderStyle = "FixedSingle"
 $lvRedactions.Font = New-UIFont 8.2
 $lvRedactions.Tag = "list"
@@ -4192,31 +7563,110 @@ $lvRedactions.Tag = "list"
 [void]$lvRedactions.Columns.Add("Rect (bounding box)", 0)
 $right.Controls.Add($lvRedactions)
 
-# Selecting a redaction here is what lets the color swatch/eyedropper target
-# that specific existing redaction instead of the default used for new ones
-# (see Get-ColorEditTarget) - scrubbing to a frame and selecting its
-# redaction in this list is how the color gets changed after the fact.
+# Selecting a redaction here still targets the colour swatch/eyedropper. In
+# D4c, a still-image selection also becomes an editable committed redaction.
 $lvRedactions.Add_SelectedIndexChanged({
+    if ($lvRedactions.SelectedIndices.Count -gt 0) {
+        $idx = [int]$lvRedactions.SelectedIndices[0]
+        if ($idx -ge 0 -and $idx -lt $redactions.Count) {
+            Reset-DrawingState
+            if ($lvAnnotations -and $lvAnnotations.SelectedItems.Count -gt 0) { $lvAnnotations.SelectedItems[0].Selected = $false }
+            $script:selectedAnnotationIndex = -1
+            $script:selectedRedactionIndex = $idx
+            $r = $redactions[$idx]
+            $lblPending.Text = if ($r.Shape -eq "Polygon") {
+                "Redaction selected — drag inside it to move, or drag a vertex handle to reshape it."
+            } else {
+                "Redaction selected — drag inside it to move, or use the handles to resize it."
+            }
+        }
+    }
+    else {
+        $script:selectedRedactionIndex = -1
+    }
     Update-ColorSwatch
+    Update-InspectorSectionLayout
     $picture.Invalidate()
 })
 
 $btnRemoveRedaction = New-Object System.Windows.Forms.Button
 $btnRemoveRedaction.Text = "Remove Selected"
-$btnRemoveRedaction.Location = New-Object System.Drawing.Point(0,378)
+$btnRemoveRedaction.Location = New-Object System.Drawing.Point(0,526)
 $btnRemoveRedaction.Size = New-Object System.Drawing.Size($script:CompactButtonWidth,$script:CompactButtonHeight)
 Style-FlatButton $btnRemoveRedaction
 $right.Controls.Add($btnRemoveRedaction)
 
 $btnClearRedactions = New-Object System.Windows.Forms.Button
 $btnClearRedactions.Text = "Clear All"
-$btnClearRedactions.Location = New-Object System.Drawing.Point(140,378)
+$btnClearRedactions.Location = New-Object System.Drawing.Point(140,526)
 $btnClearRedactions.Size = New-Object System.Drawing.Size($script:CompactButtonWidth,$script:CompactButtonHeight)
 Style-FlatButton $btnClearRedactions
 $right.Controls.Add($btnClearRedactions)
 
-Add-Rule $right 0 424 325 | Out-Null
-Add-SectionTitle $right "Output" 0 438 330 | Out-Null
+$ruleAnnotations = Add-Rule $right 0 570 325
+$lblAnnotationsTitle = Add-SectionTitle $right "Annotations" 0 584 330
+
+$lvAnnotations = New-Object System.Windows.Forms.ListView
+$lvAnnotations.View = "Details"
+$lvAnnotations.FullRowSelect = $true
+$lvAnnotations.GridLines = $false
+$lvAnnotations.MultiSelect = $false
+$lvAnnotations.Location = New-Object System.Drawing.Point(0,616)
+$lvAnnotations.Size = New-Object System.Drawing.Size(325,92)
+$lvAnnotations.BorderStyle = "FixedSingle"
+$lvAnnotations.Font = New-UIFont 8.2
+$lvAnnotations.Tag = "list"
+[void]$lvAnnotations.Columns.Add("#", 30)
+[void]$lvAnnotations.Columns.Add("Shape", 80)
+[void]$lvAnnotations.Columns.Add("Type", 185)
+[void]$lvAnnotations.Columns.Add("Range", 0)
+$right.Controls.Add($lvAnnotations)
+
+$lvAnnotations.Add_SelectedIndexChanged({
+    if ($lvAnnotations.SelectedIndices.Count -gt 0) {
+        $idx = [int]$lvAnnotations.SelectedIndices[0]
+        if ($idx -ge 0 -and $idx -lt $annotations.Count) {
+            if (-not $isImageMode) { Stop-Playback }
+            # Selecting a committed annotation dismisses only uncommitted drawing
+            # state. It never changes the selected toolbar tool or any redaction.
+            Reset-DrawingState
+            if ($lvRedactions -and $lvRedactions.SelectedItems.Count -gt 0) { $lvRedactions.SelectedItems[0].Selected = $false }
+            $script:selectedRedactionIndex = -1
+            $script:selectedAnnotationIndex = $idx
+            Sync-SelectedAnnotationAppearanceToControls
+            Update-InspectorSectionLayout
+            Update-AppearanceStatus
+                }
+    }
+    else {
+        $script:selectedAnnotationIndex = -1
+        Sync-DraftAppearanceDefaultsToControls
+        Update-InspectorSectionLayout
+        }
+    $picture.Invalidate()
+})
+
+$lvAnnotations.Add_DoubleClick({
+    $a = Get-SelectedAppearanceAnnotation
+    if ($a -and $a.Kind -in @("Text","Line","Polyline")) { [void](Show-FloatingTextEditor "Committed") }
+})
+
+$btnRemoveAnnotation = New-Object System.Windows.Forms.Button
+$btnRemoveAnnotation.Text = "Remove Selected"
+$btnRemoveAnnotation.Location = New-Object System.Drawing.Point(0,716)
+$btnRemoveAnnotation.Size = New-Object System.Drawing.Size($script:CompactButtonWidth,$script:CompactButtonHeight)
+Style-FlatButton $btnRemoveAnnotation
+$right.Controls.Add($btnRemoveAnnotation)
+
+$btnClearAnnotations = New-Object System.Windows.Forms.Button
+$btnClearAnnotations.Text = "Clear All"
+$btnClearAnnotations.Location = New-Object System.Drawing.Point(140,716)
+$btnClearAnnotations.Size = New-Object System.Drawing.Size($script:CompactButtonWidth,$script:CompactButtonHeight)
+Style-FlatButton $btnClearAnnotations
+$right.Controls.Add($btnClearAnnotations)
+
+$ruleOutput = Add-Rule $right 0 760 325
+$lblOutputTitle = Add-SectionTitle $right "Output" 0 774 330
 
 # Format and Quality sit side by side to save vertical space. Format's item
 # list and selection swap between video and image extensions in
@@ -4224,7 +7674,7 @@ Add-SectionTitle $right "Output" 0 438 330 | Out-Null
 # there already).
 $lblFormat = New-Object System.Windows.Forms.Label
 $lblFormat.Text = "Format"
-$lblFormat.Location = New-Object System.Drawing.Point(0,474)
+$lblFormat.Location = New-Object System.Drawing.Point(0,810)
 $lblFormat.Size = New-Object System.Drawing.Size(150,22)
 $lblFormat.Font = New-UIFont 8.5
 $lblFormat.Tag = "muted"
@@ -4232,7 +7682,7 @@ $right.Controls.Add($lblFormat)
 
 $lblQuality = New-Object System.Windows.Forms.Label
 $lblQuality.Text = "Quality"
-$lblQuality.Location = New-Object System.Drawing.Point(175,474)
+$lblQuality.Location = New-Object System.Drawing.Point(175,810)
 $lblQuality.Size = New-Object System.Drawing.Size(150,22)
 $lblQuality.Font = New-UIFont 8.5
 $lblQuality.Tag = "muted"
@@ -4245,7 +7695,7 @@ $cmbFormat = New-Object System.Windows.Forms.ComboBox
 $cmbFormat.DropDownStyle = "DropDownList"
 $cmbFormat.Items.AddRange($VIDEO_FORMATS)
 $cmbFormat.SelectedIndex = 0
-$cmbFormat.Location = New-Object System.Drawing.Point(0,494)
+$cmbFormat.Location = New-Object System.Drawing.Point(0,830)
 $cmbFormat.Size = New-Object System.Drawing.Size(150,30)
 $cmbFormat.Font = New-UIFont 9.1
 $cmbFormat.Tag = "input"
@@ -4255,7 +7705,7 @@ $cmbQuality = New-Object System.Windows.Forms.ComboBox
 $cmbQuality.DropDownStyle = "DropDownList"
 $cmbQuality.Items.AddRange(@("High quality","Normal quality","Smaller file size"))
 $cmbQuality.SelectedIndex = 1
-$cmbQuality.Location = New-Object System.Drawing.Point(175,494)
+$cmbQuality.Location = New-Object System.Drawing.Point(175,830)
 $cmbQuality.Size = New-Object System.Drawing.Size(150,30)
 $cmbQuality.Font = New-UIFont 9.1
 $cmbQuality.Tag = "input"
@@ -4264,12 +7714,16 @@ $right.Controls.Add($cmbQuality)
 $chkAudio = New-Object System.Windows.Forms.CheckBox
 $chkAudio.Text = "Keep original audio"
 $chkAudio.Checked = $false
-$chkAudio.Location = New-Object System.Drawing.Point(0,532)
+$chkAudio.Location = New-Object System.Drawing.Point(0,868)
 $chkAudio.Size = New-Object System.Drawing.Size(220,26)
 $chkAudio.Font = New-UIFont 8.8
 $right.Controls.Add($chkAudio)
 $chkAudio.Add_CheckedChanged({
     if (-not $chkAudio.Checked) { return }
+    if ($script:ManagedPolicy -and $script:ManagedPolicy.DisableAudioRetention) {
+        $chkAudio.Checked = $false
+        return
+    }
     if ($script:suppressAudioWarning) { return }
     if ($script:audioWarningOpen) { return }
 
@@ -4295,8 +7749,58 @@ $chkAudio.Add_CheckedChanged({
     }
 })
 
+# G2c managed control: an organisation may require exported video to omit the
+# source audio track because TinyRedactionTool does not inspect or redact audio.
+# Keep the control visible so the restriction is explicit rather than hidden.
+if ($script:ManagedPolicy -and $script:ManagedPolicy.DisableAudioRetention) {
+    $chkAudio.Checked = $false
+    $chkAudio.Enabled = $false
+    $chkAudio.Text = "Keep original audio (disabled by policy)"
+    $chkAudio.Size = New-Object System.Drawing.Size(325,26)
+    $script:appToolTip.SetToolTip(
+        $chkAudio,
+        "Disabled by managed policy. Exported video will not retain source audio."
+    )
+}
+
+
+$chkDeleteOriginal = New-Object System.Windows.Forms.CheckBox
+$chkDeleteOriginal.Text = 'Delete original after successful export'
+$chkDeleteOriginal.Checked = $false
+$chkDeleteOriginal.Enabled = $false
+$chkDeleteOriginal.Location = New-Object System.Drawing.Point(0,900)
+$chkDeleteOriginal.Size = New-Object System.Drawing.Size(300,24)
+$chkDeleteOriginal.Font = New-UIFont 8.8
+$right.Controls.Add($chkDeleteOriginal)
+$chkDeleteOriginal.Add_CheckedChanged({
+    $script:deleteOriginalRequested = [bool]$chkDeleteOriginal.Checked
+})
+
+$btnDeleteInfo = New-Object System.Windows.Forms.Button
+$btnDeleteInfo.Text = '?'
+$btnDeleteInfo.Location = New-Object System.Drawing.Point(0,924)
+$btnDeleteInfo.Size = New-Object System.Drawing.Size(24,24)
+$btnDeleteInfo.Font = New-UIFont 10.0 ([System.Drawing.FontStyle]::Bold)
+Style-FlatButton $btnDeleteInfo $false 12
+$btnDeleteInfo.Enabled = $false
+$script:appToolTip.SetToolTip($btnDeleteInfo, 'More information about original-file deletion')
+$right.Controls.Add($btnDeleteInfo)
+$btnDeleteInfo.Add_Click({
+    $message = if ($sourceDeletionCapability) { [string]$sourceDeletionCapability.Reason } else { 'Open a source file first.' }
+    $heading = if ($sourceDeletionCapability) { [string]$sourceDeletionCapability.StatusText } else { 'Deletion availability' }
+    Show-CompactInformationDialog $heading $heading $message
+})
+
+$lblDeleteCapability = New-Object System.Windows.Forms.Label
+$lblDeleteCapability.Text = 'Open a source to check deletion availability.'
+$lblDeleteCapability.Location = New-Object System.Drawing.Point(32,924)
+$lblDeleteCapability.Size = New-Object System.Drawing.Size(292,38)
+$lblDeleteCapability.Font = New-UIFont 8.2
+$lblDeleteCapability.Tag = 'muted'
+$right.Controls.Add($lblDeleteCapability)
+
 $btnExport = New-Object System.Windows.Forms.Button
-$btnExport.Text = "Export Redacted Video"
+$btnExport.Text = "Export Video"
 $btnExport.Location = New-Object System.Drawing.Point(0,69)
 $btnExport.Size = New-Object System.Drawing.Size($script:ExportButtonWidth,$script:CompactButtonHeight)
 $btnExport.Enabled = $false
@@ -4305,11 +7809,60 @@ Style-FlatButton $btnExport $true
 # Export now sits beside Cancel in the compact transport/action row instead
 # of consuming a full-width row in Redaction Area.
 $bottom.Controls.Add($btnExport)
+$btnCopyImage=New-Object Windows.Forms.Button
+$btnCopyImage.Size=[Drawing.Size]::new($script:CompactButtonHeight,$script:CompactButtonHeight)
+$btnCopyImage.Visible=$false;$btnCopyImage.Enabled=$false
+Style-FlatButton $btnCopyImage $true
+$btnCopyImage.AccessibleName='Copy redacted image'
+$btnCopyImage.Image=Get-ThemedIconImage 'copy' ([Drawing.Color]::White)
+$script:appToolTip.SetToolTip($btnCopyImage,'Copy redacted image')
+$bottom.Controls.Add($btnCopyImage)
+$btnCopyImage.Add_Click({if($isImageMode -and -not $script:ExportBusy){$script:CopyRequested=$true;$btnExport.PerformClick()}})
+$btnCopyImage.Add_EnabledChanged({if(Get-Command Update-CopyButton -ErrorAction SilentlyContinue){Update-CopyButton}})
+
+# D2 keeps the accepted inspector grouping. D5b-r2 deliberately keeps video
+# annotation timing out of the inspector: Text/Line/Polyline reuse the existing
+# bottom Begin/End/Cancel temporal controls instead.
+function Update-InspectorSectionLayout {
+    if(-not $lvAnnotations -or -not $lblDeleteCapability){return}
+    if(-not $script:InspectorWidths){$script:InspectorWidths=@{}}
+    if(-not $script:AnnotationBackingPanel){
+        # Keep style values/events alive for floating editors without an
+        # Appearance section or hidden-button commit dependency.
+        $script:AnnotationBackingPanel=New-Object Windows.Forms.Panel
+        $script:AnnotationBackingPanel.Visible=$false
+        $form.Controls.Add($script:AnnotationBackingPanel)
+        foreach($ctl in @($ruleAppearance,$lblAppearanceTitle,$chkFill,$chkOutline,$lblOutlineWidth,$numOutlineWidth,$swatchOutlineColor,$lblOutlineDash,$cmbOutlineDash,$lblOutlineJoin,$cmbOutlineJoin,$lblDrawEnds,$cmbDrawEnds,$btnAddDraw,$btnCancelDraw,$lblAppearanceStatus,$textAppearancePanel,$lblOutputTitle)){
+            $script:AnnotationBackingPanel.Controls.Add($ctl)
+        }
+    }
+    $ruleRedactions.Top=184;$lblRedactionsTitle.Top=198
+    $lvRedactions.Top=230;$lvRedactions.Height=140
+    $btnRemoveRedaction.Top=378;$btnClearRedactions.Top=378
+    $ruleAnnotations.Top=420;$lblAnnotationsTitle.Top=434
+    $lvAnnotations.Top=466;$lvAnnotations.Height=140
+    $btnRemoveAnnotation.Top=614;$btnClearAnnotations.Top=614
+    foreach($ctl in @($ruleAnnotations,$lblAnnotationsTitle,$lvAnnotations,$btnRemoveAnnotation,$btnClearAnnotations)){$ctl.Visible=$true}
+    # Retain export format and original-file controls, below the three sections.
+    $ruleOutput.Top=656
+    $lblFormat.Top=668;$lblQuality.Top=668
+    $cmbFormat.Top=690;$cmbQuality.Top=690
+    $chkAudio.Top=730
+    $chkDeleteOriginal.Top=if($isImageMode){730}else{760}
+    $lblDeleteCapability.Top=if($isImageMode){758}else{788}
+    $btnDeleteInfo.Top=$lblDeleteCapability.Top-2
+    Fit-InspectorContents
+    Update-OutlineControlsAvailability
+}
+
+
+# Apply the requested section grouping before the form is first shown.
+Update-InspectorSectionLayout
 
 # ---------- theme engine ----------
 $script:isDarkMode = $false
 
-# Fixed status colors for the Begin/End Redaction buttons. These signal
+# Fixed status colors for the shared Begin/End temporal buttons. These signal
 # state (ready-to-begin / in-progress) rather than the neutral UI palette,
 # so they stay constant across the light/dark theme toggle.
 $script:colorGreenBg     = [System.Drawing.Color]::FromArgb(34,197,94)
@@ -4323,10 +7876,12 @@ $script:colorRedBorder   = [System.Drawing.Color]::FromArgb(220,38,38)
 # the light/dark color logic.
 $script:cButtonCurrent = [System.Drawing.Color]::FromArgb(240,248,251)
 $script:cTextCurrent   = [System.Drawing.Color]::FromArgb(18,27,42)
+$script:cMutedCurrent  = [System.Drawing.Color]::FromArgb(82,101,115)
 $script:cBorderCurrent = [System.Drawing.Color]::FromArgb(190,209,218)
 $script:cAccentCurrent = [System.Drawing.Color]::FromArgb(18,113,255)
 
 function Apply-Theme {
+    Update-InspectorSectionLayout
     if ($script:isDarkMode) {
         # v2.2 D2 Dark Mode: raise the common application/workspace/panel
         # base to #3C3F47. Nearby cards, inputs, buttons and borders are
@@ -4372,12 +7927,26 @@ function Apply-Theme {
     $form.BackColor = $cBg
     $top.BackColor = $cPanel
     $toolbar.BackColor = $cPanel
+    $modeRow.BackColor = $cPanel
+    $drawRow.BackColor = $cPanel
     $center.BackColor = $cWorkspace
     $rightHost.BackColor = $cPanel
     $right.BackColor = $cPanel
     $bottom.BackColor = $cWorkspace
     $chkEnhanced.BackColor = $cWorkspace
     $chkEnhanced.ForeColor = $cText
+    $chkFill.BackColor = $cPanel
+    $chkFill.ForeColor = $cText
+    $chkOutline.BackColor = $cPanel
+    $chkOutline.ForeColor = $cText
+    $lblOutlineDash.BackColor = $cPanel
+    $lblOutlineDash.ForeColor = $cMuted
+    $lblOutlineJoin.BackColor = $cPanel
+    $lblOutlineJoin.ForeColor = $cMuted
+    $lblAppearanceStatus.BackColor = $cPanel
+    $lblAppearanceStatus.ForeColor = $cMuted
+    $lblDrawEnds.BackColor = $cPanel
+    $lblDrawEnds.ForeColor = $cMuted
     $previewPanel.BackColor = $cWorkspace
     $pictureFrame.BackColor = $cBorder
     $picture.BackColor = $cPreview
@@ -4414,19 +7983,19 @@ function Apply-Theme {
     # than carry its own theme-driven tile color.
     $logo.BackColor = $cPanel
 
-    foreach ($b in @($btnTheme,$btnRightPanelToggle,$btnRotateCCW,$btnPrevFrame,$btnNextFrame,$btnRotateCW,$btnEndRedaction,$btnCancelRedaction,$btnRemoveRedaction,$btnClearRedactions,$btnZoomOut,$btnZoomFit,$btnZoomIn)) {
+    foreach ($b in @($btnTheme,$btnRightPanelToggle,$btnRotateCCW,$btnPrevFrame,$btnNextFrame,$btnRotateCW,$btnEndRedaction,$btnCancelRedaction,$btnRemoveRedaction,$btnClearRedactions,$btnRemoveAnnotation,$btnClearAnnotations,$btnZoomOut,$btnZoomFit,$btnZoomIn)) {
         $b.BackColor = $cButton
         $b.ForeColor = $cText
         $b.FlatAppearance.BorderColor = $cBorder
     }
 
-    foreach ($b in @($btnOpen,$btnPlayPause,$btnStartRedaction,$btnAddRedaction,$btnExport)) {
+    foreach ($b in @($btnOpen,$btnPlayPause,$btnStartRedaction,$btnAddRedaction,$btnClearScreen)) {
         $b.BackColor = $cAccent
         $b.ForeColor = [System.Drawing.Color]::White
         $b.FlatAppearance.BorderColor = $cAccent
     }
 
-    foreach ($r in @($rbRectangle,$rbOval,$rbFreeform,$rbZoom,$rbModeBlack,$rbModeBlur,$rbModePixelate)) {
+    foreach ($r in @($rbRectangle,$rbOval,$rbFreeform,$rbZoom,$rbCrop,$rbModeBlack,$rbModeBlur,$rbModePixelate,$rbText,$rbLine,$rbPolyline)) {
         if ($r.Checked) {
             $r.BackColor = if ($script:isDarkMode) { [System.Drawing.Color]::FromArgb(42,67,96) } else { $cAccent2 }
             $r.ForeColor = $cAccent
@@ -4437,7 +8006,6 @@ function Apply-Theme {
             $r.FlatAppearance.BorderColor = $cBorder
         }
     }
-    $modeRow.BackColor = $cPanel
     $zoomHud.BackColor = $cPanel
     $lblZoomIndicator.BackColor = [System.Drawing.Color]::Transparent
     $lblZoomIndicator.ForeColor = $cText
@@ -4463,6 +8031,59 @@ function Apply-Theme {
     # $script:fieldBorderColor, so this runs after it's set just above.
     Update-ColorPickerVisibility
     $swatchColor.Invalidate()
+    $numOutlineWidth.BackColor = $cInput
+    $numOutlineWidth.ForeColor = $cText
+    $cmbOutlineDash.BackColor = $cInput
+    $cmbOutlineDash.ForeColor = $cText
+    $cmbOutlineJoin.BackColor = $cInput
+    $cmbOutlineJoin.ForeColor = $cText
+    $swatchOutlineColor.BackColor = $script:outlineColor
+    $swatchOutlineColor.Invalidate()
+
+    # D3 Text Box context editor lives inside its own child panel, so theme it
+    # explicitly rather than relying on the top-level control traversal above.
+    $textAppearancePanel.BackColor = $cPanel
+    foreach ($lbl in @($lblTextContent,$lblTextFont,$lblTextSize,$lblTextStatus)) {
+        $lbl.BackColor = [System.Drawing.Color]::Transparent
+        $lbl.ForeColor = $cMuted
+    }
+    foreach ($c in @($txtAnnotationText,$cmbTextFont,$numTextSize,$cmbTextAlign)) {
+        $c.BackColor = $cInput
+        $c.ForeColor = $cText
+    }
+    # D5c-r2 floating Text editor uses the same Day/Dark palette as Appearance.
+    if ($floatingTextEditor) {
+        $floatingTextEditor.BackColor = $cPanel
+        $lblFloatingTextEditor.BackColor = [System.Drawing.Color]::Transparent
+        $lblFloatingTextEditor.ForeColor = $cMuted
+        $txtFloatingAnnotationText.BackColor = $cInput
+        $txtFloatingAnnotationText.ForeColor = $cText
+    }
+    $swatchTextColor.BackColor = $script:textColor
+    $swatchTextColor.Invalidate()
+    foreach ($b in @($btnAddText,$btnCancelText)) {
+        $b.BackColor = if ($b -eq $btnAddText) { $cAccent } else { $cButton }
+        $b.ForeColor = if ($b -eq $btnAddText) { [System.Drawing.Color]::White } else { $cText }
+        $b.FlatAppearance.BorderColor = if ($b -eq $btnAddText) { $cAccent } else { $cBorder }
+    }
+    foreach ($b in @($btnAddDraw,$btnCancelDraw)) {
+        $b.BackColor = if ($b -eq $btnAddDraw) { $cAccent } else { $cButton }
+        $b.ForeColor = if ($b -eq $btnAddDraw) { [System.Drawing.Color]::White } else { $cText }
+        $b.FlatAppearance.BorderColor = if ($b -eq $btnAddDraw) { $cAccent } else { $cBorder }
+    }
+    foreach ($b in @($chkTextBold,$chkTextItalic)) {
+        if ($b.Checked) {
+            $b.BackColor = if ($script:isDarkMode) { [System.Drawing.Color]::FromArgb(42,67,96) } else { $cAccent2 }
+            $b.ForeColor = $cAccent
+            $b.FlatAppearance.BorderColor = $cAccent
+        }
+        else {
+            $b.BackColor = $cButton
+            $b.ForeColor = $cText
+            $b.FlatAppearance.BorderColor = $cBorder
+        }
+        $b.Invalidate()
+    }
 
     foreach ($c in @($cmbQuality,$cmbFormat)) {
         $c.BackColor = $cInput
@@ -4479,10 +8100,27 @@ function Apply-Theme {
 
     $chkAudio.BackColor = $cPanel
     $chkAudio.ForeColor = $cText
+
+    # S1c-r2: the secure-deletion Output controls were introduced after the
+    # original theme pass and therefore kept their default WinForms colours.
+    # Theme them explicitly so Dark Mode does not render black text on #3C3F47.
+    $chkDeleteOriginal.BackColor = $cPanel
+    $chkDeleteOriginal.ForeColor = $cText
+    $btnDeleteInfo.BackColor = $cButton
+    $btnDeleteInfo.ForeColor = $cText
+    $btnDeleteInfo.FlatAppearance.BorderColor = $cBorder
+    $lblDeleteCapability.BackColor = [System.Drawing.Color]::Transparent
+    $lblDeleteCapability.ForeColor = $cMuted
+
     Update-SecurityModeNote
+    Update-AppearanceStatus
 
     $lvRedactions.BackColor = $cInput
     $lvRedactions.ForeColor = $cText
+    $lvAnnotations.BackColor = $cInput
+    $lvAnnotations.ForeColor = $cText
+    $cmbDrawEnds.BackColor = $cInput
+    $cmbDrawEnds.ForeColor = $cText
 
     $status.ForeColor = $cMuted
     $lblSelStatus.ForeColor = $cMuted
@@ -4496,15 +8134,23 @@ function Apply-Theme {
     $lblFormat.ForeColor = $cMuted
     $lblQuality.ForeColor = $cMuted
     $lblToolHint.ForeColor = $cMuted
+    $lblOutlineWidth.ForeColor = $cMuted
 
     $script:cButtonCurrent = $cButton
     $script:cTextCurrent = $cText
+    $script:cMutedCurrent = $cMuted
     $script:cBorderCurrent = $cBorder
     $script:cAccentCurrent = $cAccent
+    Update-ExportButtonAppearance
+    if(Get-Command Update-CopyButton -ErrorAction SilentlyContinue){Update-CopyButton}
     Update-TransportButtonVisuals
 
     $picture.Invalidate()
     $scrubberMarkers.Invalidate()
+    if($redactionEditor){
+        $redactionEditor.BackColor=$floatingTextEditor.BackColor;$redactionEditor.ForeColor=$floatingTextEditor.ForeColor
+        foreach($ctl in @($redactionEditorTitle,$redactionEditorHint)){$ctl.BackColor=$redactionEditor.BackColor;$ctl.ForeColor=$redactionEditor.ForeColor}
+    }
 }
 
 $btnTheme.Add_Click({
@@ -4553,6 +8199,534 @@ function Add-CenteredAboutLabel($panel, [string]$text, $font, [System.Drawing.Co
 # telemetry/no-network statement, license text, and a selectable GitHub URL.
 # v2.0 deliberately does not launch the URL. A copy icon places it on the
 # clipboard and shows a brief inline status message instead.
+Add-Type -ReferencedAssemblies System.Windows.Forms,System.Drawing -TypeDefinition @'
+using System;
+using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace TRT250 {
+    public sealed class CaptureHotkeys : NativeWindow, IDisposable {
+        [DllImport("user32.dll", SetLastError=true)] private static extern bool RegisterHotKey(IntPtr window, int id, uint modifiers, uint key);
+        [DllImport("user32.dll")] private static extern bool UnregisterHotKey(IntPtr window, int id);
+        public event EventHandler ImageRequested;
+        public event EventHandler VideoRequested;
+        public bool ImageRegistered { get; private set; }
+        public bool VideoRegistered { get; private set; }
+        public CaptureHotkeys() {
+            CreateParams p = new CreateParams();
+            p.Caption = "TinyRedactionTool capture hotkeys";
+            p.Parent = new IntPtr(-3);
+            CreateHandle(p);
+        }
+        public void Register() {
+            ImageRegistered = RegisterHotKey(Handle, 1, 0x4002, 0x2C);
+            VideoRegistered = RegisterHotKey(Handle, 2, 0x4006, 0x2C);
+        }
+        protected override void WndProc(ref Message message) {
+            if (message.Msg == 0x312) {
+                if (message.WParam.ToInt32() == 1 && ImageRequested != null) ImageRequested(this, EventArgs.Empty);
+                if (message.WParam.ToInt32() == 2 && VideoRequested != null) VideoRequested(this, EventArgs.Empty);
+            }
+            base.WndProc(ref message);
+        }
+        public void Dispose() {
+            if (Handle != IntPtr.Zero) {
+                if (ImageRegistered) UnregisterHotKey(Handle, 1);
+                if (VideoRegistered) UnregisterHotKey(Handle, 2);
+                DestroyHandle();
+            }
+            ImageRegistered = false; VideoRegistered = false;
+        }
+    }
+
+    public sealed class DpiScope : IDisposable {
+        [DllImport("user32.dll")] private static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
+        private IntPtr previous;
+        public DpiScope() { try { previous = SetThreadDpiAwarenessContext(new IntPtr(-4)); } catch (EntryPointNotFoundException) {} }
+        public void Dispose() { if (previous != IntPtr.Zero) SetThreadDpiAwarenessContext(previous); }
+    }
+
+    public sealed class RegionSelector : Form {
+        private readonly Bitmap desktop;
+        private Point anchor;
+        private Rectangle selection;
+        private bool dragging;
+        public Rectangle SelectedRegion { get; private set; }
+        public RegionSelector(Bitmap background, Rectangle virtualBounds) {
+            desktop = background;
+            AutoScaleMode = AutoScaleMode.None;
+            FormBorderStyle = FormBorderStyle.None; StartPosition = FormStartPosition.Manual;
+            Bounds = virtualBounds; TopMost = true; ShowInTaskbar = false;
+            DoubleBuffered = true; KeyPreview = true; Cursor = Cursors.Cross;
+        }
+        public static Rectangle NormalizeSelection(Point first, Point last) {
+            return Rectangle.FromLTRB(Math.Min(first.X,last.X),Math.Min(first.Y,last.Y),Math.Max(first.X,last.X),Math.Max(first.Y,last.Y));
+        }
+        protected override void OnShown(EventArgs e) { base.OnShown(e); Activate(); Focus(); }
+        protected override void OnMouseDown(MouseEventArgs e) {
+            base.OnMouseDown(e);
+            if (e.Button == MouseButtons.Right) { DialogResult = DialogResult.Cancel; return; }
+            if (e.Button != MouseButtons.Left) return;
+            anchor = e.Location; selection = Rectangle.Empty; dragging = true; Capture = true; Invalidate();
+        }
+        protected override void OnMouseMove(MouseEventArgs e) {
+            base.OnMouseMove(e);
+            if (dragging) {
+                Point end = new Point(Math.Max(0,Math.Min(ClientSize.Width,e.X)),Math.Max(0,Math.Min(ClientSize.Height,e.Y)));
+                selection = NormalizeSelection(anchor,end); Invalidate();
+            }
+        }
+        protected override void OnMouseUp(MouseEventArgs e) {
+            base.OnMouseUp(e);
+            if (!dragging || e.Button != MouseButtons.Left) return;
+            selection = NormalizeSelection(anchor,new Point(Math.Max(0,Math.Min(ClientSize.Width,e.X)),Math.Max(0,Math.Min(ClientSize.Height,e.Y))));
+            dragging = false; Capture = false;
+            if (selection.Width < 2 || selection.Height < 2) { DialogResult = DialogResult.Cancel; return; }
+            SelectedRegion = new Rectangle(Bounds.Left+selection.Left,Bounds.Top+selection.Top,selection.Width,selection.Height);
+            DialogResult = DialogResult.OK;
+        }
+        protected override void OnKeyDown(KeyEventArgs e) {
+            if (e.KeyCode == Keys.Escape) { DialogResult = DialogResult.Cancel; e.Handled = true; }
+            base.OnKeyDown(e);
+        }
+        protected override void OnPaint(PaintEventArgs e) {
+            e.Graphics.DrawImageUnscaled(desktop,0,0);
+            using (Brush shade = new SolidBrush(Color.FromArgb(110,0,0,0))) e.Graphics.FillRectangle(shade,ClientRectangle);
+            if (selection.Width > 0 && selection.Height > 0) {
+                e.Graphics.DrawImage(desktop,selection,selection,GraphicsUnit.Pixel);
+                using (Pen pen = new Pen(Color.DodgerBlue,2)) e.Graphics.DrawRectangle(pen,selection);
+            }
+            Rectangle hint = new Rectangle(20,20,360,30);
+            using (Brush shade = new SolidBrush(Color.FromArgb(255,220,65))) e.Graphics.FillRectangle(shade,hint);
+            TextRenderer.DrawText(e.Graphics,"Drag to select a region. Esc / right-click cancels.",SystemFonts.MessageBoxFont,hint,Color.Black,TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            base.OnPaint(e);
+        }
+    }
+
+    public static class ScreenCapture {
+        [DllImport("user32.dll", EntryPoint="IsWindowEnabled")] public static extern bool IsWindowEnabled(IntPtr window);
+        public static Bitmap Grab(Rectangle region) {
+            if (region.Width < 2 || region.Height < 2) throw new ArgumentException("Capture region is too small.");
+            using (DpiScope dpi = new DpiScope()) {
+                Bitmap bitmap = new Bitmap(region.Width,region.Height,PixelFormat.Format24bppRgb);
+                try {
+                    using (Graphics graphics = Graphics.FromImage(bitmap)) graphics.CopyFromScreen(region.Left,region.Top,0,0,region.Size,CopyPixelOperation.SourceCopy);
+                    return bitmap;
+                } catch { bitmap.Dispose(); throw; }
+            }
+        }
+        public static Rectangle SelectRegion() {
+            using (DpiScope dpi = new DpiScope()) {
+                Rectangle desktop = SystemInformation.VirtualScreen;
+                using (Bitmap bitmap = Grab(desktop))
+                using (RegionSelector selector = new RegionSelector(bitmap,desktop)) {
+                    return selector.ShowDialog() == DialogResult.OK ? selector.SelectedRegion : Rectangle.Empty;
+                }
+            }
+        }
+        public static Rectangle VideoRegion(Rectangle region) {
+            // H.264 4:2:0 needs even dimensions. Crop inward by at most one pixel;
+            // never capture pixels outside the user's selection.
+            return new Rectangle(region.Left,region.Top,region.Width & ~1,region.Height & ~1);
+        }
+    }
+
+    public sealed class RegionVideoRecorder : IDisposable {
+        private Thread worker;
+        private readonly ManualResetEvent stop = new ManualResetEvent(false);
+        private volatile bool stopping;
+        private Process process;
+        private volatile int frames;
+        private string error = "";
+        private bool disposed;
+        public bool IsRecording { get { return worker != null && worker.IsAlive; } }
+        public int FrameCount { get { return frames; } }
+        public string Error { get { return error; } }
+        public void Start(string ffmpeg, string output, Rectangle region, int fps) { Start(ffmpeg,output,region,fps,null); }
+        public void Start(string ffmpeg, string output, Rectangle region, int fps, Func<Bitmap> frameProvider) {
+            if (worker != null || disposed) throw new InvalidOperationException("Recorder cannot be reused.");
+            if (fps < 1 || fps > 30 || region.Width < 2 || region.Height < 2 || (region.Width & 1) != 0 || (region.Height & 1) != 0) throw new ArgumentException("Invalid recording dimensions or frame rate.");
+            if (!Path.IsPathRooted(ffmpeg) || !Path.IsPathRooted(output) || ffmpeg.IndexOf('"') >= 0 || output.IndexOf('"') >= 0) throw new ArgumentException("Recording paths must be absolute.");
+            worker = new Thread(delegate() { Record(ffmpeg,output,region,fps,frameProvider); });
+            worker.IsBackground = true; worker.Name = "TRT region recording"; worker.Start();
+        }
+        private void Record(string ffmpeg, string output, Rectangle region, int fps, Func<Bitmap> provider) {
+            Task<string> errors = null;
+            byte[] latest = null;
+            Stopwatch clock = new Stopwatch();
+            try {
+                ProcessStartInfo info = new ProcessStartInfo();
+                info.FileName = ffmpeg;
+                info.Arguments = "-hide_banner -loglevel error -y -f image2pipe -framerate " + fps + " -c:v png -i pipe:0 -an -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p -threads 1 -map_metadata -1 -movflags +faststart \"" + output + "\"";
+                info.UseShellExecute = false; info.CreateNoWindow = true;
+                info.RedirectStandardInput = true; info.RedirectStandardError = true;
+                process = Process.Start(info); errors = process.StandardError.ReadToEndAsync();
+                clock.Start();
+                do {
+                    using (Bitmap image = provider == null ? ScreenCapture.Grab(region) : provider())
+                    using (MemoryStream bytes = new MemoryStream()) {
+                        if (image.Width != region.Width || image.Height != region.Height) throw new InvalidOperationException("Frame dimensions changed during recording.");
+                        image.Save(bytes,ImageFormat.Png); latest = bytes.ToArray();
+                    }
+                    int target = Math.Max(1,(int)Math.Floor(clock.Elapsed.TotalSeconds * fps)+1);
+                    // Repeat the latest frame for missed sample slots, retaining a
+                    // monotonic wall-clock duration without a capture-frame backlog.
+                    if (target - frames > fps * 10) throw new InvalidOperationException("Screen recording could not keep up with the selected region.");
+                    while (frames < target) WriteFrame(latest);
+                    int delay = Math.Max(1,(int)(frames * 1000.0 / fps - clock.Elapsed.TotalMilliseconds));
+                    stop.WaitOne(delay);
+                } while (!stopping);
+            } catch (Exception ex) { error = ex.Message; }
+            finally {
+                clock.Stop();
+                if (process != null) {
+                    try { process.StandardInput.Close(); } catch {}
+                    try {
+                        if (!process.WaitForExit(20000)) { process.Kill(); error = "The recording encoder did not finish."; process.WaitForExit(2000); }
+                        else if (process.ExitCode != 0 && error.Length == 0) error = "The recording encoder failed.";
+                        if (errors != null) {
+                            string detail = errors.GetAwaiter().GetResult();
+                            if (error.Length > 0 && detail.Length > 0) error += " " + detail.Substring(0,Math.Min(500,detail.Length));
+                        }
+                    } catch (Exception ex) { if (error.Length == 0) error = ex.Message; }
+                    process.Dispose(); process = null;
+                }
+            }
+        }
+        private void WriteFrame(byte[] png) {
+            process.StandardInput.BaseStream.Write(png,0,png.Length);
+            process.StandardInput.BaseStream.Flush(); frames++;
+        }
+        public void RequestStop() { stopping = true; stop.Set(); }
+        public void Dispose() {
+            if (disposed) return;
+            RequestStop();
+            if (worker != null && worker.IsAlive && !worker.Join(22000)) {
+                try { if (process != null) process.Kill(); } catch {}
+                worker.Join(2000);
+            }
+            if (worker == null || !worker.IsAlive) stop.Dispose();
+            disposed = true;
+        }
+    }
+    public sealed class RecordingStopWindow : Form {
+        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError=true)]
+        private static extern bool SetWindowDisplayAffinity(IntPtr window, uint affinity);
+        private readonly System.Windows.Forms.Timer blink = new System.Windows.Forms.Timer();
+        private readonly Button stopButton = new Button();
+        private bool red = true;
+        public event EventHandler StopRequested;
+        public bool CaptureExcluded { get; private set; }
+        public RecordingStopWindow(Rectangle region) {
+            FormBorderStyle=FormBorderStyle.None; ShowInTaskbar=false; TopMost=true;
+            AutoScaleMode=AutoScaleMode.None; BackColor=Color.FromArgb(255,220,65);
+            ClientSize=new Size(190,38); StartPosition=FormStartPosition.Manual;
+            Rectangle screen=Screen.FromRectangle(region).Bounds;
+            Location=new Point(screen.Left+(screen.Width-Width)/2,screen.Top+10);
+            stopButton.Text="Stop Recording"; stopButton.FlatStyle=FlatStyle.Flat;
+            stopButton.FlatAppearance.BorderSize=0; stopButton.BackColor=BackColor;
+            stopButton.Font=new Font("Segoe UI",10,FontStyle.Bold);
+            stopButton.SetBounds(31,0,159,38); Controls.Add(stopButton);
+            stopButton.Click+=delegate { var handler=StopRequested; if(handler!=null)handler(this,EventArgs.Empty); };
+            blink.Interval=500; blink.Tick+=delegate { red=!red; Invalidate(); }; blink.Start();
+        }
+        protected override bool ShowWithoutActivation { get { return true; } }
+        protected override CreateParams CreateParams { get { var p=base.CreateParams;p.ExStyle|=0x08000080;return p; } }
+        protected override void OnHandleCreated(EventArgs e) {
+            base.OnHandleCreated(e); CaptureExcluded=SetWindowDisplayAffinity(Handle,0x11);
+        }
+        protected override void OnPaint(PaintEventArgs e) {
+            base.OnPaint(e); e.Graphics.SmoothingMode=System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            using(var brush=new SolidBrush(red?Color.Red:BackColor))e.Graphics.FillEllipse(brush,10,12,14,14);
+        }
+        public void Finishing() { blink.Stop();red=false;stopButton.Text="Finishing...";stopButton.Enabled=false;Invalidate(); }
+        protected override void Dispose(bool disposing) { if(disposing){blink.Dispose();stopButton.Font.Dispose();}base.Dispose(disposing); }
+    }
+    public sealed class RecordingBorder : Form {
+        [DllImport("user32.dll",SetLastError=true)] private static extern bool SetWindowDisplayAffinity(IntPtr window,uint affinity);
+        private readonly System.Windows.Forms.Timer blink=new System.Windows.Forms.Timer();
+        private bool red=true;
+        public bool CaptureExcluded {get;private set;}
+        public RecordingBorder(Rectangle region) {
+            AutoScaleMode=AutoScaleMode.None;FormBorderStyle=FormBorderStyle.None;
+            StartPosition=FormStartPosition.Manual;Bounds=region;TopMost=true;ShowInTaskbar=false;
+            BackColor=Color.Magenta;TransparencyKey=Color.Magenta;
+            blink.Interval=500;blink.Tick+=delegate{red=!red;Invalidate();};blink.Start();
+        }
+        protected override bool ShowWithoutActivation {get{return true;}}
+        protected override CreateParams CreateParams {get{var p=base.CreateParams;p.ExStyle|=0x080000A0;return p;}}
+        protected override void OnHandleCreated(EventArgs e){base.OnHandleCreated(e);CaptureExcluded=SetWindowDisplayAffinity(Handle,0x11);}
+        protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);if(red)using(var pen=new Pen(Color.Red,3))e.Graphics.DrawRectangle(pen,1,1,Math.Max(1,ClientSize.Width-3),Math.Max(1,ClientSize.Height-3));}
+        protected override void Dispose(bool disposing){if(disposing)blink.Dispose();base.Dispose(disposing);}
+    }
+    public static class CaptureCleanup {
+        public static void OverwriteAndDelete(string path,string root) {
+            string full=Path.GetFullPath(path), prefix=Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar)+Path.DirectorySeparatorChar;
+            if(!full.StartsWith(prefix,StringComparison.OrdinalIgnoreCase)||Path.GetDirectoryName(full)!=prefix.TrimEnd(Path.DirectorySeparatorChar))throw new IOException("Capture cleanup path rejected.");
+            if(!File.Exists(full))return;
+            if((File.GetAttributes(full)&FileAttributes.ReparsePoint)!=0||(File.GetAttributes(root)&FileAttributes.ReparsePoint)!=0)throw new IOException("Capture cleanup rejects redirected files.");
+            using(var file=new FileStream(full,FileMode.Open,FileAccess.ReadWrite,FileShare.None,65536,FileOptions.WriteThrough)){
+                long length=file.Length;byte[] zero=new byte[65536];
+                while(file.Position<length)file.Write(zero,0,(int)Math.Min(zero.Length,length-file.Position));
+                file.Flush(true);file.Position=0;byte[] check=new byte[65536];int count;
+                while((count=file.Read(check,0,check.Length))>0)for(int i=0;i<count;i++)if(check[i]!=0)throw new IOException("Capture overwrite verification failed.");
+            }
+            File.Delete(full);
+        }
+    }
+}
+
+'@
+
+# v2.5.0: tray preferences and native capture are session-local UI/input state.
+$script:TraySettings = [pscustomobject]@{ Mode='Exit'; Syncing=$false; AllowQuit=$false; Restoring=$false; NormalState=[System.Windows.Forms.FormWindowState]::Maximized }
+$script:CaptureState = [pscustomobject]@{ Busy=$false; Recorder=$null; Output=''; Root=''; Files=(New-Object System.Collections.Generic.List[string]); Hotkeys=$null; Tray=$null; Menu=$null; StopItem=$null; Poll=$null; StopWindow=$null; Border=$null; Quitting=$false; QuitPending=$false }
+
+function Add-CaptureAboutControls($panel,[int]$width,[System.Drawing.Color]$textColor) {
+    $settings=$script:TraySettings
+    $row=New-Object System.Windows.Forms.Panel
+    $row.SetBounds(0,$script:aboutY,$width,26)
+    $panel.Controls.Add($row)
+    $half=[int]($width/2)
+    $minimize=New-Object System.Windows.Forms.CheckBox
+    $minimize.Text='Minimize to tray';$minimize.AutoSize=$true;$minimize.Font=New-UIFont 8.5;$minimize.ForeColor=$textColor
+    $row.Controls.Add($minimize)
+    $exit=New-Object System.Windows.Forms.CheckBox
+    $exit.Text='Exit to tray';$exit.AutoSize=$true;$exit.Font=New-UIFont 8.5;$exit.ForeColor=$textColor
+    $row.Controls.Add($exit)
+    $minimize.Checked=$settings.Mode -eq 'Minimize';$exit.Checked=$settings.Mode -eq 'Exit'
+    $minimize.Left=[int](($half-$minimize.PreferredSize.Width)/2)
+    $exit.Left=$half+[int](($half-$exit.PreferredSize.Width)/2)
+    $minimize.Add_CheckedChanged({
+        if($settings.Syncing){return};$settings.Syncing=$true
+        try {if($minimize.Checked){$settings.Mode='Minimize';$exit.Checked=$false}else{$settings.Mode='Exit';$exit.Checked=$true}}
+        finally {$settings.Syncing=$false}
+    }.GetNewClosure())
+    $exit.Add_CheckedChanged({
+        if($settings.Syncing){return};$settings.Syncing=$true
+        try {if($exit.Checked){$settings.Mode='Exit';$minimize.Checked=$false}else{$settings.Mode='Minimize';$minimize.Checked=$true}}
+        finally {$settings.Syncing=$false}
+    }.GetNewClosure())
+    $script:aboutY += 26
+    foreach($spec in @(@('CTRL-Print Screen for image capture',0),@('CTRL-SHIFT-Print Screen for video capture',$half))) {
+        $label=New-Object System.Windows.Forms.Label
+        $label.Text=$spec[0];$label.Font=New-UIFont 8.0;$label.ForeColor=$textColor;$label.TextAlign='MiddleCenter'
+        $label.SetBounds($spec[1],$script:aboutY,$half,24)
+        $panel.Controls.Add($label)
+    }
+    $script:aboutY += 30
+}
+
+function Restore-TRTFromTray {
+    $settings=$script:TraySettings
+    $settings.Restoring=$true
+    try {
+        $form.Show()
+        if($form.WindowState -eq [System.Windows.Forms.FormWindowState]::Minimized) {$form.WindowState=$settings.NormalState}
+        $form.BringToFront();$form.Activate()
+    } finally {$settings.Restoring=$false}
+}
+
+function Hide-TRTToTray {
+    if(-not $script:CaptureState.Tray -or -not $script:CaptureState.Tray.Visible) {return}
+    Stop-Playback
+    if($script:floatingTextEditorVisible) {Close-FloatingTextEditor $false}
+    $form.Hide()
+}
+
+function Remove-UnusedCaptureFiles {
+    $state=$script:CaptureState
+    if(-not $state.Root){return}
+    foreach($path in @($state.Files.ToArray())) {
+        if($path -eq $videoPath -or ($state.Recorder -and $path -eq $state.Output)){continue}
+        try {
+            [TRT250.CaptureCleanup]::OverwriteAndDelete($path,$state.Root)
+            [void]$state.Files.Remove($path)
+        } catch {
+            [System.Windows.Forms.MessageBox]::Show(('Capture cleanup failed. File retained for retry: '+$path+"`r`n"+$_.Exception.GetBaseException().Message),'Capture cleanup','OK','Warning')|Out-Null
+        }
+    }
+    if(-not $state.Files.Count){
+        if($script:CaptureLease){$script:CaptureLease.Dispose();$script:CaptureLease=$null}
+        $leasePath=Join-Path $state.Root '.session.lock'
+        if(Test-Path -LiteralPath $leasePath){Remove-Item -LiteralPath $leasePath -Force -ErrorAction Stop}
+        [IO.Directory]::Delete($state.Root,$false);$state.Root=''
+    }
+}
+function New-CaptureFile([string]$extension) {
+    $state=$script:CaptureState
+    if(-not $state.Root) {
+        $temp=Get-CaptureTempBase
+        if(Get-NetworkPathReason $temp) {throw 'Screen capture requires a local temporary folder.'}
+        $state.Root=Join-Path $temp ('TinyRedactionTool-Capture-'+[guid]::NewGuid().ToString('N'))
+        [IO.Directory]::CreateDirectory($state.Root) | Out-Null
+        $script:CaptureLease=[IO.File]::Open((Join-Path $state.Root '.session.lock'),[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
+    }
+    $path=Join-Path $state.Root ('capture-'+[guid]::NewGuid().ToString('N')+$extension)
+    $state.Files.Add($path)
+    return $path
+}
+
+function Complete-RegionRecording {
+    $state=$script:CaptureState
+    if(-not $state.Recorder -or $state.Recorder.IsRecording) {return}
+    $state.Poll.Stop()
+    if($state.Border){$state.Border.Dispose();$state.Border=$null};if($state.StopWindow){$state.StopWindow.Dispose();$state.StopWindow=$null}
+    $errorText=[string]$state.Recorder.Error
+    $frames=[int]$state.Recorder.FrameCount
+    $state.Recorder.Dispose();$state.Recorder=$null
+    $state.StopItem.Visible=$false;$state.Tray.Text='TinyRedactionTool v2.5.0'
+    $form.Enabled=$true
+    $path=[string]$state.Output;$state.Output=''
+    if($state.Quitting){return}
+    Restore-TRTFromTray
+    if($errorText -or $frames -le 0 -or -not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        Remove-UnusedCaptureFiles
+        [System.Windows.Forms.MessageBox]::Show(('The region recording could not be completed. '+$errorText),'Screen recording','OK','Error') | Out-Null
+        return
+    }
+    Open-TRTMediaPath $path
+}
+
+function Stop-RegionRecording {
+    if($script:CaptureState.Recorder) {
+        if($script:CaptureState.StopWindow){$script:CaptureState.StopWindow.Finishing()}
+        $script:CaptureState.Recorder.RequestStop()
+        $script:CaptureState.Tray.Text='TinyRedactionTool: finishing recording'
+    }
+}
+
+function Invoke-RegionCapture([bool]$video=$false) {
+    $state=$script:CaptureState
+    if($state.Recorder) {if($video){Stop-RegionRecording};return}
+    if($script:ExportBusy -or $state.Busy -or -not $form.Enabled -or -not [TRT250.ScreenCapture]::IsWindowEnabled($form.Handle) -or $state.Quitting){return}
+    foreach($owned in $form.OwnedForms) {if($owned.Visible -and $owned.Modal){return}}
+    $state.Busy=$true
+    $wasVisible=$form.Visible
+    try {
+        Stop-Playback
+        if($script:floatingTextEditorVisible){Close-FloatingTextEditor $false}
+        $form.Hide()
+        [System.Windows.Forms.Application]::DoEvents()
+        [Threading.Thread]::Sleep(120)
+        $region=[TRT250.ScreenCapture]::SelectRegion()
+        if($region.Width -lt 2 -or $region.Height -lt 2){if($wasVisible){Restore-TRTFromTray};return}
+        [System.Windows.Forms.Application]::DoEvents()
+        [Threading.Thread]::Sleep(80)
+        if($video) {
+            $region=[TRT250.ScreenCapture]::VideoRegion($region)
+            $state.Output=New-CaptureFile '.mp4'
+            $state.Border=New-Object TRT250.RecordingBorder($region)
+            $state.Border.Show()
+            if(-not $state.Border.CaptureExcluded){throw 'Windows could not exclude the recording border from capture.'}
+            $state.StopWindow=New-Object TRT250.RecordingStopWindow($region)
+            $state.StopWindow.Add_StopRequested({Stop-RegionRecording})
+            $state.StopWindow.Show()
+            if(-not $state.StopWindow.CaptureExcluded){throw 'Windows could not exclude the recording control from capture.'}
+            $state.Recorder=New-Object TRT250.RegionVideoRecorder
+            $state.Recorder.Start([IO.Path]::GetFullPath($ffmpeg),$state.Output,$region,15)
+            $state.StopItem.Visible=$true
+            $state.Tray.Text='TinyRedactionTool: recording region'
+            $form.Enabled=$false
+            $state.Poll.Start()
+            $state.Tray.ShowBalloonTip(3000,'Recording selected region','Click Stop Recording or press Ctrl+Shift+Print Screen to finish. Screen only; no audio.',[System.Windows.Forms.ToolTipIcon]::Info)
+        } else {
+            $path=New-CaptureFile '.png'
+            $bitmap=[TRT250.ScreenCapture]::Grab($region)
+            try {$bitmap.Save($path,[System.Drawing.Imaging.ImageFormat]::Png)}finally{$bitmap.Dispose()}
+            Restore-TRTFromTray
+            Open-TRTMediaPath $path
+        }
+    } catch {
+        if($state.Border){$state.Border.Dispose();$state.Border=$null};if($state.StopWindow){$state.StopWindow.Dispose();$state.StopWindow=$null}
+        if($state.Recorder){$state.Recorder.Dispose();$state.Recorder=$null}
+        $form.Enabled=$true
+        Restore-TRTFromTray
+        $state.Output=''
+        Remove-UnusedCaptureFiles
+        [System.Windows.Forms.MessageBox]::Show($_.Exception.GetBaseException().Message,'Screen capture','OK','Error') | Out-Null
+    } finally {$state.Busy=$false;if($state.QuitPending){Quit-TRTFromTray}}
+}
+
+function Quit-TRTFromTray {
+    if($script:MediaWorker -and $script:MediaWorker.Kind -eq "Load"){$script:QuitAfterExport=$true;Cancel-VideoLoading;Hide-TRTToTray;return}
+    if($script:ExportBusy){$script:QuitAfterExport=$true;Hide-TRTToTray;return}
+    $state=$script:CaptureState
+    if($state.Busy){$state.QuitPending=$true;return}
+    $state.QuitPending=$false
+    $state.Quitting=$true
+    $script:TraySettings.AllowQuit=$true
+    if($state.Recorder) {
+        $state.Recorder.Dispose()
+        Complete-RegionRecording
+    }
+    $form.Enabled=$true
+    $form.Close()
+}
+
+function Initialize-TRTTrayCapture {
+    $state=$script:CaptureState
+    $state.Menu=New-Object System.Windows.Forms.ContextMenuStrip
+    $state.StopItem=New-Object System.Windows.Forms.ToolStripMenuItem('Stop recording')
+    $state.StopItem.Visible=$false;$state.StopItem.Add_Click({Stop-RegionRecording})
+    [void]$state.Menu.Items.Add($state.StopItem)
+    $quit=New-Object System.Windows.Forms.ToolStripMenuItem('Quit')
+    $quit.Add_Click({Quit-TRTFromTray});[void]$state.Menu.Items.Add($quit)
+    $state.Tray=New-Object System.Windows.Forms.NotifyIcon
+    $state.Tray.Icon=$form.Icon
+    $state.Tray.Text='TinyRedactionTool v2.5.0';$state.Tray.ContextMenuStrip=$state.Menu
+    $state.Tray.Add_MouseClick({param($sender,$e) if($e.Button -eq [System.Windows.Forms.MouseButtons]::Left){Restore-TRTFromTray}})
+    $state.Tray.Visible=$true
+    $state.Poll=New-Object System.Windows.Forms.Timer
+    $state.Poll.Interval=200;$state.Poll.Add_Tick({Complete-RegionRecording})
+    $form.Add_Resize({
+        $settings=$script:TraySettings
+        if($settings.Restoring){return}
+        if($form.WindowState -eq [System.Windows.Forms.FormWindowState]::Minimized) {
+            if($settings.Mode -eq 'Minimize'){Hide-TRTToTray}
+        } else {$settings.NormalState=$form.WindowState}
+    })
+    $form.Add_FormClosing({
+        param($sender,$e)
+        if($e.CloseReason -eq [System.Windows.Forms.CloseReason]::UserClosing -and -not $script:TraySettings.AllowQuit -and $script:TraySettings.Mode -eq 'Exit') {
+            $e.Cancel=$true;[void]$form.BeginInvoke([System.Action]{if(-not $form.IsDisposed -and -not $script:TraySettings.AllowQuit){Hide-TRTToTray}})
+        }
+    })
+    $form.Add_Shown({
+        if($script:CaptureState.Hotkeys){return}
+        try {
+            $script:CaptureState.Hotkeys=New-Object TRT250.CaptureHotkeys
+            $script:CaptureState.Hotkeys.Add_ImageRequested({Invoke-RegionCapture $false})
+            $script:CaptureState.Hotkeys.Add_VideoRequested({Invoke-RegionCapture $true})
+            $script:CaptureState.Hotkeys.Register()
+            $missing=New-Object System.Collections.Generic.List[string]
+            if(-not $script:CaptureState.Hotkeys.ImageRegistered){$missing.Add('Ctrl+Print Screen')}
+            if(-not $script:CaptureState.Hotkeys.VideoRegistered){$missing.Add('Ctrl+Shift+Print Screen')}
+            if($missing.Count) {[System.Windows.Forms.MessageBox]::Show(('Capture shortcut unavailable: '+($missing -join ', ')+'. Another application may already use it.'),'Capture shortcuts','OK','Information') | Out-Null}
+        } catch {[System.Windows.Forms.MessageBox]::Show('Windows could not register the capture shortcuts. Tray controls remain available.','Capture shortcuts','OK','Information') | Out-Null}
+    })
+    $form.Add_FormClosed({
+        $state=$script:CaptureState;$state.Quitting=$true
+        if($state.Poll){$state.Poll.Stop();$state.Poll.Dispose()}
+        if($state.Hotkeys){$state.Hotkeys.Dispose()}
+        if($state.Border){$state.Border.Dispose();$state.Border=$null};if($state.StopWindow){$state.StopWindow.Dispose();$state.StopWindow=$null}
+        if($state.Recorder){$state.Recorder.Dispose();$state.Recorder=$null}
+        if($state.Tray){$state.Tray.Visible=$false;$state.Tray.Dispose()}
+        if($state.Menu){$state.Menu.Dispose()}
+        # Session-owned captures are separate from user-supplied originals.
+        # Release preview state before overwriting these generated files.
+        $script:videoPath=$null
+        Remove-UnusedCaptureFiles
+    })
+}
+
+
 function Show-AboutDialog {
     $isDark = $script:isDarkMode
     $cBg     = if ($isDark) { [System.Drawing.Color]::FromArgb(60,63,71) } else { [System.Drawing.Color]::FromArgb(223,238,245) }
@@ -4561,7 +8735,7 @@ function Show-AboutDialog {
     $cAccent = if ($isDark) { [System.Drawing.Color]::FromArgb(70,150,255) } else { [System.Drawing.Color]::FromArgb(18,113,255) }
     $cBorder = if ($isDark) { [System.Drawing.Color]::FromArgb(100,105,117) } else { [System.Drawing.Color]::FromArgb(218,224,232) }
 
-    $dlgWidth = 430
+    $dlgWidth = 560
     $contentWidth = $dlgWidth - 40
 
     $dlg = New-Object System.Windows.Forms.Form
@@ -4585,10 +8759,24 @@ function Show-AboutDialog {
     $script:aboutY = 0
     $aboutEmphasis = if ($isDark) { $cText } else { [System.Drawing.Color]::Black }
 
-    Add-CenteredAboutLabel $panel "TinyRedactionTool v2.2.0" (New-UIFont 15.5 ([System.Drawing.FontStyle]::Bold)) $cText $contentWidth 0 6 | Out-Null
+    Add-CenteredAboutLabel $panel "TinyRedactionTool v2.5.0" (New-UIFont 15.5 ([System.Drawing.FontStyle]::Bold)) $cText $contentWidth 0 6 | Out-Null
+    Add-CaptureAboutControls $panel $contentWidth $cText
     Add-CenteredAboutLabel $panel "Copyright (C) 2026 David McCabe" (New-UIFont 9.5 ([System.Drawing.FontStyle]::Bold)) $cText $contentWidth 0 5 | Out-Null
     Add-CenteredAboutLabel $panel "Local media processing. No telemetry or media uploads." (New-UIFont 8.5 ([System.Drawing.FontStyle]::Bold)) $aboutEmphasis $contentWidth 0 0 | Out-Null
     Add-CenteredAboutLabel $panel "Licensed under GPL-2.0-or-later. Source available on GitHub." (New-UIFont 8.5) $cMuted $contentWidth -4 0 | Out-Null
+
+    if ($script:ManagedPolicy) {
+        Add-CenteredAboutLabel $panel ("Managed policy: {0} ({1})" -f $script:ManagedPolicy.PolicyId, $script:ManagedPolicy.PolicyVersion) (New-UIFont 8.3 ([System.Drawing.FontStyle]::Bold)) $cText $contentWidth 2 0 | Out-Null
+        $managedControls = New-Object System.Collections.Generic.List[string]
+        if ($script:ManagedPolicy.BlockNetworkSource) { [void]$managedControls.Add("block network source") }
+        if ($script:ManagedPolicy.BlockNetworkDestination) { [void]$managedControls.Add("block network destination") }
+        if ($script:ManagedPolicy.DisableSourceDeletion) { [void]$managedControls.Add("disable source deletion") }
+        if ($script:ManagedPolicy.DisableAudioRetention) { [void]$managedControls.Add("disable audio retention") }
+        if ($script:ManagedPolicy.DisableVisualObscuration) { [void]$managedControls.Add("disable visual obscuration") }
+        $managedControlText = if ($managedControls.Count -gt 0) { [string]::Join("; ", $managedControls) } else { "none (public behaviour remains active)" }
+        Add-CenteredAboutLabel $panel ("Managed controls: " + $managedControlText) (New-UIFont 8.1) $cMuted $contentWidth -4 0 | Out-Null
+        Add-CenteredAboutLabel $panel "v2.5.0 adds tray controls and native region capture; accepted G2d restrictions remain unchanged." (New-UIFont 8.1) $cMuted $contentWidth -4 2 | Out-Null
+    }
 
     $repoUrl = "https://github.com/mccabedd/tinyredactiontool/"
 
@@ -4738,13 +8926,23 @@ function Show-AboutDialog {
 $btnInfo.Add_Click({ Show-AboutDialog })
 
 $rbModeBlur.Add_CheckedChanged({
+    if ($rbModeBlur.Checked -and $script:ManagedPolicy -and $script:ManagedPolicy.DisableVisualObscuration) {
+        $rbModeBlur.Checked = $false
+        $rbModeBlack.Checked = $true
+        return
+    }
     if ($rbModeBlur.Checked) { Show-VisualObscurationWarning }
 })
 $rbModePixelate.Add_CheckedChanged({
+    if ($rbModePixelate.Checked -and $script:ManagedPolicy -and $script:ManagedPolicy.DisableVisualObscuration) {
+        $rbModePixelate.Checked = $false
+        $rbModeBlack.Checked = $true
+        return
+    }
     if ($rbModePixelate.Checked) { Show-VisualObscurationWarning }
 })
 
-foreach ($r in @($rbRectangle,$rbOval,$rbFreeform,$rbZoom,$rbModeBlack,$rbModeBlur,$rbModePixelate)) {
+foreach ($r in @($rbRectangle,$rbOval,$rbFreeform,$rbZoom,$rbCrop,$rbModeBlack,$rbModeBlur,$rbModePixelate,$rbLine,$rbPolyline)) {
     $r.Add_CheckedChanged({
         Apply-Theme
         # Apply-Theme paints the generic accent/neutral palette first.
@@ -4765,6 +8963,7 @@ Apply-Theme
 function Get-FitZoomFactor {
     if (-not $picture -or $videoWidth -le 0 -or $videoHeight -le 0) { return 1.0 }
 
+    if($isImageMode -and $script:ImageCrop){$videoWidth=$script:ImageCrop.Width;$videoHeight=$script:ImageCrop.Height}
     $viewportWidth = [double]$picture.ClientSize.Width
     $viewportHeight = [double]$picture.ClientSize.Height
     if ($viewportWidth -le 0.0 -or $viewportHeight -le 0.0) { return 1.0 }
@@ -4778,6 +8977,8 @@ function Get-FitZoomFactor {
 function Get-ViewportTransform {
     if (-not $picture -or $videoWidth -le 0 -or $videoHeight -le 0) { return $null }
 
+    $sourceCanvasWidth=$videoWidth;$sourceCanvasHeight=$videoHeight
+    if($isImageMode -and $script:ImageCrop){$videoWidth=$script:ImageCrop.Width;$videoHeight=$script:ImageCrop.Height}
     $viewportWidth = [double]$picture.ClientSize.Width
     $viewportHeight = [double]$picture.ClientSize.Height
     if ($viewportWidth -le 0.0 -or $viewportHeight -le 0.0) { return $null }
@@ -4820,6 +9021,7 @@ function Get-ViewportTransform {
 
     if ($scale -le 0.0 -or [double]::IsNaN($scale) -or [double]::IsInfinity($scale)) { return $null }
 
+    if($isImageMode -and $script:ImageCrop){$originX-=$script:ImageCrop.X*$scaleX;$originY-=$script:ImageCrop.Y*$scaleY;$displayWidth=$sourceCanvasWidth*$scaleX;$displayHeight=$sourceCanvasHeight*$scaleY}
     return [pscustomobject]@{
         Scale = $scale
         ScaleX = [double]$scaleX
@@ -4829,8 +9031,8 @@ function Get-ViewportTransform {
         OriginY = $originY
         DisplayWidth = $displayWidth
         DisplayHeight = $displayHeight
-        MediaWidth = [double]$videoWidth
-        MediaHeight = [double]$videoHeight
+        MediaWidth = [double]$sourceCanvasWidth
+        MediaHeight = [double]$sourceCanvasHeight
         ViewportWidth = $viewportWidth
         ViewportHeight = $viewportHeight
     }
@@ -4857,6 +9059,7 @@ function ViewPoint-To-MediaPoint([System.Drawing.PointF]$point, [bool]$clamp = $
         $mediaY = [Math]::Max(0.0, [Math]::Min($mediaY, $transform.MediaHeight - 1.0))
     }
 
+    if($clamp -and $isImageMode -and $script:ImageCrop){$mediaX=[Math]::Max($script:ImageCrop.Left,[Math]::Min($script:ImageCrop.Right-1,$mediaX));$mediaY=[Math]::Max($script:ImageCrop.Top,[Math]::Min($script:ImageCrop.Bottom-1,$mediaY))}
     return New-Object System.Drawing.PointF([single]$mediaX, [single]$mediaY)
 }
 
@@ -5311,6 +9514,7 @@ function Clamp-ViewportPan([double]$minimumMaxX = 0.0, [double]$minimumMaxY = 0.
     $scale = [double]$zoomFactor
     if ($vw -le 0.0 -or $vh -le 0.0 -or $scale -le 0.0) { return }
 
+    if($isImageMode -and $script:ImageCrop){$videoWidth=$script:ImageCrop.Width;$videoHeight=$script:ImageCrop.Height}
     $displayWidth = [double]$videoWidth * $scale
     $displayHeight = [double]$videoHeight * $scale
     $maxPanX = [Math]::Max([Math]::Abs($displayWidth - $vw) / 2.0, [Math]::Abs($minimumMaxX))
@@ -5430,6 +9634,7 @@ function Set-ZoomAroundViewPoint([double]$targetScale, [System.Drawing.PointF]$v
     $baseOriginX = ($vw - ([double]$videoWidth * $targetScale)) / 2.0
     $baseOriginY = ($vh - ([double]$videoHeight * $targetScale)) / 2.0
 
+    if($isImageMode -and $script:ImageCrop){$baseOriginX=($vw-$script:ImageCrop.Width*$targetScale)/2.0-$script:ImageCrop.X*$targetScale;$baseOriginY=($vh-$script:ImageCrop.Height*$targetScale)/2.0-$script:ImageCrop.Y*$targetScale}
     $script:zoomMode = "Manual"
     $script:zoomFactor = $targetScale
     $script:panOffsetX = [double]$viewPoint.X - $baseOriginX - ($mediaX * $targetScale)
@@ -5513,6 +9718,9 @@ function Update-PreviewCursor {
             $picture.Cursor = if ($script:zoomCursor) { $script:zoomCursor } else { [System.Windows.Forms.Cursors]::Cross }
         }
     }
+    elseif (Test-IsStandaloneDrawTool) {
+        $picture.Cursor = [System.Windows.Forms.Cursors]::Cross
+    }
     else {
         $picture.Cursor = [System.Windows.Forms.Cursors]::Default
     }
@@ -5577,6 +9785,1533 @@ function Draw-ViewportRectangleOutline($gfx, $pen, $rect) {
     else {
         $gfx.DrawRectangle($pen, $rect)
     }
+}
+
+# v2.3.0 D1b: one annotation renderer owns decorative outline geometry for
+# preview and export. Geometry/stroke widths are media-pixel values; preview
+# supplies the viewport transform while export uses identity coordinates.
+# Security redaction rendering never calls this renderer.
+function Get-AnnotationDashStyle([string]$name) {
+    switch ($name) {
+        "Dash"       { return [System.Drawing.Drawing2D.DashStyle]::Dash }
+        "Dot"        { return [System.Drawing.Drawing2D.DashStyle]::Dot }
+        "DashDot"    { return [System.Drawing.Drawing2D.DashStyle]::DashDot }
+        "DashDotDot" { return [System.Drawing.Drawing2D.DashStyle]::DashDotDot }
+        default       { return [System.Drawing.Drawing2D.DashStyle]::Solid }
+    }
+}
+
+function Get-AnnotationLineJoin([string]$name) {
+    if ($name -eq "Round") { return [System.Drawing.Drawing2D.LineJoin]::Round }
+    return [System.Drawing.Drawing2D.LineJoin]::Miter
+}
+
+function New-ShapeOutlineAnnotation($shape, [System.Drawing.Color]$color, [double]$width, [string]$dashStyle = "Solid", [string]$joinStyle = "Square", [int]$ownerIndex = -1, [int]$commitOrder = -1) {
+    if (-not $shape) { return $null }
+    $shapeName = [string]$shape.Shape
+    if ($shapeName -notin @("Rectangle","Oval","Polygon")) { return $null }
+    if ($width -lt 1.0) { $width = 1.0 }
+    return [PSCustomObject]@{
+        Kind = "ShapeOutline"
+        Shape = $shapeName
+        X = [double]$shape.X
+        Y = [double]$shape.Y
+        W = [double]$shape.W
+        H = [double]$shape.H
+        Points = $shape.Points
+        StrokeColor = $color
+        StrokeWidth = [double]$width
+        DashStyle = $dashStyle
+        JoinStyle = $joinStyle
+        OwnerIndex = [int]$ownerIndex
+        CommitOrder = [int]$commitOrder
+    }
+}
+
+function New-LineDrawingAnnotation(
+    [System.Drawing.PointF]$startPoint,
+    [System.Drawing.PointF]$endPoint,
+    [System.Drawing.Color]$color,
+    [double]$width,
+    [string]$dashStyle,
+    [string]$endpointStyle,
+    [int]$commitOrder = -1
+) {
+    if ($width -lt 1.0) { $width = 1.0 }
+    return [PSCustomObject]@{
+        Kind = "Line"
+        Shape = "Line"
+        X1 = [double]$startPoint.X; Y1 = [double]$startPoint.Y
+        X2 = [double]$endPoint.X; Y2 = [double]$endPoint.Y
+        StrokeColor = $color
+        StrokeWidth = [double]$width
+        DashStyle = $dashStyle
+        JoinStyle = "Miter"
+        EndpointStyle = $endpointStyle
+        CommitOrder = [int]$commitOrder
+    }
+}
+
+function New-PolylineDrawingAnnotation(
+    $points,
+    [System.Drawing.Color]$color,
+    [double]$width,
+    [string]$dashStyle,
+    [string]$joinStyle,
+    [string]$endpointStyle,
+    [int]$commitOrder = -1
+) {
+    if (-not $points -or $points.Count -lt 2) { return $null }
+    if ($width -lt 1.0) { $width = 1.0 }
+    $copy = @()
+    foreach ($pt in $points) {
+        $copy += [PSCustomObject]@{ X = [double]$pt.X; Y = [double]$pt.Y }
+    }
+    return [PSCustomObject]@{
+        Kind = "Polyline"
+        Shape = "Polyline"
+        Points = $copy
+        StrokeColor = $color
+        StrokeWidth = [double]$width
+        DashStyle = $dashStyle
+        JoinStyle = $joinStyle
+        EndpointStyle = $endpointStyle
+        CommitOrder = [int]$commitOrder
+    }
+}
+
+function New-TextDrawingAnnotation(
+    [System.Drawing.RectangleF]$rect,
+    [string]$content,
+    [System.Drawing.Color]$color,
+    [string]$fontFamily,
+    [double]$fontSizePx,
+    [bool]$bold,
+    [bool]$italic,
+    [string]$alignment,
+    [int]$commitOrder = -1
+) {
+    if ([string]::IsNullOrWhiteSpace($content)) { return $null }
+    if ($rect.Width -lt 1.0 -or $rect.Height -lt 1.0) { return $null }
+    if ($fontSizePx -lt 1.0) { $fontSizePx = 1.0 }
+    return [PSCustomObject]@{
+        Kind = "Text"
+        Shape = "Text"
+        X = [double]$rect.X; Y = [double]$rect.Y
+        W = [double]$rect.Width; H = [double]$rect.Height
+        Text = $content
+        TextColor = $color
+        FontFamily = $fontFamily
+        FontSizePx = [double]$fontSizePx
+        Bold = [bool]$bold
+        Italic = [bool]$italic
+        Alignment = $alignment
+        # Compatibility fields keep the shared renderer's common setup simple.
+        StrokeColor = $color
+        StrokeWidth = 1.0
+        DashStyle = "Solid"
+        JoinStyle = "Miter"
+        CommitOrder = [int]$commitOrder
+    }
+}
+
+# Shared timing helper. Still-image annotations use frame 0 only; video D5b-r2
+# commits explicit exact Begin/End frames through the shared temporal workflow.
+# No annotation range ever receives the redaction safety buffer.
+function Set-AnnotationWholeMediaTiming($annotation) {
+    if (-not $annotation) { return }
+    $startFrame = 0
+    $endFrame = if ($isImageMode) { 0 } else { [Math]::Max(0, ([int]$script:totalFrames - 1)) }
+    foreach ($pair in @(@('StartFrame',$startFrame),@('EndFrame',$endFrame))) {
+        $name=[string]$pair[0]; $value=[int]$pair[1]
+        if ($annotation.PSObject.Properties[$name]) { $annotation.$name = $value }
+        else { $annotation | Add-Member -NotePropertyName $name -NotePropertyValue $value }
+    }
+}
+
+function Set-AnnotationFrameTiming($annotation, [int]$startFrame, [int]$endFrame) {
+    if (-not $annotation) { return }
+    if ($startFrame -lt 0) { $startFrame = 0 }
+    $maxFrame = if ($isImageMode) { 0 } else { [Math]::Max(0, ([int]$script:totalFrames - 1)) }
+    if ($endFrame -gt $maxFrame) { $endFrame = $maxFrame }
+    if ($endFrame -lt $startFrame) { $endFrame = $startFrame }
+    foreach ($pair in @(@('StartFrame',$startFrame),@('EndFrame',$endFrame))) {
+        $name=[string]$pair[0]; $value=[int]$pair[1]
+        if ($annotation.PSObject.Properties[$name]) { $annotation.$name = $value }
+        else { $annotation | Add-Member -NotePropertyName $name -NotePropertyValue $value }
+    }
+}
+
+function Get-AnnotationFrameRange($annotation) {
+    if (-not $annotation) { return @{ Start = 0; End = -1 } }
+    if ($isImageMode) { return @{ Start = 0; End = 0 } }
+    $maxFrame = [Math]::Max(0, ([int]$script:totalFrames - 1))
+    $start = if ($annotation.PSObject.Properties['StartFrame']) { [int]$annotation.StartFrame } else { 0 }
+    $end = if ($annotation.PSObject.Properties['EndFrame']) { [int]$annotation.EndFrame } else { $maxFrame }
+    $start = [Math]::Max(0,[Math]::Min($start,$maxFrame))
+    $end = [Math]::Max($start,[Math]::Min($end,$maxFrame))
+    return @{ Start = $start; End = $end }
+}
+
+
+# D5b-r2: new video annotations use the same temporal workflow as redactions.
+# The draft remains editable until Begin Annotation is pressed; after Begin,
+# geometry/style are frozen while the user navigates to the final logical frame.
+function Get-CurrentVideoAnnotationDraft {
+    if (-not $videoPath -or $isImageMode -or -not (Test-IsStandaloneDrawTool)) { return $null }
+
+    if ($toolMode -eq "Text") {
+        return Get-CurrentTextDraftAnnotation
+    }
+    if ($toolMode -eq "Line" -and $script:lineDraftActive -and $script:lineStart -and $script:lineEnd) {
+        return New-LineDrawingAnnotation $script:lineStart $script:lineEnd $script:outlineColor $script:outlineWidth $script:outlineDashStyle $script:drawEndpointStyle -1
+    }
+    if ($toolMode -eq "Polyline" -and $script:polylineDraftActive -and $script:polylinePoints -and $script:polylinePoints.Count -ge 2) {
+        return New-PolylineDrawingAnnotation $script:polylinePoints $script:outlineColor $script:outlineWidth $script:outlineDashStyle $script:drawPolylineJoinStyle $script:drawEndpointStyle -1
+    }
+    return $null
+}
+
+function Test-VideoAnnotationDraftReady {
+    return [bool](Get-CurrentVideoAnnotationDraft)
+}
+
+function Test-VideoAnnotationDraftPresent {
+    if (-not $videoPath -or $isImageMode -or -not (Test-IsStandaloneDrawTool)) { return $false }
+    switch ($toolMode) {
+        "Text" { return [bool]($script:textDrawing -or $script:textDraftActive) }
+        "Line" { return [bool]($script:lineDrawing -or $script:lineDraftActive) }
+        "Polyline" { return [bool]($script:polylineActive -or $script:polylineDraftActive -or ($script:polylinePoints -and $script:polylinePoints.Count -gt 0)) }
+    }
+    return $false
+}
+
+function Begin-VideoAnnotationRange {
+    if (-not $videoPath -or $isImageMode -or $script:pendingAnnotation) { return $false }
+    Stop-Playback
+    if ($script:floatingTextEditorVisible) { Close-FloatingTextEditor $false }
+
+    $a = Get-CurrentVideoAnnotationDraft
+    if (-not $a) {
+        Show-CompactInformationDialog "Annotation timing" "Nothing ready to begin" "Create and position a Text Box, Line, or Polyline first, then choose Begin Annotation."
+        return $false
+    }
+
+    $script:pendingAnnotation = [PSCustomObject]@{
+        Annotation = $a
+        StartFrame = [int]$currentFrame
+        Tool = [string]$toolMode
+    }
+    $lblPending.Text = "Annotation started at frame $($currentFrame + 1). Move to the final frame, then click End Annotation."
+    Update-RedactionButtons
+    Update-AppearanceStatus
+    Update-OutlineControlsAvailability
+    $picture.Invalidate()
+    return $true
+}
+
+function Cancel-VideoAnnotationRange {
+    if (-not $script:pendingAnnotation) { return $false }
+    Stop-Playback
+    $startFrame = [int]$script:pendingAnnotation.StartFrame
+    $script:pendingAnnotation = $null
+    $lblPending.Text = "Annotation range cancelled. Draft restored; adjust it or choose Begin Annotation again."
+    Update-RedactionButtons
+    Update-AppearanceStatus
+    Update-OutlineControlsAvailability
+    $picture.Invalidate()
+    return $true
+}
+
+function End-VideoAnnotationRange {
+    if (-not $script:pendingAnnotation) { return $false }
+    Stop-Playback
+
+    $startFrame = [int]$script:pendingAnnotation.StartFrame
+    if ([int]$currentFrame -lt $startFrame) {
+        Show-CompactInformationDialog "Annotation timing" "End frame is before Begin" "Move to frame $($startFrame + 1) or later, then choose End Annotation."
+        return $false
+    }
+
+    $a = $script:pendingAnnotation.Annotation
+    if (-not $a) {
+        $script:pendingAnnotation = $null
+        Update-RedactionButtons
+        return $false
+    }
+
+    $a.CommitOrder = Get-NextObjectCommitOrder
+    Set-AnnotationFrameTiming $a $startFrame ([int]$currentFrame)
+    [void]$script:annotations.Add($a)
+    $kindText = if ($a.Kind -eq "Text") { "Text annotation" } elseif ($a.Kind -eq "Line") { "Line annotation" } else { "Polyline annotation" }
+    $endFrame = [int]$currentFrame
+
+    $script:pendingAnnotation = $null
+    Reset-DrawingState
+    Refresh-AnnotationList
+    Update-SelectionFields $null
+    $lblPending.Text = "$kindText #$($annotations.Count) added: frames $($startFrame + 1)-$($endFrame + 1)."
+    Update-RedactionButtons
+    Update-InspectorSectionLayout
+    $picture.Invalidate()
+    return $true
+}
+
+function Test-AnnotationFrameActive($annotation, [int]$frameIndex) {
+    $range = Get-AnnotationFrameRange $annotation
+    return (Test-FrameInRange $frameIndex ([int]$range.Start) ([int]$range.End))
+}
+
+function Test-RedactionHasOutline($r) {
+    if (-not $r) { return $false }
+    $prop = $r.PSObject.Properties["OutlineEnabled"]
+    return [bool]($prop -and $r.OutlineEnabled)
+}
+
+function Get-RedactionShapeOutline($r, [int]$ownerIndex = -1) {
+    if (-not (Test-RedactionHasOutline $r)) { return $null }
+    $color = if ($r.PSObject.Properties["OutlineColor"] -and $r.OutlineColor) {
+        $r.OutlineColor
+    } else {
+        [System.Drawing.Color]::Red
+    }
+    $width = if ($r.PSObject.Properties["OutlineWidth"] -and [double]$r.OutlineWidth -ge 1.0) {
+        [double]$r.OutlineWidth
+    } else {
+        3.0
+    }
+    $dashStyle = if ($r.PSObject.Properties["OutlineDashStyle"] -and $r.OutlineDashStyle) {
+        [string]$r.OutlineDashStyle
+    } else {
+        "Solid"
+    }
+    $joinStyle = if ($r.PSObject.Properties["OutlineJoinStyle"] -and $r.OutlineJoinStyle) {
+        [string]$r.OutlineJoinStyle
+    }
+    elseif ($r.PSObject.Properties["OutlineCornerStyle"] -and $r.OutlineCornerStyle) {
+        [string]$r.OutlineCornerStyle
+    }
+    elseif ($r.Shape -eq "Polygon") { "Miter" }
+    else { "Square" }
+    $commitOrder = if ($r.PSObject.Properties["CommitOrder"]) { [int]$r.CommitOrder } else { -1 }
+    $annotation = New-ShapeOutlineAnnotation $r $color $width $dashStyle $joinStyle $ownerIndex $commitOrder
+    if ($annotation) {
+        $startFrame = if ($r.PSObject.Properties["BufferedStartFrame"]) { [int]$r.BufferedStartFrame } else { 0 }
+        $endFrame = if ($r.PSObject.Properties["BufferedEndFrame"]) { [int]$r.BufferedEndFrame } else { $startFrame }
+        Set-AnnotationFrameTiming $annotation $startFrame $endFrame
+    }
+    return $annotation
+}
+
+function Get-ImageAnnotationObjects {
+    $items = New-Object System.Collections.ArrayList
+    # Attached outlines are decorations owned by their redactions.
+    for ($i = 0; $i -lt $redactions.Count; $i++) {
+        $a = Get-RedactionShapeOutline $redactions[$i] $i
+        if ($a) { [void]$items.Add($a) }
+    }
+    # Standalone annotations are never part of the security-redaction list.
+    foreach ($a in $annotations) {
+        if ($a) { [void]$items.Add($a) }
+    }
+
+    # D1b-r2: the two collections stay structurally separate for security, but
+    # visual stacking follows actual commit order. This lets a later redaction
+    # cover an earlier annotation while a later annotation can still sit above
+    # an earlier redaction. Security processing itself remains redactions-first.
+    if ($items.Count -gt 1) {
+        $sorted = @($items | Sort-Object @{ Expression = {
+            if ($_.PSObject.Properties["CommitOrder"] -and [int]$_.CommitOrder -ge 0) { [int]$_.CommitOrder }
+            else { [int]::MaxValue }
+        } })
+        return ,$sorted
+    }
+    return ,$items
+}
+
+# Builds a transformed path for one committed redaction. It is used only as a
+# decorative-annotation occlusion mask: later committed redactions visually cover
+# earlier annotation pixels without altering the security render graph.
+function New-RedactionGeometryPath(
+    $r,
+    [double]$scaleX,
+    [double]$scaleY,
+    [double]$originX,
+    [double]$originY
+) {
+    if (-not $r) { return $null }
+    $path = New-Object System.Drawing.Drawing2D.GraphicsPath
+    try {
+        if ($r.Shape -eq "Polygon") {
+            $pts = @()
+            foreach ($p in $r.Points) {
+                $px = [single]($originX + ([double]$p.X * $scaleX))
+                $py = [single]($originY + ([double]$p.Y * $scaleY))
+                $pts += New-Object System.Drawing.PointF($px,$py)
+            }
+            if ($pts.Count -ge 3) { $path.AddPolygon([System.Drawing.PointF[]]$pts) }
+        }
+        else {
+            $rx = [single]($originX + ([double]$r.X * $scaleX))
+            $ry = [single]($originY + ([double]$r.Y * $scaleY))
+            $rw = [single]([double]$r.W * $scaleX)
+            $rh = [single]([double]$r.H * $scaleY)
+            $rect = New-Object System.Drawing.RectangleF($rx,$ry,$rw,$rh)
+            if ($rect.Width -gt 0.0 -and $rect.Height -gt 0.0) {
+                if ($r.Shape -eq "Oval") { $path.AddEllipse($rect) }
+                else { $path.AddRectangle($rect) }
+            }
+        }
+        return $path
+    }
+    catch {
+        $path.Dispose()
+        throw
+    }
+}
+
+function Get-AnnotationArrowGeometry(
+    [System.Drawing.PointF]$from,
+    [System.Drawing.PointF]$tip,
+    [double]$scaledMediaStrokeWidth,
+    [double]$geometryScale
+) {
+    $dx = [double]$tip.X - [double]$from.X
+    $dy = [double]$tip.Y - [double]$from.Y
+    $len = [Math]::Sqrt(($dx * $dx) + ($dy * $dy))
+    if ($len -lt 0.001) { return $null }
+
+    $ux = $dx / $len; $uy = $dy / $len
+
+    # Arrowhead dimensions are media-space geometry, just like Width. Scale the
+    # fixed minimum together with the viewport so zoom cannot change exported size.
+    $arrowLen = [Math]::Max((6.0 * $geometryScale), ($scaledMediaStrokeWidth * 4.0))
+    $arrowWidth = [Math]::Max((5.0 * $geometryScale), ($scaledMediaStrokeWidth * 3.0))
+
+    $baseX = [double]$tip.X - ($ux * $arrowLen)
+    $baseY = [double]$tip.Y - ($uy * $arrowLen)
+    $px = -$uy; $py = $ux
+    $half = $arrowWidth / 2.0
+
+    # Do not draw the full-width shaft all the way to the arrow tip. If a thick
+    # shaft reaches the tip, its rectangular silhouette protrudes through the
+    # narrowing triangle and visually flattens the point. Stop the shaft well
+    # inside the arrowhead instead. The small overlap prevents anti-aliased gaps.
+    $shaftInset = [Math]::Min(($arrowLen * 0.75), ($len * 0.85))
+    $shaftJoin = New-Object System.Drawing.PointF(
+        [single]([double]$tip.X - ($ux * $shaftInset)),
+        [single]([double]$tip.Y - ($uy * $shaftInset)))
+
+    $pts = [System.Drawing.PointF[]]@(
+        (New-Object System.Drawing.PointF([single]$tip.X,[single]$tip.Y)),
+        (New-Object System.Drawing.PointF([single]($baseX + $px*$half),[single]($baseY + $py*$half))),
+        (New-Object System.Drawing.PointF([single]($baseX - $px*$half),[single]($baseY - $py*$half)))
+    )
+
+    return [PSCustomObject]@{
+        Points = $pts
+        ShaftJoin = $shaftJoin
+    }
+}
+
+function Draw-AnnotationArrowHead($gfx, $arrowGeometry, $brush) {
+    if (-not $gfx -or -not $arrowGeometry -or -not $brush) { return }
+    if (-not $arrowGeometry.Points -or $arrowGeometry.Points.Count -lt 3) { return }
+    $gfx.FillPolygon($brush, [System.Drawing.PointF[]]$arrowGeometry.Points)
+}
+
+function Test-AnnotationShaftHasForwardLength(
+    [System.Drawing.PointF]$originalStart,
+    [System.Drawing.PointF]$originalEnd,
+    [System.Drawing.PointF]$shaftStart,
+    [System.Drawing.PointF]$shaftEnd
+) {
+    $odx = [double]$originalEnd.X - [double]$originalStart.X
+    $ody = [double]$originalEnd.Y - [double]$originalStart.Y
+    $sdx = [double]$shaftEnd.X - [double]$shaftStart.X
+    $sdy = [double]$shaftEnd.Y - [double]$shaftStart.Y
+    return (($odx * $sdx) + ($ody * $sdy)) -gt 0.01
+}
+
+function Draw-AnnotationPolylineShaft(
+    $gfx,
+    $pen,
+    [System.Drawing.PointF[]]$points,
+    [string]$joinStyle
+) {
+    if (-not $gfx -or -not $pen -or -not $points -or $points.Count -lt 2) { return }
+
+    if ($pen.DashStyle -eq [System.Drawing.Drawing2D.DashStyle]::Solid) {
+        $gfx.DrawLines($pen, $points)
+        return
+    }
+
+    # GDI+ can produce partial miter wedges when a built-in dash boundary lands
+    # directly on a Polyline vertex. Draw dashed segments independently instead,
+    # then weld each internal corner with a very short solid path using the
+    # requested Miter/Round join. This affects drawing annotations only.
+    for ($i = 0; $i -lt ($points.Count - 1); $i++) {
+        $gfx.DrawLine($pen, $points[$i], $points[$i + 1])
+    }
+
+    if ($points.Count -lt 3) { return }
+
+    $joinPen = New-Object System.Drawing.Pen($pen.Color, $pen.Width)
+    try {
+        $joinPen.DashStyle = [System.Drawing.Drawing2D.DashStyle]::Solid
+        $joinPen.LineJoin = Get-AnnotationLineJoin $joinStyle
+        $joinPen.Alignment = [System.Drawing.Drawing2D.PenAlignment]::Center
+        $joinPen.StartCap = [System.Drawing.Drawing2D.LineCap]::Flat
+        $joinPen.EndCap = [System.Drawing.Drawing2D.LineCap]::Flat
+
+        for ($i = 1; $i -lt ($points.Count - 1); $i++) {
+            $prev = $points[$i - 1]
+            $cur = $points[$i]
+            $next = $points[$i + 1]
+
+            $v1x = [double]$prev.X - [double]$cur.X
+            $v1y = [double]$prev.Y - [double]$cur.Y
+            $v2x = [double]$next.X - [double]$cur.X
+            $v2y = [double]$next.Y - [double]$cur.Y
+            $len1 = [Math]::Sqrt(($v1x * $v1x) + ($v1y * $v1y))
+            $len2 = [Math]::Sqrt(($v2x * $v2x) + ($v2y * $v2y))
+            if ($len1 -lt 0.001 -or $len2 -lt 0.001) { continue }
+
+            $bridge = [Math]::Max(1.0, ([double]$pen.Width * 0.60))
+            $bridge = [Math]::Min($bridge, ($len1 * 0.45))
+            $bridge = [Math]::Min($bridge, ($len2 * 0.45))
+            if ($bridge -lt 0.01) { continue }
+
+            $before = New-Object System.Drawing.PointF(
+                [single]([double]$cur.X + (($v1x / $len1) * $bridge)),
+                [single]([double]$cur.Y + (($v1y / $len1) * $bridge)))
+            $after = New-Object System.Drawing.PointF(
+                [single]([double]$cur.X + (($v2x / $len2) * $bridge)),
+                [single]([double]$cur.Y + (($v2y / $len2) * $bridge)))
+            $joinPoints = [System.Drawing.PointF[]]@($before, $cur, $after)
+            $gfx.DrawLines($joinPen, $joinPoints)
+        }
+    }
+    finally { $joinPen.Dispose() }
+}
+
+function Draw-AnnotationObject(
+    $gfx,
+    $annotation,
+    [double]$scaleX,
+    [double]$scaleY,
+    [double]$originX,
+    [double]$originY,
+    $occlusionRedactions = $null
+) {
+    if (-not $gfx -or -not $annotation) { return }
+    if ($scaleX -le 0.0 -or $scaleY -le 0.0) { return }
+
+    $strokeScale = ([Math]::Abs($scaleX) + [Math]::Abs($scaleY)) / 2.0
+    $scaledMediaStrokeWidth = ([double]$annotation.StrokeWidth * $strokeScale)
+    $strokeWidth = [Math]::Max(1.0, $scaledMediaStrokeWidth)
+    $pen = New-Object System.Drawing.Pen($annotation.StrokeColor, [single]$strokeWidth)
+    $savedState = $gfx.Save()
+    try {
+        $gfx.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+        $gfx.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+        $pen.DashStyle = Get-AnnotationDashStyle $annotation.DashStyle
+        $pen.LineJoin = Get-AnnotationLineJoin $annotation.JoinStyle
+        $pen.Alignment = [System.Drawing.Drawing2D.PenAlignment]::Center
+        $pen.StartCap = [System.Drawing.Drawing2D.LineCap]::Flat
+        $pen.EndCap = [System.Drawing.Drawing2D.LineCap]::Flat
+
+        # D1b-r2 keeps the security pipeline redactions-first while restoring
+        # intuitive layer behaviour. Any security redaction committed *after*
+        # this annotation/outline visually occludes it. Earlier redactions do
+        # not: a later annotation may legitimately be drawn on top because it
+        # adds pixels only and can never reveal the original source underneath.
+        if ($occlusionRedactions) {
+            $annotationOrder = if ($annotation.PSObject.Properties["CommitOrder"]) { [int]$annotation.CommitOrder } else { -1 }
+            if ($annotationOrder -ge 0) {
+                foreach ($occ in $occlusionRedactions) {
+                    if (-not $occ) { continue }
+                    $occOrder = if ($occ.PSObject.Properties["CommitOrder"]) { [int]$occ.CommitOrder } else { -1 }
+                    if ($occOrder -le $annotationOrder) { continue }
+                    $occPath = New-RedactionGeometryPath $occ $scaleX $scaleY $originX $originY
+                    if ($occPath) {
+                        try { $gfx.SetClip($occPath, [System.Drawing.Drawing2D.CombineMode]::Exclude) }
+                        finally { $occPath.Dispose() }
+                    }
+                }
+            }
+            elseif ($annotation.PSObject.Properties["OwnerIndex"] -and [int]$annotation.OwnerIndex -ge 0) {
+                # Compatibility fallback for an object lacking CommitOrder.
+                for ($j = ([int]$annotation.OwnerIndex + 1); $j -lt $occlusionRedactions.Count; $j++) {
+                    $occPath = New-RedactionGeometryPath $occlusionRedactions[$j] $scaleX $scaleY $originX $originY
+                    if ($occPath) {
+                        try { $gfx.SetClip($occPath, [System.Drawing.Drawing2D.CombineMode]::Exclude) }
+                        finally { $occPath.Dispose() }
+                    }
+                }
+            }
+        }
+
+        if ($annotation.Kind -eq "Text") {
+            $x = [single]($originX + ([double]$annotation.X * $scaleX))
+            $y = [single]($originY + ([double]$annotation.Y * $scaleY))
+            $w = [single]([double]$annotation.W * $scaleX)
+            $h = [single]([double]$annotation.H * $scaleY)
+            if ($w -gt 0.0 -and $h -gt 0.0 -and -not [string]::IsNullOrWhiteSpace([string]$annotation.Text)) {
+                $fontSize = [Math]::Max(1.0, ([double]$annotation.FontSizePx * $strokeScale))
+                $fontStyle = [System.Drawing.FontStyle]::Regular
+                if ([bool]$annotation.Bold) { $fontStyle = $fontStyle -bor [System.Drawing.FontStyle]::Bold }
+                if ([bool]$annotation.Italic) { $fontStyle = $fontStyle -bor [System.Drawing.FontStyle]::Italic }
+                $font = $null
+                try {
+                    try {
+                        $font = New-Object System.Drawing.Font([string]$annotation.FontFamily, [single]$fontSize, $fontStyle, [System.Drawing.GraphicsUnit]::Pixel)
+                    }
+                    catch {
+                        $font = New-Object System.Drawing.Font("Segoe UI", [single]$fontSize, $fontStyle, [System.Drawing.GraphicsUnit]::Pixel)
+                    }
+                    $brush = New-Object System.Drawing.SolidBrush($annotation.TextColor)
+                    $fmt = New-Object System.Drawing.StringFormat
+                    try {
+                        $fmt.LineAlignment = [System.Drawing.StringAlignment]::Near
+                        $fmt.Alignment = switch ([string]$annotation.Alignment) {
+                            "Centre" { [System.Drawing.StringAlignment]::Center }
+                            "Right"  { [System.Drawing.StringAlignment]::Far }
+                            default  { [System.Drawing.StringAlignment]::Near }
+                        }
+                        $fmt.Trimming = [System.Drawing.StringTrimming]::EllipsisWord
+                        $textRect = New-Object System.Drawing.RectangleF($x,$y,$w,$h)
+                        $textState = $gfx.Save()
+                        try {
+                            $gfx.SetClip($textRect, [System.Drawing.Drawing2D.CombineMode]::Intersect)
+                            $gfx.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::AntiAliasGridFit
+                            $gfx.DrawString([string]$annotation.Text, $font, $brush, $textRect, $fmt)
+                        }
+                        finally { $gfx.Restore($textState) }
+                    }
+                    finally {
+                        $fmt.Dispose()
+                        $brush.Dispose()
+                    }
+                }
+                finally {
+                    if ($font) { $font.Dispose() }
+                }
+            }
+        }
+        elseif ($annotation.Kind -eq "Line") {
+            $p1 = New-Object System.Drawing.PointF(
+                [single]($originX + ([double]$annotation.X1 * $scaleX)),
+                [single]($originY + ([double]$annotation.Y1 * $scaleY)))
+            $p2 = New-Object System.Drawing.PointF(
+                [single]($originX + ([double]$annotation.X2 * $scaleX)),
+                [single]($originY + ([double]$annotation.Y2 * $scaleY)))
+
+            $startArrow = $null
+            $endArrow = $null
+            $shaftP1 = $p1
+            $shaftP2 = $p2
+
+            if ($annotation.EndpointStyle -eq "ArrowStart" -or $annotation.EndpointStyle -eq "ArrowBoth") {
+                $startArrow = Get-AnnotationArrowGeometry $p2 $p1 $scaledMediaStrokeWidth $strokeScale
+                if ($startArrow) { $shaftP1 = $startArrow.ShaftJoin }
+            }
+            if ($annotation.EndpointStyle -eq "ArrowEnd" -or $annotation.EndpointStyle -eq "ArrowBoth") {
+                $endArrow = Get-AnnotationArrowGeometry $p1 $p2 $scaledMediaStrokeWidth $strokeScale
+                if ($endArrow) { $shaftP2 = $endArrow.ShaftJoin }
+            }
+
+            if (Test-AnnotationShaftHasForwardLength $p1 $p2 $shaftP1 $shaftP2) {
+                $gfx.DrawLine($pen, $shaftP1, $shaftP2)
+            }
+
+            $capBrush = New-Object System.Drawing.SolidBrush($annotation.StrokeColor)
+            try {
+                if ($startArrow) { Draw-AnnotationArrowHead $gfx $startArrow $capBrush }
+                if ($endArrow) { Draw-AnnotationArrowHead $gfx $endArrow $capBrush }
+            }
+            finally { $capBrush.Dispose() }
+        }
+        elseif ($annotation.Kind -eq "Polyline") {
+            $pts = @()
+            foreach ($p in $annotation.Points) {
+                $pts += New-Object System.Drawing.PointF(
+                    [single]($originX + ([double]$p.X * $scaleX)),
+                    [single]($originY + ([double]$p.Y * $scaleY)))
+            }
+            if ($pts.Count -ge 2) {
+                $startArrow = $null
+                $endArrow = $null
+                $shaftPts = [System.Drawing.PointF[]]($pts.Clone())
+
+                if ($annotation.EndpointStyle -eq "ArrowStart" -or $annotation.EndpointStyle -eq "ArrowBoth") {
+                    $startArrow = Get-AnnotationArrowGeometry $pts[1] $pts[0] $scaledMediaStrokeWidth $strokeScale
+                    if ($startArrow) { $shaftPts[0] = $startArrow.ShaftJoin }
+                }
+                if ($annotation.EndpointStyle -eq "ArrowEnd" -or $annotation.EndpointStyle -eq "ArrowBoth") {
+                    $endArrow = Get-AnnotationArrowGeometry $pts[$pts.Count-2] $pts[$pts.Count-1] $scaledMediaStrokeWidth $strokeScale
+                    if ($endArrow) { $shaftPts[$shaftPts.Count-1] = $endArrow.ShaftJoin }
+                }
+
+                $drawShaft = $true
+                if ($shaftPts.Count -eq 2) {
+                    $drawShaft = Test-AnnotationShaftHasForwardLength $pts[0] $pts[1] $shaftPts[0] $shaftPts[1]
+                }
+                if ($drawShaft) {
+                    Draw-AnnotationPolylineShaft $gfx $pen $shaftPts ([string]$annotation.JoinStyle)
+                }
+
+                $capBrush = New-Object System.Drawing.SolidBrush($annotation.StrokeColor)
+                try {
+                    if ($startArrow) { Draw-AnnotationArrowHead $gfx $startArrow $capBrush }
+                    if ($endArrow) { Draw-AnnotationArrowHead $gfx $endArrow $capBrush }
+                }
+                finally { $capBrush.Dispose() }
+            }
+        }
+        elseif ($annotation.Shape -eq "Oval") {
+            $x = [single]($originX + ([double]$annotation.X * $scaleX))
+            $y = [single]($originY + ([double]$annotation.Y * $scaleY))
+            $w = [single]([double]$annotation.W * $scaleX)
+            $h = [single]([double]$annotation.H * $scaleY)
+            if ($w -gt 0.0 -and $h -gt 0.0) { $gfx.DrawEllipse($pen, $x, $y, $w, $h) }
+        }
+        elseif ($annotation.Shape -eq "Polygon") {
+            $pts = @()
+            foreach ($p in $annotation.Points) {
+                $pts += New-Object System.Drawing.PointF(
+                    [single]($originX + ([double]$p.X * $scaleX)),
+                    [single]($originY + ([double]$p.Y * $scaleY)))
+            }
+            if ($pts.Count -ge 3) {
+                $shapePath = New-Object System.Drawing.Drawing2D.GraphicsPath
+                try {
+                    $shapePath.AddPolygon([System.Drawing.PointF[]]$pts)
+                    $gfx.DrawPath($pen, $shapePath)
+                }
+                finally { $shapePath.Dispose() }
+            }
+        }
+        else {
+            $x = [single]($originX + ([double]$annotation.X * $scaleX))
+            $y = [single]($originY + ([double]$annotation.Y * $scaleY))
+            $w = [single]([double]$annotation.W * $scaleX)
+            $h = [single]([double]$annotation.H * $scaleY)
+            if ($w -gt 0.0 -and $h -gt 0.0) {
+                # A GraphicsPath makes the selected Rectangle corner join
+                # explicit, so Square/Miter versus Round is shared identically
+                # by preview and export rather than relying on DrawRectangle's
+                # platform-specific primitive implementation details.
+                $shapePath = New-Object System.Drawing.Drawing2D.GraphicsPath
+                try {
+                    $shapePath.AddRectangle((New-Object System.Drawing.RectangleF($x,$y,$w,$h)))
+                    $gfx.DrawPath($pen, $shapePath)
+                }
+                finally { $shapePath.Dispose() }
+            }
+        }
+    }
+    finally {
+        $gfx.Restore($savedState)
+        $pen.Dispose()
+    }
+}
+
+function Draw-AnnotationsToView($gfx) {
+    if (-not $videoPath) { return }
+    $items = Get-ImageAnnotationObjects
+    if ($items.Count -eq 0) { return }
+    $transform = Get-ViewportTransform
+    if (-not $transform) { return }
+    $mediaViewRect = Get-MediaViewRect
+    if (-not $mediaViewRect) { return }
+
+    $activeOcclusionRedactions = New-Object System.Collections.ArrayList
+    foreach ($r in $redactions) {
+        if ($isImageMode -or (Test-FrameInRange $currentFrame $r.BufferedStartFrame $r.BufferedEndFrame)) {
+            [void]$activeOcclusionRedactions.Add($r)
+        }
+    }
+
+    $saved = $gfx.Save()
+    try {
+        $gfx.SetClip($mediaViewRect, [System.Drawing.Drawing2D.CombineMode]::Intersect)
+        foreach ($a in $items) {
+            if (-not (Test-AnnotationFrameActive $a $currentFrame)) { continue }
+            Draw-AnnotationObject $gfx $a $transform.ScaleX $transform.ScaleY $transform.OriginX $transform.OriginY $activeOcclusionRedactions
+        }
+    }
+    finally {
+        $gfx.Restore($saved)
+    }
+}
+
+function Draw-DraftShapeOutlineToView($gfx, $shapeData) {
+    if (-not $isImageMode -or -not $script:outlineEnabled -or -not $shapeData) { return }
+    $annotation = New-ShapeOutlineAnnotation $shapeData $script:outlineColor $script:outlineWidth $script:outlineDashStyle (Get-CurrentOutlineJoinStyle)
+    if (-not $annotation) { return }
+    $transform = Get-ViewportTransform
+    if (-not $transform) { return }
+    $mediaViewRect = Get-MediaViewRect
+    if (-not $mediaViewRect) { return }
+
+    $saved = $gfx.Save()
+    try {
+        $gfx.SetClip($mediaViewRect, [System.Drawing.Drawing2D.CombineMode]::Intersect)
+        Draw-AnnotationObject $gfx $annotation $transform.ScaleX $transform.ScaleY $transform.OriginX $transform.OriginY
+    }
+    finally {
+        $gfx.Restore($saved)
+    }
+}
+
+function New-ImageAnnotationOverlayFile($annotationObjects, $occlusionRedactions, [string]$outPath) {
+    if ($videoWidth -le 0 -or $videoHeight -le 0) {
+        throw "Cannot render an annotation overlay without valid media dimensions."
+    }
+    $bmp = New-Object System.Drawing.Bitmap(
+        [int]$videoWidth,
+        [int]$videoHeight,
+        [System.Drawing.Imaging.PixelFormat]::Format32bppArgb
+    )
+    $g = [System.Drawing.Graphics]::FromImage($bmp)
+    try {
+        $g.Clear([System.Drawing.Color]::Transparent)
+        foreach ($a in $annotationObjects) {
+            Draw-AnnotationObject $g $a 1.0 1.0 0.0 0.0 $occlusionRedactions
+        }
+        if (Test-Path -LiteralPath $outPath) {
+            Remove-Item -LiteralPath $outPath -Force -ErrorAction SilentlyContinue
+        }
+        $bmp.Save($outPath, [System.Drawing.Imaging.ImageFormat]::Png)
+    }
+    finally {
+        $g.Dispose()
+        $bmp.Dispose()
+    }
+}
+
+function Get-CurrentTextDraftAnnotation {
+    if (-not $script:textDraftActive) { return $null }
+    if ([string]::IsNullOrWhiteSpace($txtAnnotationText.Text)) { return $null }
+    return New-TextDrawingAnnotation `
+        $script:textDraftRect `
+        $txtAnnotationText.Text `
+        $script:textColor `
+        $script:textFontFamily `
+        $script:textFontSizePx `
+        $script:textBold `
+        $script:textItalic `
+        $script:textAlignment `
+        -1
+}
+
+function Commit-TextDraft {
+    if (-not $videoPath -or -not $isImageMode -or $toolMode -ne "Text" -or -not $script:textDraftActive) { return $false }
+    $a = Get-CurrentTextDraftAnnotation
+    if (-not $a) {
+        [System.Windows.Forms.MessageBox]::Show(
+            "Type some text before adding the annotation.",
+            "No text",
+            "OK",
+            "Information"
+        ) | Out-Null
+        return $false
+    }
+    $a.CommitOrder = Get-NextObjectCommitOrder
+    Set-AnnotationWholeMediaTiming $a
+    [void]$script:annotations.Add($a)
+    Refresh-AnnotationList
+    $lblPending.Text = "Text annotation #$($annotations.Count) added."
+    Reset-DrawingState
+    Update-SelectionFields $null
+    Update-RedactionButtons
+    Update-InspectorSectionLayout
+    return $true
+}
+
+function Add-LineDrawingAnnotation([System.Drawing.PointF]$startPoint, [System.Drawing.PointF]$endPoint) {
+    if (-not $isImageMode) { return $false }
+    $dx = [double]$endPoint.X - [double]$startPoint.X
+    $dy = [double]$endPoint.Y - [double]$startPoint.Y
+    if ([Math]::Sqrt(($dx*$dx)+($dy*$dy)) -lt 1.0) { return $false }
+    $a = New-LineDrawingAnnotation $startPoint $endPoint $script:outlineColor $script:outlineWidth $script:outlineDashStyle $script:drawEndpointStyle (Get-NextObjectCommitOrder)
+    Set-AnnotationWholeMediaTiming $a
+    [void]$script:annotations.Add($a)
+    Refresh-AnnotationList
+    $lblPending.Text = "Line annotation #$($annotations.Count) added."
+    return $true
+}
+
+function Get-PolylineGestureThresholdMedia {
+    $transform = Get-ViewportTransform
+    if (-not $transform) { return 8.0 }
+    $scale = [Math]::Min([double]$transform.ScaleX, [double]$transform.ScaleY)
+    if ($scale -le 0.0) { return 8.0 }
+    return [Math]::Max(0.5, ([double]$script:polylineGestureThresholdView / $scale))
+}
+
+function Get-DominantGestureAxis([System.Drawing.PointF]$from, [System.Drawing.PointF]$to) {
+    $dx = [Math]::Abs([double]$to.X - [double]$from.X)
+    $dy = [Math]::Abs([double]$to.Y - [double]$from.Y)
+    if ($dx -ge $dy) { return "H" }
+    return "V"
+}
+
+function Get-ProjectedPolylineGesturePoint([System.Drawing.PointF]$anchorPoint, [System.Drawing.PointF]$rawPoint, [string]$axis) {
+    if ($axis -eq "H") {
+        return Clamp-MediaPoint (New-Object System.Drawing.PointF([single]$rawPoint.X,[single]$anchorPoint.Y))
+    }
+    if ($axis -eq "V") {
+        return Clamp-MediaPoint (New-Object System.Drawing.PointF([single]$anchorPoint.X,[single]$rawPoint.Y))
+    }
+    return Clamp-MediaPoint $rawPoint
+}
+
+function Add-PolylineGesturePointIfDistinct([System.Drawing.PointF]$point) {
+    if (-not $script:polylinePoints -or $script:polylinePoints.Count -eq 0) {
+        [void]$script:polylinePoints.Add($point)
+        return
+    }
+    $last = $script:polylinePoints[$script:polylinePoints.Count - 1]
+    $dx = [double]$point.X - [double]$last.X
+    $dy = [double]$point.Y - [double]$last.Y
+    if ([Math]::Sqrt(($dx*$dx)+($dy*$dy)) -ge 0.5) {
+        [void]$script:polylinePoints.Add($point)
+    }
+}
+
+function Update-PolylineGesture([System.Drawing.PointF]$rawPoint) {
+    if (-not $script:polylineActive -or -not $script:polylinePoints -or $script:polylinePoints.Count -eq 0) { return }
+    $rawPoint = Clamp-MediaPoint $rawPoint
+    $anchorPoint = $script:polylinePoints[$script:polylinePoints.Count - 1]
+    $threshold = [double](Get-PolylineGestureThresholdMedia)
+
+    if (-not $script:polylineGestureLastRaw) {
+        $script:polylineGestureLastRaw = $rawPoint
+    }
+
+    if ($script:polylineGestureAxis -eq "None") {
+        $dx0 = [double]$rawPoint.X - [double]$anchorPoint.X
+        $dy0 = [double]$rawPoint.Y - [double]$anchorPoint.Y
+        if ([Math]::Sqrt(($dx0*$dx0)+($dy0*$dy0)) -lt $threshold) {
+            $script:polylineMousePos = $rawPoint
+            return
+        }
+        $script:polylineGestureAxis = Get-DominantGestureAxis $anchorPoint $rawPoint
+        $script:polylineGestureLastRaw = $rawPoint
+    }
+
+    $script:polylineMousePos = Get-ProjectedPolylineGesturePoint $anchorPoint $rawPoint $script:polylineGestureAxis
+
+    $sampleDx = [double]$rawPoint.X - [double]$script:polylineGestureLastRaw.X
+    $sampleDy = [double]$rawPoint.Y - [double]$script:polylineGestureLastRaw.Y
+    $sampleDistance = [Math]::Sqrt(($sampleDx*$sampleDx)+($sampleDy*$sampleDy))
+    if ($sampleDistance -lt $threshold) { return }
+
+    $candidateAxis = Get-DominantGestureAxis $script:polylineGestureLastRaw $rawPoint
+    if ($candidateAxis -ne $script:polylineGestureAxis) {
+        $corner = $script:polylineMousePos
+        Add-PolylineGesturePointIfDistinct $corner
+        $anchorPoint = $script:polylinePoints[$script:polylinePoints.Count - 1]
+        $script:polylineGestureAxis = $candidateAxis
+        $script:polylineMousePos = Get-ProjectedPolylineGesturePoint $anchorPoint $rawPoint $script:polylineGestureAxis
+    }
+    $script:polylineGestureLastRaw = $rawPoint
+}
+
+function Finish-PolylineGesture([System.Drawing.PointF]$rawPoint) {
+    if (-not $script:polylineActive) { return $false }
+    if ($rawPoint) { Update-PolylineGesture $rawPoint }
+    if ($script:polylineMousePos) { Add-PolylineGesturePointIfDistinct $script:polylineMousePos }
+    if ($script:polylinePoints.Count -lt 2) {
+        Reset-DrawingState
+        Update-SelectionFields $null
+        Update-RedactionButtons
+        return $false
+    }
+    $script:polylineActive = $false
+    $script:polylineDraftActive = $true
+    $script:polylineMousePos = $null
+    $script:polylineGestureAxis = "None"
+    $script:polylineGestureLastRaw = $null
+    Update-SelectionFields $null "Polyline ready. Create Annotation locks it in."
+    [void](Show-FloatingTextEditor "Draft")
+    Update-RedactionButtons
+    return $true
+}
+
+function Complete-PolylineDrawing {
+    if (-not $isImageMode) { return $false }
+    if (-not $script:polylineDraftActive -or -not $script:polylinePoints -or $script:polylinePoints.Count -lt 2) { return $false }
+    $a = New-PolylineDrawingAnnotation $script:polylinePoints $script:outlineColor $script:outlineWidth $script:outlineDashStyle $script:drawPolylineJoinStyle $script:drawEndpointStyle (Get-NextObjectCommitOrder)
+    if (-not $a) { return $false }
+    Set-AnnotationWholeMediaTiming $a
+    [void]$script:annotations.Add($a)
+    Refresh-AnnotationList
+    $lblPending.Text = "Polyline annotation #$($annotations.Count) added."
+    Reset-DrawingState
+    Update-SelectionFields $null
+    Update-RedactionButtons
+    return $true
+}
+
+# D4a draft hit-testing/movement helpers. Hit-testing is intentionally VIEW
+# space so a thin line remains practical to grab at every zoom level; movement
+# itself is canonical MEDIA-space and clamped to the displayed media bounds.
+function Get-ViewPointToSegmentDistance([System.Drawing.PointF]$point, [System.Drawing.PointF]$a, [System.Drawing.PointF]$b) {
+    $vx = [double]$b.X - [double]$a.X
+    $vy = [double]$b.Y - [double]$a.Y
+    $wx = [double]$point.X - [double]$a.X
+    $wy = [double]$point.Y - [double]$a.Y
+    $len2 = ($vx * $vx) + ($vy * $vy)
+    if ($len2 -le 0.0001) {
+        return [Math]::Sqrt(($wx * $wx) + ($wy * $wy))
+    }
+    $t = (($wx * $vx) + ($wy * $vy)) / $len2
+    $t = [Math]::Max(0.0, [Math]::Min(1.0, $t))
+    $px = [double]$a.X + ($t * $vx)
+    $py = [double]$a.Y + ($t * $vy)
+    $dx = [double]$point.X - $px
+    $dy = [double]$point.Y - $py
+    return [Math]::Sqrt(($dx * $dx) + ($dy * $dy))
+}
+
+function Get-StandaloneDraftHitToleranceView {
+    $transform = Get-ViewportTransform
+    $scaledHalfWidth = 0.0
+    if ($transform) {
+        $scaledHalfWidth = ([double]$script:outlineWidth * [double]$transform.ScaleX) / 2.0
+    }
+    return [Math]::Max(7.0, ($scaledHalfWidth + 5.0))
+}
+
+function Test-LineDraftHit([System.Drawing.PointF]$viewPoint) {
+    if (-not $script:lineDraftActive -or -not $script:lineStart -or -not $script:lineEnd) { return $false }
+    $a = MediaPoint-To-ViewPoint $script:lineStart
+    $b = MediaPoint-To-ViewPoint $script:lineEnd
+    if (-not $a -or -not $b) { return $false }
+    return [bool]((Get-ViewPointToSegmentDistance $viewPoint $a $b) -le (Get-StandaloneDraftHitToleranceView))
+}
+
+function Test-PolylineDraftHit([System.Drawing.PointF]$viewPoint) {
+    if (-not $script:polylineDraftActive -or -not $script:polylinePoints -or $script:polylinePoints.Count -lt 2) { return $false }
+    $tol = Get-StandaloneDraftHitToleranceView
+    for ($i = 1; $i -lt $script:polylinePoints.Count; $i++) {
+        $a = MediaPoint-To-ViewPoint $script:polylinePoints[$i - 1]
+        $b = MediaPoint-To-ViewPoint $script:polylinePoints[$i]
+        if ($a -and $b -and (Get-ViewPointToSegmentDistance $viewPoint $a $b) -le $tol) { return $true }
+    }
+    return $false
+}
+
+function Begin-AnnotationDraftMove([string]$kind, [System.Drawing.PointF]$mediaPoint) {
+    $script:annotationDraftMoving = $true
+    $script:annotationDraftMoveKind = $kind
+    $script:annotationDraftMoveStart = $mediaPoint
+    $script:annotationDraftOrigTextRect = $null
+    $script:annotationDraftOrigLineStart = $null
+    $script:annotationDraftOrigLineEnd = $null
+    $script:annotationDraftOrigPolylinePoints = $null
+
+    if ($kind -eq "Text") {
+        $script:annotationDraftOrigTextRect = New-Object System.Drawing.RectangleF(
+            [single]$script:textDraftRect.X,[single]$script:textDraftRect.Y,[single]$script:textDraftRect.Width,[single]$script:textDraftRect.Height)
+    }
+    elseif ($kind -eq "Line") {
+        $script:annotationDraftOrigLineStart = New-Object System.Drawing.PointF([single]$script:lineStart.X,[single]$script:lineStart.Y)
+        $script:annotationDraftOrigLineEnd = New-Object System.Drawing.PointF([single]$script:lineEnd.X,[single]$script:lineEnd.Y)
+    }
+    elseif ($kind -eq "Polyline") {
+        $script:annotationDraftOrigPolylinePoints = New-Object System.Collections.Generic.List[System.Drawing.PointF]
+        foreach ($pt in $script:polylinePoints) {
+            [void]$script:annotationDraftOrigPolylinePoints.Add((New-Object System.Drawing.PointF([single]$pt.X,[single]$pt.Y)))
+        }
+    }
+    $picture.Capture = $true
+    $picture.Cursor = [System.Windows.Forms.Cursors]::SizeAll
+}
+
+function Update-AnnotationDraftMove([System.Drawing.PointF]$mediaPoint) {
+    if (-not $script:annotationDraftMoving -or -not $script:annotationDraftMoveStart -or -not $mediaPoint) { return }
+    $mediaBounds = Get-DraftMediaBounds
+    if (-not $mediaBounds) { return }
+    $dx = [double]$mediaPoint.X - [double]$script:annotationDraftMoveStart.X
+    $dy = [double]$mediaPoint.Y - [double]$script:annotationDraftMoveStart.Y
+
+    if ($script:annotationDraftMoveKind -eq "Text" -and $script:annotationDraftOrigTextRect) {
+        $d = Get-ClampedTranslation $script:annotationDraftOrigTextRect $dx $dy $mediaBounds
+        $script:textDraftRect = New-Object System.Drawing.RectangleF(
+            [single]([double]$script:annotationDraftOrigTextRect.X + [double]$d.Dx),
+            [single]([double]$script:annotationDraftOrigTextRect.Y + [double]$d.Dy),
+            [single]$script:annotationDraftOrigTextRect.Width,[single]$script:annotationDraftOrigTextRect.Height)
+    }
+    elseif ($script:annotationDraftMoveKind -eq "Line" -and $script:annotationDraftOrigLineStart -and $script:annotationDraftOrigLineEnd) {
+        $minX = [Math]::Min([double]$script:annotationDraftOrigLineStart.X,[double]$script:annotationDraftOrigLineEnd.X)
+        $minY = [Math]::Min([double]$script:annotationDraftOrigLineStart.Y,[double]$script:annotationDraftOrigLineEnd.Y)
+        $maxX = [Math]::Max([double]$script:annotationDraftOrigLineStart.X,[double]$script:annotationDraftOrigLineEnd.X)
+        $maxY = [Math]::Max([double]$script:annotationDraftOrigLineStart.Y,[double]$script:annotationDraftOrigLineEnd.Y)
+        $origBounds = New-Object System.Drawing.RectangleF([single]$minX,[single]$minY,[single][Math]::Max(0.01,($maxX-$minX)),[single][Math]::Max(0.01,($maxY-$minY)))
+        $d = Get-ClampedTranslation $origBounds $dx $dy $mediaBounds
+        $script:lineStart = New-Object System.Drawing.PointF([single]([double]$script:annotationDraftOrigLineStart.X + [double]$d.Dx),[single]([double]$script:annotationDraftOrigLineStart.Y + [double]$d.Dy))
+        $script:lineEnd = New-Object System.Drawing.PointF([single]([double]$script:annotationDraftOrigLineEnd.X + [double]$d.Dx),[single]([double]$script:annotationDraftOrigLineEnd.Y + [double]$d.Dy))
+    }
+    elseif ($script:annotationDraftMoveKind -eq "Polyline" -and $script:annotationDraftOrigPolylinePoints) {
+        $origBounds = Get-PointsBoundingRect $script:annotationDraftOrigPolylinePoints
+        $d = Get-ClampedTranslation $origBounds $dx $dy $mediaBounds
+        $newPoints = New-Object System.Collections.Generic.List[System.Drawing.PointF]
+        foreach ($pt in $script:annotationDraftOrigPolylinePoints) {
+            [void]$newPoints.Add((New-Object System.Drawing.PointF([single]([double]$pt.X + [double]$d.Dx),[single]([double]$pt.Y + [double]$d.Dy))))
+        }
+        $script:polylinePoints = $newPoints
+    }
+}
+
+function Stop-AnnotationDraftMove {
+    $script:annotationDraftMoving = $false
+    $script:annotationDraftMoveKind = "None"
+    $script:annotationDraftMoveStart = $null
+    $script:annotationDraftOrigTextRect = $null
+    $script:annotationDraftOrigLineStart = $null
+    $script:annotationDraftOrigLineEnd = $null
+    $script:annotationDraftOrigPolylinePoints = $null
+    if ($picture) { $picture.Capture = $false }
+}
+
+# D4b committed-annotation helpers. These operate only on $annotations.
+function Get-SelectedCommittedAnnotation {
+    $idx = [int]$script:selectedAnnotationIndex
+    if ($idx -lt 0 -or $idx -ge $annotations.Count) { return $null }
+    return $annotations[$idx]
+}
+
+function Get-AnnotationMediaBounds($a) {
+    if (-not $a) { return $null }
+    if ($a.Kind -eq "Line") {
+        $minX = [Math]::Min([double]$a.X1,[double]$a.X2)
+        $minY = [Math]::Min([double]$a.Y1,[double]$a.Y2)
+        $maxX = [Math]::Max([double]$a.X1,[double]$a.X2)
+        $maxY = [Math]::Max([double]$a.Y1,[double]$a.Y2)
+        return New-Object System.Drawing.RectangleF([single]$minX,[single]$minY,[single][Math]::Max(0.01,($maxX-$minX)),[single][Math]::Max(0.01,($maxY-$minY)))
+    }
+    if ($a.Kind -eq "Polyline" -or ($a.Kind -eq "ShapeOutline" -and $a.Shape -eq "Polygon")) {
+        if (-not $a.Points -or $a.Points.Count -lt 1) { return $null }
+        return Get-PointsBoundingRect $a.Points
+    }
+    if ($a.PSObject.Properties["X"] -and $a.PSObject.Properties["Y"] -and
+        $a.PSObject.Properties["W"] -and $a.PSObject.Properties["H"]) {
+        return New-Object System.Drawing.RectangleF([single]$a.X,[single]$a.Y,[single]$a.W,[single]$a.H)
+    }
+    return $null
+}
+
+function Get-AnnotationHitToleranceView($a) {
+    $transform = Get-ViewportTransform
+    $scaledHalf = 0.0
+    if ($transform -and $a -and $a.PSObject.Properties["StrokeWidth"]) {
+        $scaledHalf = ([double]$a.StrokeWidth * [double]$transform.ScaleX) / 2.0
+    }
+    return [Math]::Max(7.0, ($scaledHalf + 5.0))
+}
+
+function Test-CommittedAnnotationHit($a, [System.Drawing.PointF]$viewPoint) {
+    if (-not $a) { return $false }
+    $mediaPoint = ViewPoint-To-MediaPoint $viewPoint $false
+    if (-not $mediaPoint) { return $false }
+
+    if ($a.Kind -eq "Text") {
+        $r = Get-AnnotationMediaBounds $a
+        return [bool]($r -and $r.Contains($mediaPoint))
+    }
+    if ($a.Kind -eq "Line") {
+        $p1 = MediaPoint-To-ViewPoint (New-Object System.Drawing.PointF([single]$a.X1,[single]$a.Y1))
+        $p2 = MediaPoint-To-ViewPoint (New-Object System.Drawing.PointF([single]$a.X2,[single]$a.Y2))
+        if (-not $p1 -or -not $p2) { return $false }
+        return [bool]((Get-ViewPointToSegmentDistance $viewPoint $p1 $p2) -le (Get-AnnotationHitToleranceView $a))
+    }
+    if ($a.Kind -eq "Polyline") {
+        $tol = Get-AnnotationHitToleranceView $a
+        for ($i=1; $i -lt $a.Points.Count; $i++) {
+            $p1 = MediaPoint-To-ViewPoint (New-Object System.Drawing.PointF([single]$a.Points[$i-1].X,[single]$a.Points[$i-1].Y))
+            $p2 = MediaPoint-To-ViewPoint (New-Object System.Drawing.PointF([single]$a.Points[$i].X,[single]$a.Points[$i].Y))
+            if ($p1 -and $p2 -and (Get-ViewPointToSegmentDistance $viewPoint $p1 $p2) -le $tol) { return $true }
+        }
+        return $false
+    }
+    if ($a.Kind -eq "ShapeOutline") {
+        if ($a.Shape -eq "Polygon") { return [bool](Test-PointInPolygon $mediaPoint $a.Points) }
+        $r = Get-AnnotationMediaBounds $a
+        if (-not $r) { return $false }
+        if ($a.Shape -eq "Oval") {
+            if ($r.Width -le 0.0 -or $r.Height -le 0.0) { return $false }
+            $cx=[double]$r.X+([double]$r.Width/2.0); $cy=[double]$r.Y+([double]$r.Height/2.0)
+            $nx=([double]$mediaPoint.X-$cx)/([double]$r.Width/2.0)
+            $ny=([double]$mediaPoint.Y-$cy)/([double]$r.Height/2.0)
+            return [bool]((($nx*$nx)+($ny*$ny)) -le 1.0)
+        }
+        return [bool]($r.Contains($mediaPoint))
+    }
+    return $false
+}
+
+function Copy-AnnotationGeometrySnapshot($a) {
+    if (-not $a) { return $null }
+    if ($a.Kind -eq "Line") {
+        return [PSCustomObject]@{ Kind="Line"; X1=[double]$a.X1; Y1=[double]$a.Y1; X2=[double]$a.X2; Y2=[double]$a.Y2 }
+    }
+    if ($a.Kind -eq "Polyline" -or ($a.Kind -eq "ShapeOutline" -and $a.Shape -eq "Polygon")) {
+        $pts=@(); foreach ($p in $a.Points) { $pts += [PSCustomObject]@{X=[double]$p.X;Y=[double]$p.Y} }
+        return [PSCustomObject]@{ Kind=[string]$a.Kind; Shape=[string]$a.Shape; Points=$pts }
+    }
+    $r = Get-AnnotationMediaBounds $a
+    if ($r) { return [PSCustomObject]@{ Kind=[string]$a.Kind; Shape=[string]$a.Shape; X=[double]$r.X;Y=[double]$r.Y;W=[double]$r.Width;H=[double]$r.Height } }
+    return $null
+}
+
+function Begin-CommittedAnnotationMove($a, [System.Drawing.PointF]$mediaPoint) {
+    $snap = Copy-AnnotationGeometrySnapshot $a
+    if (-not $snap -or -not $mediaPoint) { return $false }
+    $script:annotationCommittedMoving = $true
+    $script:annotationCommittedMoveStart = $mediaPoint
+    $script:annotationCommittedOrig = $snap
+    $picture.Capture = $true
+    $picture.Cursor = [System.Windows.Forms.Cursors]::SizeAll
+    return $true
+}
+
+function Update-CommittedAnnotationMove([System.Drawing.PointF]$mediaPoint) {
+    if (-not $script:annotationCommittedMoving -or -not $mediaPoint -or -not $script:annotationCommittedMoveStart -or -not $script:annotationCommittedOrig) { return }
+    $a = Get-SelectedCommittedAnnotation
+    if (-not $a) { return }
+    $bounds = Get-DraftMediaBounds
+    if (-not $bounds) { return }
+    $dx=[double]$mediaPoint.X-[double]$script:annotationCommittedMoveStart.X
+    $dy=[double]$mediaPoint.Y-[double]$script:annotationCommittedMoveStart.Y
+    $orig=$script:annotationCommittedOrig
+
+    if ($orig.Kind -eq "Line") {
+        $minX=[Math]::Min($orig.X1,$orig.X2); $minY=[Math]::Min($orig.Y1,$orig.Y2)
+        $maxX=[Math]::Max($orig.X1,$orig.X2); $maxY=[Math]::Max($orig.Y1,$orig.Y2)
+        $ob=New-Object System.Drawing.RectangleF([single]$minX,[single]$minY,[single][Math]::Max(0.01,($maxX-$minX)),[single][Math]::Max(0.01,($maxY-$minY)))
+        $d=Get-ClampedTranslation $ob $dx $dy $bounds
+        $a.X1=[double]$orig.X1+[double]$d.Dx; $a.Y1=[double]$orig.Y1+[double]$d.Dy
+        $a.X2=[double]$orig.X2+[double]$d.Dx; $a.Y2=[double]$orig.Y2+[double]$d.Dy
+    }
+    elseif ($orig.Points) {
+        $ob=Get-PointsBoundingRect $orig.Points
+        $d=Get-ClampedTranslation $ob $dx $dy $bounds
+        $pts=@(); foreach ($pt in $orig.Points) { $pts += [PSCustomObject]@{X=[double]$pt.X+[double]$d.Dx;Y=[double]$pt.Y+[double]$d.Dy} }
+        $a.Points=$pts
+    }
+    else {
+        $ob=New-Object System.Drawing.RectangleF([single]$orig.X,[single]$orig.Y,[single]$orig.W,[single]$orig.H)
+        $d=Get-ClampedTranslation $ob $dx $dy $bounds
+        $a.X=[double]$orig.X+[double]$d.Dx; $a.Y=[double]$orig.Y+[double]$d.Dy
+    }
+}
+
+function Stop-CommittedAnnotationMove {
+    $script:annotationCommittedMoving=$false
+    $script:annotationCommittedMoveStart=$null
+    $script:annotationCommittedOrig=$null
+    if ($picture) { $picture.Capture=$false }
+}
+
+# D4d: committed Line/Polyline/Freeform annotation handles reuse the proven
+# constant-screen-size vertex hit zones but accept two-point Line geometry too.
+function Get-CommittedAnnotationEditablePoints($a) {
+    if (-not $a) { return @() }
+    if ($a.Kind -eq "Line") {
+        return @(
+            (New-Object System.Drawing.PointF([single]$a.X1,[single]$a.Y1)),
+            (New-Object System.Drawing.PointF([single]$a.X2,[single]$a.Y2))
+        )
+    }
+    if ($a.Kind -eq "Polyline" -or ($a.Kind -eq "ShapeOutline" -and $a.Shape -eq "Polygon")) {
+        $pts = @()
+        foreach ($p in $a.Points) { $pts += New-Object System.Drawing.PointF([single]$p.X,[single]$p.Y) }
+        return ,$pts
+    }
+    return @()
+}
+
+function Get-CommittedAnnotationVertexHandleAtViewPoint($a, [System.Drawing.PointF]$viewPoint) {
+    $pts = Get-CommittedAnnotationEditablePoints $a
+    if (-not $pts -or $pts.Count -lt 1) { return -1 }
+    return Get-FreeformVertexHandleAtViewPoint $viewPoint $pts
+}
+
+function Test-AnnotationVertexIsArrowEndpoint($a, [int]$vertexIndex) {
+    if (-not $a -or $vertexIndex -lt 0) { return $false }
+    $style = [string]$a.EndpointStyle
+    if ([string]::IsNullOrWhiteSpace($style) -or $style -eq "None") { return $false }
+
+    if ($a.Kind -eq "Line") {
+        if ($vertexIndex -eq 0) { return [bool]($style -eq "ArrowStart" -or $style -eq "ArrowBoth") }
+        if ($vertexIndex -eq 1) { return [bool]($style -eq "ArrowEnd" -or $style -eq "ArrowBoth") }
+        return $false
+    }
+
+    if ($a.Kind -eq "Polyline" -and $a.Points) {
+        if ($vertexIndex -eq 0) { return [bool]($style -eq "ArrowStart" -or $style -eq "ArrowBoth") }
+        if ($vertexIndex -eq ($a.Points.Count - 1)) { return [bool]($style -eq "ArrowEnd" -or $style -eq "ArrowBoth") }
+    }
+    return $false
+}
+
+function Draw-CommittedAnnotationVertexHandles($gfx, $a) {
+    if (-not $gfx -or -not $a) { return }
+    $pts = Get-CommittedAnnotationEditablePoints $a
+    if (-not $pts -or $pts.Count -lt 1) { return }
+    $size = [double]$script:resizeHandleVisualSize
+    $half = $size / 2.0
+    $fill = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
+    $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::Red, 1)
+    $arrowPen = New-Object System.Drawing.Pen([System.Drawing.Color]::Gold, 1.4)
+    try {
+        foreach ($h in (Get-FreeformVertexHandleCenters $pts)) {
+            if (Test-AnnotationVertexIsArrowEndpoint $a ([int]$h.Index)) {
+                # A filled square centred on an arrow tip makes the arrow look
+                # blunt even though the underlying D2-r3 arrow geometry is still
+                # pointed. Use a hollow selection ring for arrow endpoints so the
+                # tip remains visible while the same endpoint hit target stays active.
+                $ringSize = [Math]::Max(10.0, ($size + 2.0))
+                $ringHalf = $ringSize / 2.0
+                $gfx.DrawEllipse($arrowPen,
+                    [single]([double]$h.X - $ringHalf),
+                    [single]([double]$h.Y - $ringHalf),
+                    [single]$ringSize,
+                    [single]$ringSize)
+                continue
+            }
+            $x = [single]([double]$h.X - $half)
+            $y = [single]([double]$h.Y - $half)
+            $gfx.FillRectangle($fill, $x, $y, [single]$size, [single]$size)
+            $gfx.DrawRectangle($pen, $x, $y, [single]$size, [single]$size)
+        }
+    }
+    finally {
+        $fill.Dispose()
+        $pen.Dispose()
+        $arrowPen.Dispose()
+    }
+}
+
+function Update-CommittedAnnotationVertex($a, [int]$vertexIndex, [System.Drawing.PointF]$rawPoint, [System.Drawing.RectangleF]$mediaBounds) {
+    if (-not $a -or -not $rawPoint -or -not $mediaBounds -or $vertexIndex -lt 0) { return }
+    $point = Clamp-MediaPoint $rawPoint
+
+    if ($a.Kind -eq "Line") {
+        if ($vertexIndex -gt 1) { return }
+        $other = if ($vertexIndex -eq 0) {
+            New-Object System.Drawing.PointF([single]$a.X2,[single]$a.Y2)
+        } else {
+            New-Object System.Drawing.PointF([single]$a.X1,[single]$a.Y1)
+        }
+        $constrain = [bool]([System.Windows.Forms.Control]::ModifierKeys -band [System.Windows.Forms.Keys]::Shift)
+        if ($constrain) { $point = Clamp-MediaPoint (Get-AngleSnappedPoint $other $point $true) }
+        if ($vertexIndex -eq 0) { $a.X1=[double]$point.X; $a.Y1=[double]$point.Y }
+        else { $a.X2=[double]$point.X; $a.Y2=[double]$point.Y }
+        return
+    }
+
+    if ($a.Kind -eq "Polyline" -or ($a.Kind -eq "ShapeOutline" -and $a.Shape -eq "Polygon")) {
+        if (-not $a.Points -or $vertexIndex -ge $a.Points.Count) { return }
+        $a.Points = Get-FreeformVertexEditResult $a.Points $vertexIndex $point $mediaBounds
+    }
+}
+
+function Draw-SelectedCommittedAnnotationGuide($gfx) {
+    $a=Get-SelectedCommittedAnnotation
+    if (-not $a -or -not $gfx) { return }
+
+    $pen=New-Object System.Drawing.Pen([System.Drawing.Color]::Gold,1)
+    $pen.DashStyle=[System.Drawing.Drawing2D.DashStyle]::Dash
+    try {
+        if ($a.Kind -eq "Line") {
+            $p1=MediaPoint-To-ViewPoint (New-Object System.Drawing.PointF([single]$a.X1,[single]$a.Y1))
+            $p2=MediaPoint-To-ViewPoint (New-Object System.Drawing.PointF([single]$a.X2,[single]$a.Y2))
+            if ($p1 -and $p2) { $gfx.DrawLine($pen,$p1,$p2) }
+            Draw-CommittedAnnotationVertexHandles $gfx $a
+            return
+        }
+
+        if ($a.Kind -eq "Polyline" -or ($a.Kind -eq "ShapeOutline" -and $a.Shape -eq "Polygon")) {
+            $pts=MediaPoints-To-ViewPoints $a.Points
+            if ($pts -and $pts.Count -ge 2) {
+                if ($a.Kind -eq "ShapeOutline" -and $a.Shape -eq "Polygon" -and $pts.Count -ge 3) {
+                    $gfx.DrawPolygon($pen,[System.Drawing.PointF[]]$pts)
+                } else {
+                    $gfx.DrawLines($pen,[System.Drawing.PointF[]]$pts)
+                }
+            }
+            Draw-CommittedAnnotationVertexHandles $gfx $a
+            return
+        }
+
+        $bounds=Get-AnnotationMediaBounds $a
+        if (-not $bounds) { return }
+        $vr=MediaRect-To-ViewRect $bounds
+        if (-not $vr) { return }
+
+        if ($a.Kind -eq "ShapeOutline" -and $a.Shape -eq "Oval") {
+            $gfx.DrawEllipse($pen,$vr)
+            Draw-OvalResizeHandles $gfx $bounds
+            return
+        }
+        if ($a.Kind -eq "ShapeOutline" -and $a.Shape -eq "Rectangle") {
+            $gfx.DrawRectangle($pen,$vr.X,$vr.Y,$vr.Width,$vr.Height)
+            Draw-RectangleResizeHandles $gfx $bounds
+            return
+        }
+
+        $pad=3.0
+        $guide=New-Object System.Drawing.RectangleF([single]([double]$vr.X-$pad),[single]([double]$vr.Y-$pad),[single]([double]$vr.Width+($pad*2.0)),[single]([double]$vr.Height+($pad*2.0)))
+        $gfx.DrawRectangle($pen,$guide.X,$guide.Y,$guide.Width,$guide.Height)
+        if ($a.Kind -eq "Text") { Draw-RectangleResizeHandles $gfx $bounds }
+    }
+    finally { $pen.Dispose() }
+}
+
+# D4c committed-redaction helpers. These mutate only geometry fields on the
+# already-committed still-image redaction object. Security mode/strength/timing,
+# colour, attached outline styling and CommitOrder are never rewritten here.
+function Get-SelectedCommittedRedaction {
+    $idx = [int]$script:selectedRedactionIndex
+    if ($idx -lt 0 -or $idx -ge $redactions.Count) { return $null }
+    if(-not $isImageMode -and -not (Test-FrameInRange $currentFrame $redactions[$idx].BufferedStartFrame $redactions[$idx].BufferedEndFrame)){return $null}
+    return $redactions[$idx]
+}
+
+function Get-RedactionMediaBounds($r) {
+    if (-not $r) { return $null }
+    if ($r.Shape -eq "Polygon") {
+        if (-not $r.Points -or $r.Points.Count -lt 3) { return $null }
+        return Get-PointsBoundingRect $r.Points
+    }
+    return New-Object System.Drawing.RectangleF([single]$r.X,[single]$r.Y,[single]$r.W,[single]$r.H)
+}
+
+function Test-CommittedRedactionHit($r, [System.Drawing.PointF]$mediaPoint) {
+    if (-not $r -or -not $mediaPoint) { return $false }
+    if ($r.Shape -eq "Polygon") { return [bool](Test-PointInPolygon $mediaPoint $r.Points) }
+    $rect = Get-RedactionMediaBounds $r
+    if (-not $rect) { return $false }
+    if ($r.Shape -eq "Oval") {
+        if ($rect.Width -le 0.0 -or $rect.Height -le 0.0) { return $false }
+        $cx=[double]$rect.X+([double]$rect.Width/2.0); $cy=[double]$rect.Y+([double]$rect.Height/2.0)
+        $nx=([double]$mediaPoint.X-$cx)/([double]$rect.Width/2.0)
+        $ny=([double]$mediaPoint.Y-$cy)/([double]$rect.Height/2.0)
+        return [bool]((($nx*$nx)+($ny*$ny)) -le 1.0)
+    }
+    return [bool]($rect.Contains($mediaPoint))
+}
+
+function Copy-RedactionGeometrySnapshot($r) {
+    if (-not $r) { return $null }
+    if ($r.Shape -eq "Polygon") {
+        $pts=@(); foreach ($p in $r.Points) { $pts += [PSCustomObject]@{ X=[double]$p.X; Y=[double]$p.Y } }
+        return [PSCustomObject]@{ Shape="Polygon"; X=[double]$r.X; Y=[double]$r.Y; W=[double]$r.W; H=[double]$r.H; Points=$pts }
+    }
+    return [PSCustomObject]@{ Shape=[string]$r.Shape; X=[double]$r.X; Y=[double]$r.Y; W=[double]$r.W; H=[double]$r.H }
+}
+
+function Update-CommittedPolygonBounds($r) {
+    if (-not $r -or $r.Shape -ne "Polygon" -or -not $r.Points -or $r.Points.Count -lt 3) { return }
+    $b = Get-PointsBoundingRect $r.Points
+    $r.X=[double]$b.X; $r.Y=[double]$b.Y
+    $r.W=[double][Math]::Max(2.0,[double]$b.Width)
+    $r.H=[double][Math]::Max(2.0,[double]$b.Height)
+}
+
+function Normalize-CommittedRedactionGeometry($r) {
+    if (-not $r) { return }
+    if ($r.Shape -eq "Polygon") {
+        $pts=@()
+        foreach ($p in $r.Points) {
+            $x=[int][Math]::Round([Math]::Max(0.0,[Math]::Min([double]$p.X,[double]$videoWidth-1.0)))
+            $y=[int][Math]::Round([Math]::Max(0.0,[Math]::Min([double]$p.Y,[double]$videoHeight-1.0)))
+            $pts += [PSCustomObject]@{ X=$x; Y=$y }
+        }
+        $r.Points=$pts
+        $minX=($pts|ForEach-Object{$_.X}|Measure-Object -Minimum).Minimum
+        $maxX=($pts|ForEach-Object{$_.X}|Measure-Object -Maximum).Maximum
+        $minY=($pts|ForEach-Object{$_.Y}|Measure-Object -Minimum).Minimum
+        $maxY=($pts|ForEach-Object{$_.Y}|Measure-Object -Maximum).Maximum
+        $bbox=Normalize-VideoRect $minX $minY ([Math]::Max(2,$maxX-$minX)) ([Math]::Max(2,$maxY-$minY))
+        $r.X=$bbox.X; $r.Y=$bbox.Y; $r.W=$bbox.W; $r.H=$bbox.H
+        return
+    }
+    $nr=Normalize-VideoRect ([double]$r.X) ([double]$r.Y) ([double]$r.W) ([double]$r.H)
+    $r.X=$nr.X; $r.Y=$nr.Y; $r.W=$nr.W; $r.H=$nr.H
+}
+
+function Begin-CommittedRedactionMove($r, [System.Drawing.PointF]$mediaPoint) {
+    $snap=Copy-RedactionGeometrySnapshot $r
+    if (-not $snap -or -not $mediaPoint) { return $false }
+    $script:redactionCommittedMoving=$true
+    $script:redactionCommittedMoveStart=$mediaPoint
+    $script:redactionCommittedOrig=$snap
+    $picture.Capture=$true
+    $picture.Cursor=[System.Windows.Forms.Cursors]::SizeAll
+    return $true
+}
+
+function Update-CommittedRedactionMove([System.Drawing.PointF]$mediaPoint) {
+    if (-not $script:redactionCommittedMoving -or -not $mediaPoint -or -not $script:redactionCommittedMoveStart -or -not $script:redactionCommittedOrig) { return }
+    $r=Get-SelectedCommittedRedaction
+    $bounds=Get-DraftMediaBounds
+    if (-not $r -or -not $bounds) { return }
+    $dx=[double]$mediaPoint.X-[double]$script:redactionCommittedMoveStart.X
+    $dy=[double]$mediaPoint.Y-[double]$script:redactionCommittedMoveStart.Y
+    $orig=$script:redactionCommittedOrig
+    $origBounds=New-Object System.Drawing.RectangleF([single]$orig.X,[single]$orig.Y,[single]$orig.W,[single]$orig.H)
+    if ($orig.Shape -eq "Polygon") { $origBounds=Get-PointsBoundingRect $orig.Points }
+    $d=Get-ClampedTranslation $origBounds $dx $dy $bounds
+    if ($orig.Shape -eq "Polygon") {
+        $pts=@(); foreach ($p in $orig.Points) { $pts += [PSCustomObject]@{ X=[double]$p.X+[double]$d.Dx; Y=[double]$p.Y+[double]$d.Dy } }
+        $r.Points=$pts
+        Update-CommittedPolygonBounds $r
+    } else {
+        $r.X=[double]$orig.X+[double]$d.Dx
+        $r.Y=[double]$orig.Y+[double]$d.Dy
+    }
+}
+
+function Stop-CommittedRedactionMove {
+    $r=Get-SelectedCommittedRedaction
+    if ($r) { Normalize-CommittedRedactionGeometry $r }
+    $script:redactionCommittedMoving=$false
+    $script:redactionCommittedMoveStart=$null
+    $script:redactionCommittedOrig=$null
+    if ($picture) { $picture.Capture=$false }
+}
+
+function Draw-SelectedCommittedRedactionGuide($gfx) {
+    $r=Get-SelectedCommittedRedaction
+    if (-not $r -or -not $gfx) { return }
+    if ($r.Shape -eq "Polygon") {
+        $dpts=VideoPoints-To-DisplayPoints $r.Points
+        if ($dpts -and $dpts.Count -ge 3) {
+            $pen=New-Object System.Drawing.Pen([System.Drawing.Color]::Gold,1)
+            $pen.DashStyle=[System.Drawing.Drawing2D.DashStyle]::Dash
+            try { $gfx.DrawPolygon($pen,$dpts) } finally { $pen.Dispose() }
+            Draw-FreeformVertexHandles $gfx $r.Points
+        }
+        return
+    }
+    $rect=Get-RedactionMediaBounds $r
+    $vr=MediaRect-To-ViewRect $rect
+    if ($vr) {
+        $pen=New-Object System.Drawing.Pen([System.Drawing.Color]::Gold,1)
+        $pen.DashStyle=[System.Drawing.Drawing2D.DashStyle]::Dash
+        try {
+            if ($r.Shape -eq "Oval") { $gfx.DrawEllipse($pen,$vr) }
+            else { $gfx.DrawRectangle($pen,$vr.X,$vr.Y,$vr.Width,$vr.Height) }
+        } finally { $pen.Dispose() }
+    }
+    if ($r.Shape -eq "Oval") { Draw-OvalResizeHandles $gfx $rect }
+    else { Draw-RectangleResizeHandles $gfx $rect }
 }
 
 function VideoRect-To-Display($vx, $vy, $vw, $vh) {
@@ -5670,6 +11405,9 @@ function Polygon-To-VideoShape($mediaPoints) {
 # committed (a finished drag for Rectangle/Oval, or a closed click-path for
 # Polygon), or $null if there's nothing ready to become a redaction yet.
 function Get-CurrentShapeVideoData {
+    # D3 Draw tools (Text/Line/Polyline) commit directly into the annotation
+    # collection and are never candidates for the redaction Begin/Create workflow.
+    if (Test-IsStandaloneDrawTool) { return $null }
     if ($toolMode -eq "Polygon") {
         if ($polygonActive -or $polygonPoints.Count -lt 3) { return $null }
         return Polygon-To-VideoShape $polygonPoints
@@ -5685,7 +11423,7 @@ function Get-CurrentShapeVideoData {
 # PictureBox in video-space -> converted to display coordinates here, so the
 # same function serves the Paint handler for both committed (green) and
 # pending (orange) redactions.
-function Draw-RedactionShape($gfx, $r, [System.Drawing.Color]$borderColor, [System.Drawing.Color]$fillColor) {
+function Draw-RedactionShape($gfx, $r, [System.Drawing.Color]$borderColor, [System.Drawing.Color]$fillColor, [bool]$drawGuideBorder = $true) {
     $pen = New-Object System.Drawing.Pen($borderColor, 2)
     $brush = New-Object System.Drawing.SolidBrush($fillColor)
  
@@ -5693,21 +11431,21 @@ function Draw-RedactionShape($gfx, $r, [System.Drawing.Color]$borderColor, [Syst
         $dr = VideoRect-To-Display $r.X $r.Y $r.W $r.H
         if ($dr) {
             $gfx.FillEllipse($brush, $dr)
-            $gfx.DrawEllipse($pen, $dr)
+            if ($drawGuideBorder) { $gfx.DrawEllipse($pen, $dr) }
         }
     }
     elseif ($r.Shape -eq "Polygon") {
         $dpts = VideoPoints-To-DisplayPoints $r.Points
         if ($dpts -and $dpts.Count -ge 3) {
             $gfx.FillPolygon($brush, $dpts)
-            $gfx.DrawPolygon($pen, $dpts)
+            if ($drawGuideBorder) { $gfx.DrawPolygon($pen, $dpts) }
         }
     }
     else {
         $dr = VideoRect-To-Display $r.X $r.Y $r.W $r.H
         if ($dr) {
             $gfx.FillRectangle($brush, $dr)
-            Draw-ViewportRectangleOutline $gfx $pen $dr
+            if ($drawGuideBorder) { Draw-ViewportRectangleOutline $gfx $pen $dr }
         }
     }
  
@@ -5775,6 +11513,43 @@ function New-ShapeMaskFile($r, [string]$outPath) {
     $bmp.Dispose()
 }
  
+# D5b visual-layer restoration mask. This is not a security mask and never
+# changes source-redaction coverage; it merely clips an annotation so a later
+# active redaction can visually sit above it while the already-redacted pixels
+# are restored from the security-pass branch.
+function New-AnnotationOcclusionMaskFile($r, [string]$outPath) {
+    $bmp = New-Object System.Drawing.Bitmap([int]$r.W, [int]$r.H)
+    $g = [System.Drawing.Graphics]::FromImage($bmp)
+    $isOpaque = ($r.Mode -eq 'Black box')
+    $g.SmoothingMode = if ($isOpaque) { [System.Drawing.Drawing2D.SmoothingMode]::None } else { [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias }
+    $g.Clear([System.Drawing.Color]::Black)
+    $brush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
+    try {
+        if ($r.Shape -eq 'Oval') {
+            $g.FillEllipse($brush,0,0,[int]$r.W,[int]$r.H)
+        }
+        elseif ($r.Shape -eq 'Polygon') {
+            $pts=@()
+            foreach ($p in $r.Points) { $pts += New-Object System.Drawing.Point(([int]$p.X-[int]$r.X),([int]$p.Y-[int]$r.Y)) }
+            if ($pts.Count -ge 3) {
+                $g.FillPolygon($brush,$pts)
+                if ($isOpaque) {
+                    $edgePen=New-Object System.Drawing.Pen([System.Drawing.Color]::White,2)
+                    try { $edgePen.LineJoin=[System.Drawing.Drawing2D.LineJoin]::Round; $g.DrawPolygon($edgePen,$pts) }
+                    finally { $edgePen.Dispose() }
+                }
+            }
+        }
+        else {
+            $g.FillRectangle($brush,0,0,[int]$r.W,[int]$r.H)
+        }
+    }
+    finally { $brush.Dispose(); $g.Dispose() }
+    if (Test-Path -LiteralPath $outPath) { Remove-Item -LiteralPath $outPath -Force -ErrorAction SilentlyContinue }
+    try { $bmp.Save($outPath,[System.Drawing.Imaging.ImageFormat]::Png) }
+    finally { $bmp.Dispose() }
+}
+
 # ----------------------------
 # UI state helpers
 # ----------------------------
@@ -5827,15 +11602,21 @@ function Set-WorkingDimensionsForUserRotation {
 # geometry transformation locks the controls rather than attempting to rotate
 # existing rectangles, ovals, freeform vertices or timeline ranges.
 function Test-HasRotationLockoutState {
+    if($isImageMode -and $script:ImageCrop){return $true}
     if ($redactions -and $redactions.Count -gt 0) { return $true }
-    if ($pendingRedaction) { return $true }
+    if ($annotations -and $annotations.Count -gt 0) { return $true }
+    if ($pendingRedaction -or $script:pendingAnnotation) { return $true }
     if ($dragging -or $movingShape -or $script:resizingShape -or $script:editingPolygonVertex) { return $true }
     if ($selection -and ($selection.Width -gt 0.0 -or $selection.Height -gt 0.0)) { return $true }
     if ($polygonActive -or ($polygonPoints -and $polygonPoints.Count -gt 0)) { return $true }
+    if ($script:lineDrawing -or $script:lineStart -or $script:lineEnd) { return $true }
+    if ($script:polylineActive -or ($script:polylinePoints -and $script:polylinePoints.Count -gt 0)) { return $true }
+    if ($script:textDrawing -or $script:textDraftActive) { return $true }
     return $false
 }
 
 function Update-RotationButtons {
+    if($script:ExportBusy){return}
     if (-not $btnRotateCCW -or -not $btnRotateCW) { return }
     $canRotate = [bool]($videoPath -and -not (Test-HasRotationLockoutState))
     $btnRotateCCW.Enabled = $canRotate
@@ -5844,22 +11625,69 @@ function Update-RotationButtons {
 }
 
 function Update-RedactionButtons {
+    if($script:ExportBusy){return}
     $hasVideo = [bool]$videoPath
     $hasSelection = [bool](Get-CurrentShapeVideoData)
+    $drawTool = [bool](Test-IsStandaloneDrawTool)
+    $annotationContext = [bool](-not $isImageMode -and ($drawTool -or $script:pendingAnnotation))
+    $managedBlocksVisualObscuration = [bool]($script:ManagedPolicy -and $script:ManagedPolicy.DisableVisualObscuration)
+
+    if (-not $isImageMode) {
+        $btnStartRedaction.Text = if ($annotationContext) { "Begin Annotation" } else { "Begin Redaction" }
+        $btnEndRedaction.Text = if ($annotationContext) { "End Annotation" } else { "End Redaction" }
+        $btnCancelRedaction.Text = if ($annotationContext) { "Cancel Annotation" } else { "Cancel Redaction" }
+    }
 
     if ($isImageMode) {
-        # Images have no "in progress" state -- a selection is created in
-        # one step, so $btnAddRedaction is just ready (green) or not (grey).
-        $btnAddRedaction.Enabled = ($hasVideo -and $hasSelection)
+        # Standalone Draw tools use their own explicit annotation commit controls
+        # inside Appearance, so the redaction Create button stays hidden.
+        $btnAddRedaction.Visible = $true
+        $hasAppearance = [bool]($script:fillEnabled -or $script:outlineEnabled)
+        $btnAddRedaction.Text = if ($drawTool -or -not $script:fillEnabled) { "Create Annotation" } else { "Create Redaction" }
+        $draftReady = if ($toolMode -eq "Text") { $script:textDraftActive -and -not [string]::IsNullOrWhiteSpace($txtAnnotationText.Text) } elseif ($toolMode -eq "Line") { $script:lineDraftActive } elseif ($toolMode -eq "Polyline") { $script:polylineDraftActive } else { $false }
+        $btnAddRedaction.Enabled = ($hasVideo -and (($drawTool -and $draftReady) -or (-not $drawTool -and $hasSelection -and $hasAppearance)))
         Set-RedactionButtonColor $btnAddRedaction $(if ($btnAddRedaction.Enabled) { "green" } else { "grey" })
         $rbRectangle.Enabled = $true
         $rbOval.Enabled = $true
         $rbFreeform.Enabled = $true
-        $rbModeBlack.Enabled = $true; $rbModeBlur.Enabled = $true; $rbModePixelate.Enabled = $true
+        $rbText.Enabled = $true
+        $rbLine.Enabled = $true
+        $rbPolyline.Enabled = $true
+        $styleEnabled = [bool]($script:fillEnabled -and -not $drawTool)
+        $rbModeBlack.Enabled = $styleEnabled
+        $rbModeBlur.Enabled = [bool]($styleEnabled -and -not $managedBlocksVisualObscuration)
+        $rbModePixelate.Enabled = [bool]($styleEnabled -and -not $managedBlocksVisualObscuration)
+    }
+    elseif ($script:pendingAnnotation) {
+        $btnAddRedaction.Visible = $false
+        $btnStartRedaction.Enabled = $false
+        Set-RedactionButtonColor $btnStartRedaction "grey"
+        $btnEndRedaction.Enabled = $true
+        Set-RedactionButtonColor $btnEndRedaction "red"
+        $btnCancelRedaction.Enabled = $true
+        $rbModeBlack.Enabled = $false; $rbModeBlur.Enabled = $false; $rbModePixelate.Enabled = $false
+        $rbRectangle.Enabled = $false; $rbOval.Enabled = $false; $rbFreeform.Enabled = $false
+        $rbText.Enabled = $false; $rbLine.Enabled = $false; $rbPolyline.Enabled = $false
+        if ($lvRedactions) { $lvRedactions.Enabled = $false }
+        if ($lvAnnotations) { $lvAnnotations.Enabled = $false }
+    }
+    elseif ($drawTool) {
+        $btnAddRedaction.Visible = $false
+        $draftReady = [bool](Test-VideoAnnotationDraftReady)
+        $draftPresent = [bool](Test-VideoAnnotationDraftPresent)
+        $btnStartRedaction.Enabled = ($hasVideo -and $draftReady)
+        Set-RedactionButtonColor $btnStartRedaction $(if ($btnStartRedaction.Enabled) { "green" } else { "grey" })
+        $btnEndRedaction.Enabled = $false
+        Set-RedactionButtonColor $btnEndRedaction "grey"
+        $btnCancelRedaction.Enabled = $draftPresent
+        $rbModeBlack.Enabled = $false; $rbModeBlur.Enabled = $false; $rbModePixelate.Enabled = $false
+        $rbRectangle.Enabled = $true; $rbOval.Enabled = $true; $rbFreeform.Enabled = $true
+        $rbText.Enabled = $true; $rbLine.Enabled = $true; $rbPolyline.Enabled = $true
+        if ($lvRedactions) { $lvRedactions.Enabled = $true }
+        if ($lvAnnotations) { $lvAnnotations.Enabled = $true }
     }
     elseif ($pendingRedaction) {
-        # A redaction range has been begun: Begin goes inactive/grey, End
-        # becomes the active, red "finish it" action.
+        $btnAddRedaction.Visible = $false
         $btnStartRedaction.Enabled = $false
         Set-RedactionButtonColor $btnStartRedaction "grey"
         $btnEndRedaction.Enabled = $true
@@ -5869,48 +11697,72 @@ function Update-RedactionButtons {
         $rbRectangle.Enabled = $false
         $rbOval.Enabled = $false
         $rbFreeform.Enabled = $false
+        $rbText.Enabled = $false
+        $rbLine.Enabled = $false
+        $rbPolyline.Enabled = $false
+        if ($lvRedactions) { $lvRedactions.Enabled = $true }
+        if ($lvAnnotations) { $lvAnnotations.Enabled = $true }
     }
     else {
-        # No redaction in progress: Begin turns green as soon as there's a
-        # selection to start from; End stays inactive/grey either way.
+        $btnAddRedaction.Visible = $false
         $btnStartRedaction.Enabled = ($hasVideo -and $hasSelection)
         Set-RedactionButtonColor $btnStartRedaction $(if ($btnStartRedaction.Enabled) { "green" } else { "grey" })
         $btnEndRedaction.Enabled = $false
         Set-RedactionButtonColor $btnEndRedaction "grey"
         $btnCancelRedaction.Enabled = $false
-        $rbModeBlack.Enabled = $true; $rbModeBlur.Enabled = $true; $rbModePixelate.Enabled = $true
+        $rbModeBlack.Enabled = $true
+        $rbModeBlur.Enabled = -not $managedBlocksVisualObscuration
+        $rbModePixelate.Enabled = -not $managedBlocksVisualObscuration
         $rbRectangle.Enabled = $true
         $rbOval.Enabled = $true
         $rbFreeform.Enabled = $true
+        $rbText.Enabled = $true
+        $rbLine.Enabled = $true
+        $rbPolyline.Enabled = $true
+        if ($lvRedactions) { $lvRedactions.Enabled = $true }
+        if ($lvAnnotations) { $lvAnnotations.Enabled = $true }
     }
 
-    # B1 intentionally proves preview/state/canonical geometry only. The frozen
-    # approved FFmpeg lacks a quarter-turn filter, so non-zero UserRotation must
-    # never reach the unchanged exporter: fail closed until the dedicated export
-    # slice extends and re-approves the media-tool build.
-    $btnExport.Enabled = ($hasVideo -and $redactions.Count -gt 0)
-    # A disabled WinForms control does not reliably receive hover events, so
-    # do not pretend the rotation lock can be explained by a normal ToolTip.
-    # The lock itself is deliberate and temporary for B1; the click handler
-    # remains a defence-in-depth guard if the control state is ever bypassed.
+    $hasStandaloneAnnotations = [bool]($annotations -and $annotations.Count -gt 0)
+    $btnExport.Enabled = ($hasVideo -and -not $script:pendingAnnotation -and ($redactions.Count -gt 0 -or $hasStandaloneAnnotations -or ($isImageMode -and $script:ImageCrop)))
+    if ($isImageMode) {
+        $btnExport.Text = if($isImageMode -and $script:ImageCrop -and $redactions.Count -eq 0 -and -not $hasStandaloneAnnotations){"Export Cropped Image"} elseif ($redactions.Count -gt 0) { "Export Redacted Image" } elseif ($hasStandaloneAnnotations) { "Export Annotated Image" } else { "Export Image" }
+    }
+    else {
+        $btnExport.Text = if($isImageMode -and $script:ImageCrop -and $redactions.Count -eq 0 -and -not $hasStandaloneAnnotations){"Export Cropped Image"} elseif ($redactions.Count -gt 0) { "Export Redacted Video" } elseif ($hasStandaloneAnnotations) { "Export Annotated Video" } else { "Export Video" }
+    }
+    Update-ExportButtonAppearance
     $script:appToolTip.SetToolTip($btnExport, "")
-    $btnEyedropper.Enabled = $hasVideo
+    if(Get-Command Update-CopyButton -ErrorAction SilentlyContinue){Update-CopyButton}
+    $btnEyedropper.Enabled = $hasVideo -and -not $drawTool -and -not $script:pendingAnnotation
     Update-StrengthSliderVisibility
+    Update-OutlineControlsAvailability
     Update-RotationButtons
+    Update-SourceDeletionUi
+    Update-CropControls
 }
  
 function Refresh-RedactionList {
+    $keepSelectedRedactionIndex = [int]$script:selectedRedactionIndex
     $lvRedactions.Items.Clear()
     for ($i = 0; $i -lt $redactions.Count; $i++) {
         $r = $redactions[$i]
         $item = New-Object System.Windows.Forms.ListViewItem(($i+1).ToString())
         [void]$item.SubItems.Add($r.Shape)
         $modeText = if (Get-RedactionEnhanced $r) { "$($r.Mode) A" } else { $r.Mode }
+        if (Test-RedactionHasOutline $r) { $modeText += " + Outline" }
         [void]$item.SubItems.Add($modeText)
         [void]$item.SubItems.Add("$(SecToText $r.MarkStart) - $(SecToText $r.MarkEnd)")
         [void]$item.SubItems.Add("$(SecToText $r.BufferedStart) - $(SecToText $r.BufferedEnd)")
         [void]$item.SubItems.Add("x=$($r.X), y=$($r.Y), w=$($r.W), h=$($r.H)")
         [void]$lvRedactions.Items.Add($item)
+    }
+    if ($keepSelectedRedactionIndex -ge 0 -and $keepSelectedRedactionIndex -lt $lvRedactions.Items.Count) {
+        $script:selectedRedactionIndex = $keepSelectedRedactionIndex
+        $lvRedactions.Items[$keepSelectedRedactionIndex].Selected = $true
+    }
+    elseif ($keepSelectedRedactionIndex -ge $redactions.Count) {
+        $script:selectedRedactionIndex = -1
     }
     $scrubberMarkers.Invalidate()
     # A committed redaction's shape can be showing on the current preview
@@ -5924,6 +11776,35 @@ function Refresh-RedactionList {
     Update-ColorSwatch
 }
  
+function Refresh-AnnotationList {
+    if (-not $lvAnnotations) { return }
+    $lvAnnotations.Items.Clear()
+    for ($i = 0; $i -lt $annotations.Count; $i++) {
+        $a = $annotations[$i]
+        $item = New-Object System.Windows.Forms.ListViewItem(($i+1).ToString())
+        $shapeText = if ($a.Shape -eq "Polygon") { "Freeform" } elseif ($a.Kind -eq "Text") { "Text Box" } else { [string]$a.Shape }
+        $typeText = if ($a.Kind -eq "Text") { "Text annotation" } elseif ($a.Kind -eq "Line" -or $a.Kind -eq "Polyline") { "Drawing annotation" } else { "Outline only (not a redaction)" }
+        $rangeText = ""
+        if (-not $isImageMode -and $a.Kind -in @("Text","Line","Polyline")) {
+            $typeText = if ($a.Kind -eq "Text") { "Text" } else { "Drawing" }
+            $ar = Get-AnnotationFrameRange $a
+            $rangeText = "$([int]$ar.Start + 1)-$([int]$ar.End + 1)"
+        }
+        [void]$item.SubItems.Add($shapeText)
+        [void]$item.SubItems.Add($typeText)
+        [void]$item.SubItems.Add($rangeText)
+        [void]$lvAnnotations.Items.Add($item)
+    }
+    if ($script:selectedAnnotationIndex -ge 0 -and $script:selectedAnnotationIndex -lt $lvAnnotations.Items.Count) {
+        $lvAnnotations.Items[$script:selectedAnnotationIndex].Selected = $true
+    }
+    elseif ($script:selectedAnnotationIndex -ge $annotations.Count) {
+        $script:selectedAnnotationIndex = -1
+    }
+    $scrubberMarkers.Invalidate()
+    $picture.Invalidate()
+}
+
 function Stop-Playback {
     if ($isPlaying) {
         $script:isPlaying = $false
@@ -5938,6 +11819,7 @@ function Stop-Playback {
 # committed or pending redaction. Called whenever the tool changes, a
 # redaction is started/ended/cancelled, or a new file is loaded.
 function Reset-DrawingState {
+    if ($script:floatingTextEditorVisible) { Close-FloatingTextEditor $false }
     $script:dragging = $false
     $script:dragStart = New-Object System.Drawing.PointF(0,0)
     $script:selection = New-Object System.Drawing.RectangleF(0,0,0,0)
@@ -5956,30 +11838,81 @@ function Reset-DrawingState {
     $script:resizeDraftDrawMoved = $false
     $script:editingPolygonVertex = $false
     $script:polygonVertexIndex = -1
-    if ($picture) { $picture.Invalidate() }
+    $script:lineDrawing = $false
+    $script:lineDraftActive = $false
+    $script:lineStart = $null
+    $script:lineEnd = $null
+    $script:polylineActive = $false
+    $script:polylineDraftActive = $false
+    $script:polylinePoints = New-Object System.Collections.Generic.List[System.Drawing.PointF]
+    $script:polylineMousePos = $null
+    $script:polylineGestureAxis = "None"
+    $script:polylineGestureLastRaw = $null
+    $script:textDrawing = $false
+    $script:textDragStart = $null
+    $script:textDraftActive = $false
+    $script:textDraftRect = New-Object System.Drawing.RectangleF(0,0,0,0)
+    $script:annotationDraftMoving = $false
+    $script:annotationDraftMoveKind = "None"
+    $script:annotationDraftMoveStart = $null
+    $script:annotationDraftOrigTextRect = $null
+    $script:annotationDraftOrigLineStart = $null
+    $script:annotationDraftOrigLineEnd = $null
+    $script:annotationDraftOrigPolylinePoints = $null
+    $script:textDraftResizing = $false
+    $script:textDraftResizeHandle = "None"
+    $script:textDraftResizeOrigRect = $null
+    $script:annotationCommittedMoving = $false
+    $script:annotationCommittedMoveStart = $null
+    $script:annotationCommittedOrig = $null
+    $script:annotationCommittedTextResizing = $false
+    $script:annotationCommittedTextResizeHandle = "None"
+    $script:annotationCommittedTextResizeOrigRect = $null
+    $script:annotationCommittedResizing = $false
+    $script:annotationCommittedResizeHandle = "None"
+    $script:annotationCommittedResizeOrigRect = $null
+    $script:annotationCommittedVertexEditing = $false
+    $script:annotationCommittedVertexIndex = -1
+    $script:redactionCommittedMoving = $false
+    $script:redactionCommittedMoveStart = $null
+    $script:redactionCommittedOrig = $null
+    $script:redactionCommittedResizing = $false
+    $script:redactionCommittedResizeHandle = "None"
+    $script:redactionCommittedResizeOrigRect = $null
+    $script:redactionCommittedPolygonEditing = $false
+    $script:redactionCommittedPolygonVertexIndex = -1
+    if ($txtAnnotationText) { $txtAnnotationText.Text = "" }
+    if ($picture) { $picture.Capture = $false; $picture.Invalidate() }
+    if ($textAppearancePanel) { Update-OutlineControlsAvailability }
 }
  
 function Reset-RedactionState {
     $script:redactions = New-Object System.Collections.ArrayList
+    $script:annotations = New-Object System.Collections.ArrayList
+    $script:selectedAnnotationIndex = -1
+    $script:selectedRedactionIndex = -1
+    $script:objectCommitCounter = 0
     $script:pendingRedaction = $null
+    $script:pendingAnnotation = $null
     Reset-DrawingState
     Update-SelectionFields $null
-    $lblPending.Text = "No redaction in progress."
+    $lblPending.Text = "No temporal operation in progress."
     Refresh-RedactionList
+    Refresh-AnnotationList
 }
  
 # Swaps the handful of UI bits that read differently depending on whether a
-# video or a still image is currently loaded: the Start/End/Cancel Redaction
-# workflow (buffered time ranges) doesn't make sense for a single image, so
+# video or a still image is currently loaded: the shared Begin/End/Cancel
+# temporal workflow doesn't make sense for a single image, so
 # that becomes one "Add Redaction" button, and video-only controls (audio,
 # quality) are hidden. "Open video/file..." itself never changes - it always
 # accepts either kind of file.
 function Apply-ModeLabels {
     if ($isImageMode) {
-        $lblHint.Text = "Load an image, drag a shape over the area to hide, pick a mode, then Create Redaction. Repeat for more redactions, then Export."
+        $lblHint.Text = "Load an image, create redactions or annotations, then export. Draw tools are annotation-only."
         $lblPos.Text = "Preview:"
         $btnExport.Text = "Export Redacted Image"
-        $lblBufferNote.Text = "Redactions apply to the whole image - there's no timeline (and so no before/after buffer) for a still image."
+        $lblBufferNote.Text = "Redactions and annotations apply to the whole image - there's no timeline (and so no before/after buffer) for a still image."
         $btnStartRedaction.Visible = $false
         $btnEndRedaction.Visible = $false
         $btnCancelRedaction.Visible = $false
@@ -5988,8 +11921,11 @@ function Apply-ModeLabels {
         $chkAudio.Visible = $false
         $lblQuality.Visible = $false
         $cmbQuality.Visible = $false
+        $lvRedactions.Columns[2].Width = 150
         $lvRedactions.Columns[3].Width = 0
         $lvRedactions.Columns[4].Width = 0
+        $lvAnnotations.Columns[2].Width = 185
+        $lvAnnotations.Columns[3].Width = 0
 
         # Output format list swaps to the image container set. Default: PNG.
         $cmbFormat.Items.Clear()
@@ -5997,10 +11933,10 @@ function Apply-ModeLabels {
         $cmbFormat.SelectedIndex = 0
     }
     else {
-        $lblHint.Text = "Load a video, step to a frame, drag a shape, then Begin Redaction ... move to the end frame ... End Redaction. Repeat for more redactions, then Export."
+        $lblHint.Text = "Load a video, create timed redactions or Text/Line/Polyline annotations, then export."
         $lblPos.Text = "Preview frame:"
         $btnExport.Text = "Export Redacted Video"
-        $lblBufferNote.Text = "Every redaction is padded automatically by $BUFFER_FRAMES frames before and after the marked range."
+        $lblBufferNote.Text = "Redactions are padded by $BUFFER_FRAMES frames before/after. Annotation Begin/End ranges are exact logical frames with no buffer."
         $btnStartRedaction.Visible = $true
         $btnEndRedaction.Visible = $true
         $btnCancelRedaction.Visible = $true
@@ -6009,14 +11945,24 @@ function Apply-ModeLabels {
         $chkAudio.Visible = $true
         $lblQuality.Visible = $true
         $cmbQuality.Visible = $true
+        $lvRedactions.Columns[2].Width = 92
         $lvRedactions.Columns[3].Width = 145
         $lvRedactions.Columns[4].Width = 0
+        $lvAnnotations.Columns[2].Width = 100
+        $lvAnnotations.Columns[3].Width = 105
 
         # Output format list swaps to the video container set. Default: MP4.
         $cmbFormat.Items.Clear()
         $cmbFormat.Items.AddRange($VIDEO_FORMATS)
         $cmbFormat.SelectedIndex = 0
     }
+    Update-InspectorSectionLayout
+    Update-SecurityModeNote
+    Update-StrengthSliderVisibility
+    Update-ColorPickerVisibility
+    Update-OutlineControlsAvailability
+    Update-SourceDeletionUi
+    if (Get-Command Update-ToolHintText -ErrorAction SilentlyContinue) { Update-ToolHintText }
 }
  
 # ----------------------------
@@ -6191,46 +12137,172 @@ function Step-Frame([int]$delta) {
     Load-PreviewFrame
 }
  
+# S1b starts with deletion unavailable until a source is accepted.
+Reset-SourceDeletionState
+
 # ----------------------------
 # Events
 # ----------------------------
-$btnOpen.Add_Click({
-    Stop-Playback
-
-    $openFilter = "Video or image|*.mp4;*.mov;*.m4v;*.avi;*.mkv;*.webm;*.wmv;*.asf;*.mpg;*.mpeg;*.mpe;*.vob;*.ts;*.mts;*.m2ts;*.m2t;*.flv;*.3gp;*.3g2;*.f4v;*.ogv;*.rm;*.rmvb;*.mxf;*.wtv;*.dv;*.mjpeg;*.mjpg;*.mlv;*.r3d;*.jpg;*.jpeg;*.jpe;*.png;*.apng;*.gif;*.webp;*.bmp;*.tif;*.tiff;*.tga;*.dds;*.exr;*.hdr;*.dpx;*.jp2;*.j2k;*.j2c;*.jpc;*.jls;*.psd;*.pcx;*.qoi;*.avif;*.heic;*.heif|Video files|*.mp4;*.mov;*.m4v;*.avi;*.mkv;*.webm;*.wmv;*.asf;*.mpg;*.mpeg;*.mpe;*.vob;*.ts;*.mts;*.m2ts;*.m2t;*.flv;*.3gp;*.3g2;*.f4v;*.ogv;*.rm;*.rmvb;*.mxf;*.wtv;*.dv;*.mjpeg;*.mjpg;*.mlv;*.r3d|Image files|*.jpg;*.jpeg;*.jpe;*.png;*.apng;*.gif;*.webp;*.bmp;*.tif;*.tiff;*.tga;*.dds;*.exr;*.hdr;*.dpx;*.jp2;*.j2k;*.j2c;*.jpc;*.jls;*.psd;*.pcx;*.qoi;*.avif;*.heic;*.heif|All files|*.*"
-    try {
-        $selectedPath = [SecureFileDialogNativeV2]::ShowOpen($form.Handle, $openFilter, "Choose a video or image")
+Add-Type -TypeDefinition @'
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+public sealed class TRTMediaOperation {
+    readonly object gate=new object(); readonly List<Process> children=new List<Process>();
+    public volatile bool Cancelled; public double Microseconds;
+    public Process Start(ProcessStartInfo info) { lock(gate) { if(Cancelled) throw new OperationCanceledException(); var p=Process.Start(info); children.Add(p); return p; } }
+    public void Cancel() { lock(gate) { Cancelled=true; foreach(var p in children) try { if(!p.HasExited) p.Kill(); } catch{} } }
+    public void Dispose() { lock(gate) { foreach(var p in children) { try {if(!p.HasExited)p.Kill();}catch{} p.Dispose(); } children.Clear(); } }
+}
+'@
+function Start-MediaWorker($kind,$arguments,$complete,$context) {
+    if($script:MediaWorker){throw 'A media operation is already running.'}
+    $owner=New-Object TRTMediaOperation
+    $defs=New-Object Text.StringBuilder
+    foreach($name in @('Quote-Arg','Get-SafeFFmpegError','Get-FrameTimingMap','Get-OutputInspection','Test-ExportSecurity','Get-VideoInfo')){
+        $body=(Get-Command $name -CommandType Function).Definition
+        # Instrument private worker copies only. All accepted checks stay intact.
+        $body=$body.Replace('[System.Diagnostics.Process]::Start($psi)','$script:OperationOwner.Start($psi)').Replace('$copyTask.GetAwaiter().GetResult()','[void]$copyTask.GetAwaiter().GetResult()').Replace('[System.Windows.Forms.Application]::DoEvents()','')
+        if($name -eq 'Get-VideoInfo'){$body=$body.Replace('$bytes = $ms.ToArray()','$bytes = $ms.ToArray(); $info.FirstFrameBytes=$bytes')}
+        [void]$defs.AppendLine(('function '+$name+' {'+"`n"+$body+"`n"+'}'))
     }
-    catch {
-        [System.Windows.Forms.MessageBox]::Show(("Windows could not open the secure file-selection dialog.`r`n`r`n" + $_.Exception.Message), "File dialog error", "OK", "Error") | Out-Null
-        return
+    $work=@'
+param($owner,$kind,$a)
+$ErrorActionPreference='Stop';$script:OperationOwner=$owner
+if($kind -eq 'Load'){ Get-VideoInfo $a.Mpeg $a.Probe $a.Path $a.Image; return }
+$p=$owner.Start($a.Psi)
+$errorTask=$p.StandardError.ReadToEndAsync()
+while($null -ne ($line=$p.StandardOutput.ReadLine())){
+    if($line -match '^out_time_us=(-?\d+)'){$owner.Microseconds=[double]$Matches[1]}
+}
+$p.WaitForExit();$mediaError=$errorTask.GetAwaiter().GetResult()
+if($p.ExitCode -ne 0 -or -not [IO.File]::Exists($a.Path)){
+    @{ExitCode=$p.ExitCode;Error=$mediaError;Validation=@{Ok=$false;Error='Encoding failed.'}};return
+}
+$validation=Test-ExportSecurity $a.Mpeg $a.Probe $a.Path $a.Image $a.Audio $a.Width $a.Height $a.Duration $a.Timeline
+@{ExitCode=$p.ExitCode;Error=$mediaError;Validation=$validation}
+'@
+    $worker=[PowerShell]::Create()
+    try{
+        [void]$worker.AddScript($defs.ToString()).AddStatement().AddScript($work).AddArgument($owner).AddArgument($kind).AddArgument($arguments)
+        $task=$worker.BeginInvoke()
+        $timer=New-Object Windows.Forms.Timer;$timer.Interval=75
+        $script:MediaWorker=@{Worker=$worker;Task=$task;Owner=$owner;Timer=$timer;Kind=$kind;Complete=$complete;Context=$context;Arguments=$arguments}
+        $timer.Add_Tick({
+            $op=$script:MediaWorker;if(-not $op){return}
+            if(-not $op.Task.IsCompleted){
+                if($op.Kind -eq 'Export' -and $op.Arguments.Duration -gt 0){
+                    $pct=[Math]::Max(0,[Math]::Min(99,[int]($op.Owner.Microseconds/($op.Arguments.Duration*10000.0))))
+                    $progress.Value=$pct;$status.Text="Exporting / validating... $pct%"
+                }
+                return
+            }
+            $op.Timer.Stop();$op.Timer.Dispose();$script:MediaWorker=$null
+            $result=$null;$failure=$null
+            try{
+                $items=$op.Worker.EndInvoke($op.Task)
+                if($op.Worker.Streams.Error.Count -or $items.Count -ne 1){throw 'The media worker did not complete safely.'}
+                $result=$items[0].PSObject.BaseObject
+            }catch{$failure=$_.Exception.GetBaseException().Message}
+            finally{$op.Worker.Dispose();$op.Owner.Dispose()}
+            & $op.Complete $result $failure $op.Owner.Cancelled $op.Context
+        })
+        $timer.Start()
+    }catch{$worker.Dispose();$owner.Dispose();throw}
+}
+function Close-VideoLoadingNotice {
+    if($script:LoadingNotice){$script:LoadingNotice.Dispose();$script:LoadingNotice=$null}
+}
+function Cancel-VideoLoading {
+    if($script:MediaWorker -and $script:MediaWorker.Kind -eq 'Load'){
+        $script:MediaWorker.Owner.Cancel()
+        $script:LoadingCancel.Enabled=$false;$script:LoadingTitle.Text='Cancelling video loading...'
     }
-    if ([string]::IsNullOrWhiteSpace($selectedPath)) { return }
+}
+function Show-ClipboardConfirmation {
+    $dialog=New-Object Windows.Forms.Form
+    $dialog.Text='Clipboard';$dialog.StartPosition='CenterParent';$dialog.FormBorderStyle='FixedDialog'
+    $dialog.MaximizeBox=$false;$dialog.MinimizeBox=$false;$dialog.ShowInTaskbar=$false
+    $dialog.BackColor=$form.BackColor;$dialog.ForeColor=$script:cTextCurrent
+    $dialog.AutoScaleMode='Dpi';$dialog.ClientSize=[Drawing.Size]::new(360,116)
+    $label=New-Object Windows.Forms.Label;$label.Text='Image Copied to Clipboard'
+    $label.Font=New-UIFont 10.0 'Bold';$label.ForeColor=$script:cTextCurrent
+    $label.BackColor=[Drawing.Color]::Transparent;$label.TextAlign='MiddleCenter';$label.SetBounds(14,15,332,34)
+    $ok=New-Object Windows.Forms.Button;$ok.Text='OK';$ok.SetBounds(246,70,100,30)
+    Style-FlatButton $ok $true
+    $ok.BackColor=$script:cAccentCurrent;$ok.ForeColor=[Drawing.Color]::White
+    $ok.FlatAppearance.BorderColor=$script:cAccentCurrent;$ok.DialogResult='OK'
+    $dialog.Controls.AddRange([Windows.Forms.Control[]]@($label,$ok))
+    $dialog.AcceptButton=$ok;$dialog.CancelButton=$ok
+    try{[void]$dialog.ShowDialog($form)}finally{$dialog.Dispose()}
+}
+function Show-VideoLoadingNotice {
+    $notice=New-Object Windows.Forms.Form
+    $notice.Text='Loading Video';$notice.FormBorderStyle='FixedDialog';$notice.ControlBox=$false
+    $notice.ShowInTaskbar=$false;$notice.StartPosition='CenterParent';$notice.ClientSize=[Drawing.Size]::new(520,164)
+    $notice.BackColor=$form.BackColor;$notice.ForeColor=$script:cTextCurrent
+    $title=New-Object Windows.Forms.Label;$title.Text='Loading Video... Please Wait';$title.Font=New-UIFont 12.0 'Bold';$title.SetBounds(18,15,485,30)
+    $detail=New-Object Windows.Forms.Label;$detail.Text='This may take a while depending on video size and/or if opening from a network location';$detail.Font=New-UIFont 9.0;$detail.SetBounds(18,50,485,42)
+    $bar=New-Object Windows.Forms.ProgressBar;$bar.Style='Marquee';$bar.SetBounds(18,101,370,20)
+    $cancel=New-Object Windows.Forms.Button;$cancel.Text='Cancel';$cancel.SetBounds(401,98,100,30);Style-FlatButton $cancel $true
+    # Use the same palette and rounded painter as TRT's ordinary buttons.
+    $cancel.BackColor=$script:cAccentCurrent;$cancel.ForeColor=[Drawing.Color]::White
+    $cancel.FlatAppearance.BorderColor=$script:cAccentCurrent
+    $title.ForeColor=$script:cTextCurrent;$detail.ForeColor=$script:cMutedCurrent
+    $title.BackColor=[Drawing.Color]::Transparent;$detail.BackColor=[Drawing.Color]::Transparent
+    $cancel.Add_Click({Cancel-VideoLoading})
+    $notice.Controls.AddRange([Windows.Forms.Control[]]@($title,$detail,$bar,$cancel))
+    $script:LoadingNotice=$notice;$script:LoadingCancel=$cancel;$script:LoadingTitle=$title
+    $notice.Show($form)
+}
+function Update-CopyButton {
+    if(-not $btnCopyImage){return}
+    $btnCopyImage.Visible=[bool]($videoPath -and $isImageMode)
+    $btnCopyImage.Enabled=[bool]($btnCopyImage.Visible -and $btnExport.Enabled -and -not $script:ExportBusy)
+    $ink=if($btnCopyImage.Enabled){[Drawing.Color]::White}else{[Drawing.Color]::Gray}
+    $btnCopyImage.Image=Get-ThemedIconImage 'copy' $ink
+    $btnCopyImage.BackColor=$btnExport.BackColor;$btnCopyImage.ForeColor=$btnExport.ForeColor
+    $btnCopyImage.FlatAppearance.BorderColor=$btnExport.FlatAppearance.BorderColor
+    $btnCopyImage.Cursor=$btnExport.Cursor;$btnCopyImage.Invalidate()
+}
 
-    $networkReason = Get-NetworkPathReason $selectedPath
-    if ($networkReason) {
-        # UNC and mapped-network sources are permitted after an explicit warning.
-        # No patient filename/path is logged or persisted by this warning.
-        if (-not (Show-NetworkLocationWarning "Source")) { return }
+function Open-TRTMediaPath([string]$selectedPath) {
+    if($script:MediaWorker -or $script:ExportBusy){return}
+    $networkReason=Get-NetworkPathReason $selectedPath
+    if($networkReason){
+        if($script:ManagedPolicy -and $script:ManagedPolicy.BlockNetworkSource){Show-ManagedNetworkLocationBlock 'Source';return}
+        if(-not (Show-NetworkLocationWarning 'Source')){return}
     }
-
-    $ext = [System.IO.Path]::GetExtension($selectedPath).ToLowerInvariant()
-    $newImageMode = $ext -in @( ".jpg", ".jpeg", ".jpe", ".png", ".apng", ".gif", ".webp", ".bmp", ".tif", ".tiff", ".tga", ".dds", ".exr", ".hdr", ".dpx", ".jp2", ".j2k", ".j2c", ".jpc", ".jls", ".psd", ".pcx", ".qoi", ".avif", ".heic", ".heif" )
-
-    $status.Text = if ($newImageMode) { "Inspecting image..." } else { "Analysing video frame timing and media geometry..." }
-    $form.Refresh()
-    $info = Get-VideoInfo $ffmpeg $ffprobe $selectedPath $newImageMode
-    if (-not $info.IsSafe) {
-        $status.Text = "File not opened."
-        [System.Windows.Forms.MessageBox]::Show(
-            $info.Error,
-            "Media safety check failed",
-            "OK",
-            "Error"
-        ) | Out-Null
-        return
+    $ext=[IO.Path]::GetExtension($selectedPath).ToLowerInvariant()
+    $newImageMode=$ext -in @('.jpg','.jpeg','.jpe','.png','.apng','.gif','.webp','.bmp','.tif','.tiff','.tga','.dds','.exr','.hdr','.dpx','.jp2','.j2k','.j2c','.jpc','.jls','.psd','.pcx','.qoi','.avif','.heic','.heif')
+    if($newImageMode){
+        # Still-image preflight remains the accepted synchronous short path.
+                $body=(Get-Command Get-VideoInfo -CommandType Function).Definition
+        $body=$body.Replace('$bytes = $ms.ToArray()','$bytes = $ms.ToArray(); $info.FirstFrameBytes=$bytes').Replace('$copyTask.GetAwaiter().GetResult()','[void]$copyTask.GetAwaiter().GetResult()')
+        $info=& ([scriptblock]::Create($body)) $ffmpeg $ffprobe $selectedPath $true
+        Complete-MediaLoad $info $null $false @{Path=$selectedPath;Image=$true};return
     }
-
+    Stop-Playback;Set-ExportWindowBusy $true;$script:CaptureState.Busy=$true
+    try{
+        Show-VideoLoadingNotice
+        Start-MediaWorker 'Load' @{Mpeg=$ffmpeg;Probe=$ffprobe;Path=$selectedPath;Image=$false} ${function:Complete-MediaLoad} @{Path=$selectedPath;Image=$false}
+    }catch{
+        Close-VideoLoadingNotice;Set-ExportWindowBusy $false;$script:CaptureState.Busy=$false
+        Remove-UnusedCaptureFiles;throw
+    }
+}
+function Complete-MediaLoad($info,$failure,$cancelled,$context) {
+    $selectedPath=$context.Path;$newImageMode=$context.Image
+    Close-VideoLoadingNotice
+    if(-not $newImageMode){Set-ExportWindowBusy $false;$script:CaptureState.Busy=$false}
+    try{
+        if($cancelled){$status.Text='Video loading cancelled.';return}
+        if($failure -or -not $info.IsSafe){
+            $status.Text='File not opened.'
+            $message=if($failure){$failure}else{$info.Error}
+            [Windows.Forms.MessageBox]::Show($message,'Media safety check failed','OK','Error')|Out-Null;return
+        }
+    $script:ImageCrop=$null;$script:CropDraft=$null;$script:CropGesture=$null
     $script:videoPath = $selectedPath
     $script:isImageMode = $newImageMode
     # B1 reset boundary: every newly accepted media source starts with no
@@ -6258,7 +12330,9 @@ $btnOpen.Add_Click({
             "OK",
             "Error"
         ) | Out-Null
-        $script:videoPath = $null
+        $script:ImageCrop=$null;$script:CropDraft=$null;$script:CropGesture=$null
+    $script:videoPath = $null
+        Reset-SourceDeletionState
         return
     }
 
@@ -6294,7 +12368,9 @@ $btnOpen.Add_Click({
                 "OK",
                 "Error"
             ) | Out-Null
-            $script:videoPath = $null
+            $script:ImageCrop=$null;$script:CropDraft=$null;$script:CropGesture=$null
+    $script:videoPath = $null
+            Reset-SourceDeletionState
             return
         }
         $script:videoDuration = [double]$frameTimeline.Duration
@@ -6305,7 +12381,9 @@ $btnOpen.Add_Click({
                 "OK",
                 "Error"
             ) | Out-Null
-            $script:videoPath = $null
+            $script:ImageCrop=$null;$script:CropDraft=$null;$script:CropGesture=$null
+    $script:videoPath = $null
+            Reset-SourceDeletionState
             return
         }
 
@@ -6318,7 +12396,9 @@ $btnOpen.Add_Click({
                 "OK",
                 "Error"
             ) | Out-Null
-            $script:videoPath = $null
+            $script:ImageCrop=$null;$script:CropDraft=$null;$script:CropGesture=$null
+    $script:videoPath = $null
+            Reset-SourceDeletionState
             return
         }
         Set-PlaybackIntervalForFrame 0
@@ -6342,13 +12422,49 @@ $btnOpen.Add_Click({
     # the v2 viewport state ready for later zoom interaction slices.
     Reset-ViewportState
 
+    # Every newly opened source returns presentation controls to the secure
+    # default: Fill on, Outline off. Styling choices such as colour/width may
+    # persist for convenience, but annotation-only state never carries across files.
+    $script:fillEnabled = $true
+    $script:outlineEnabled = $false
+    $chkFill.Checked = $true
+    $chkOutline.Checked = $false
+
+    Initialize-SourceDeletionStateForSource
     Apply-ModeLabels
     Reset-RedactionState
     Update-RedactionButtons
     Update-TransportButtonVisuals
     $btnOpen.Text = "Change Video | Image"
 
-    Load-PreviewFrame
+    $stream=[IO.MemoryStream]::new([byte[]]$info.FirstFrameBytes)
+    try{
+        $decoded=[Drawing.Image]::FromStream($stream)
+        try{$nextPreview=[Drawing.Bitmap]::new($decoded)}finally{$decoded.Dispose()}
+    }finally{$stream.Dispose()}
+    if($previewImage){$previewImage.Dispose()};$script:previewImage=$nextPreview
+    $script:loadedFrame=0;Update-ZoomHud;Update-PreviewCursor;$picture.Invalidate()
+
+    }finally{
+        Remove-UnusedCaptureFiles;Update-RedactionButtons;Update-CopyButton;Update-PolishedLayout
+        if($script:QuitAfterExport -or $script:CaptureState.QuitPending){$script:QuitAfterExport=$false;Quit-TRTFromTray}
+    }
+}
+
+$btnOpen.Add_Click({
+    Stop-Playback
+
+    $openFilter = "Video or image|*.mp4;*.mov;*.m4v;*.avi;*.mkv;*.webm;*.wmv;*.asf;*.mpg;*.mpeg;*.mpe;*.vob;*.ts;*.mts;*.m2ts;*.m2t;*.flv;*.3gp;*.3g2;*.f4v;*.ogv;*.rm;*.rmvb;*.mxf;*.wtv;*.dv;*.mjpeg;*.mjpg;*.mlv;*.r3d;*.jpg;*.jpeg;*.jpe;*.png;*.apng;*.gif;*.webp;*.bmp;*.tif;*.tiff;*.tga;*.dds;*.exr;*.hdr;*.dpx;*.jp2;*.j2k;*.j2c;*.jpc;*.jls;*.psd;*.pcx;*.qoi;*.avif;*.heic;*.heif|Video files|*.mp4;*.mov;*.m4v;*.avi;*.mkv;*.webm;*.wmv;*.asf;*.mpg;*.mpeg;*.mpe;*.vob;*.ts;*.mts;*.m2ts;*.m2t;*.flv;*.3gp;*.3g2;*.f4v;*.ogv;*.rm;*.rmvb;*.mxf;*.wtv;*.dv;*.mjpeg;*.mjpg;*.mlv;*.r3d|Image files|*.jpg;*.jpeg;*.jpe;*.png;*.apng;*.gif;*.webp;*.bmp;*.tif;*.tiff;*.tga;*.dds;*.exr;*.hdr;*.dpx;*.jp2;*.j2k;*.j2c;*.jpc;*.jls;*.psd;*.pcx;*.qoi;*.avif;*.heic;*.heif|All files|*.*"
+    try {
+        $selectedPath = [SecureFileDialogNativeV2]::ShowOpen($form.Handle, $openFilter, "Choose a video or image")
+    }
+    catch {
+        [System.Windows.Forms.MessageBox]::Show(("Windows could not open the secure file-selection dialog.`r`n`r`n" + $_.Exception.Message), "File dialog error", "OK", "Error") | Out-Null
+        return
+    }
+    if ([string]::IsNullOrWhiteSpace($selectedPath)) { return }
+
+    Open-TRTMediaPath $selectedPath
 })
  
 $previewTimer = New-Object System.Windows.Forms.Timer
@@ -6456,6 +12572,9 @@ $btnRotateCW.Add_Click({ Invoke-UserQuarterTurn 90 })
  
 $form.Add_KeyDown({
     param($sender,$e)
+    if($script:ExportBusy){return}
+    if($isImageMode -and $toolMode -eq 'Crop' -and $e.KeyCode -eq [Windows.Forms.Keys]::Escape){$rbRectangle.Checked=$true;$e.Handled=$true;$e.SuppressKeyPress=$true;return}
+    if ($script:floatingTextEditorVisible -and $floatingTextEditor -and $floatingTextEditor.ContainsFocus) { return }
     if (-not $videoPath) { return }
 
     if ($e.KeyCode -eq [System.Windows.Forms.Keys]::Space) {
@@ -6475,7 +12594,10 @@ $form.Add_KeyDown({
         # the key press also prevents Space from accidentally activating a
         # focused toolbar/button control while it is serving as the pan modifier.
         if (-not $script:zoomToolActive -and -not $eyedropperActive -and $previewImage -and
-            -not $dragging -and -not $movingShape -and (Test-CursorOverPreview)) {
+            -not $dragging -and -not $movingShape -and -not $script:annotationDraftMoving -and -not $script:lineDrawing -and -not $script:textDrawing -and
+            -not $script:annotationCommittedMoving -and -not $script:annotationCommittedTextResizing -and -not $script:annotationCommittedResizing -and -not $script:annotationCommittedVertexEditing -and
+            -not $script:redactionCommittedMoving -and -not $script:redactionCommittedResizing -and -not $script:redactionCommittedPolygonEditing -and
+            (Test-CursorOverPreview)) {
             Reset-ZoomPanGesture
             $script:spacePanActive = $true
             Update-PreviewCursor
@@ -6496,7 +12618,14 @@ $form.Add_KeyDown({
         $e.Handled = $true
     }
     elseif ($e.KeyCode -eq [System.Windows.Forms.Keys]::Escape) {
-        if ($toolMode -eq "Polygon" -and ($polygonActive -or $polygonPoints.Count -gt 0)) {
+        if ($script:pendingAnnotation) {
+            [void](Cancel-VideoAnnotationRange)
+            $e.Handled = $true
+        }
+        elseif (($toolMode -eq "Polygon" -and ($polygonActive -or $polygonPoints.Count -gt 0)) -or
+            ($toolMode -eq "Polyline" -and ($script:polylineActive -or $script:polylineDraftActive -or $script:polylinePoints.Count -gt 0)) -or
+            ($toolMode -eq "Line" -and ($script:lineDrawing -or $script:lineDraftActive)) -or
+            ($toolMode -eq "Text" -and ($script:textDrawing -or $script:textDraftActive))) {
             Reset-DrawingState
             Update-SelectionFields $null
             Update-RedactionButtons
@@ -6507,6 +12636,7 @@ $form.Add_KeyDown({
 
 $form.Add_KeyUp({
     param($sender,$e)
+    if($script:ExportBusy){return}
     if ($e.KeyCode -eq [System.Windows.Forms.Keys]::Space -and $script:spacePanActive) {
         Stop-SpacePanMode
         $e.Handled = $true
@@ -6523,15 +12653,55 @@ $form.Add_Deactivate({
     [void](Stop-RightPanMode)
 })
  
+$rbCrop.Add_CheckedChanged({
+    if($rbCrop.Checked){
+        $rbText.Checked=$false;$rbLine.Checked=$false;$rbPolyline.Checked=$false
+        Reset-ZoomPanGesture;$script:zoomToolActive=$false
+        if($script:floatingTextEditorVisible){Close-FloatingTextEditor $false}
+        Set-ToolMode 'Crop';Update-CropControls;$picture.Invalidate()
+    }else{$script:CropDraft=$null;$script:CropGesture=$null;$picture.Capture=$false;$picture.Invalidate()}
+})
+$toolbar.Add_MouseMove({param($sender,$e)
+    if(-not $rbCrop.Enabled -and $rbCrop.Bounds.Contains($e.Location)){$appToolTip.Show($(if($videoPath -and -not $isImageMode){'Video Crop not supported'}else{'Crop Image Tool'}),$toolbar,$e.X+15,$e.Y+15,2000)}
+})
+
+function Update-ToolHintText {
+    if (-not $lblToolHint) { return }
+    switch ($script:toolMode) {
+        "Text"     { $lblToolHint.Text = if ($isImageMode) { "Text Box: drag a box, type in the floating editor, then reposition/resize and add." } else { "Text Box: drag a box, type in the floating editor, then use Begin Annotation." } }
+        "Line"     { $lblToolHint.Text = if ($isImageMode) { "Line: drag start to end, reposition if needed, then choose Create Annotation." } else { "Line: drag start to end, reposition if needed, then use Begin Annotation." } }
+        "Polyline" { $lblToolHint.Text = if ($isImageMode) { "Polyline: hold and draw, reposition the result if needed, then choose Create Annotation." } else { "Polyline: hold and draw, reposition the result if needed, then use Begin Annotation." } }
+        "Polygon"  { $lblToolHint.Text = "Freeform: click points, then click the yellow start point to close." }
+        "Oval"     { $lblToolHint.Text = "Oval: drag to select. Hold Shift for a circle." }
+        default      { $lblToolHint.Text = "Rectangle: drag to select. Hold Shift for a square." }
+    }
+}
+
 function Set-ToolMode([string]$mode) {
-    if ($script:toolMode -eq $mode) { return }
+    if ($script:toolMode -eq $mode) {
+        Set-OutlineJoinChoices
+        Update-OutlineControlsAvailability
+        Update-ToolHintText
+        Update-InspectorSectionLayout
+        return
+    }
     $script:toolMode = $mode
+    if ($lvAnnotations -and $lvAnnotations.SelectedItems.Count -gt 0) { $lvAnnotations.SelectedItems[0].Selected = $false }
+    if ($lvRedactions -and $lvRedactions.SelectedItems.Count -gt 0) { $lvRedactions.SelectedItems[0].Selected = $false }
+    $script:selectedAnnotationIndex = -1
+    $script:selectedRedactionIndex = -1
     Reset-DrawingState
     Update-SelectionFields $null
+    Sync-DraftAppearanceDefaultsToControls
+    Set-OutlineJoinChoices
+    Update-OutlineControlsAvailability
+    Update-ToolHintText
+    Update-InspectorSectionLayout
     Update-RedactionButtons
 }
 $rbRectangle.Add_CheckedChanged({
     if ($rbRectangle.Checked) {
+        $rbText.Checked = $false; $rbLine.Checked = $false; $rbPolyline.Checked = $false
         Reset-ZoomPanGesture
         $script:zoomToolActive = $false
         Set-ToolMode "Rectangle"
@@ -6540,6 +12710,7 @@ $rbRectangle.Add_CheckedChanged({
 })
 $rbOval.Add_CheckedChanged({
     if ($rbOval.Checked) {
+        $rbText.Checked = $false; $rbLine.Checked = $false; $rbPolyline.Checked = $false
         Reset-ZoomPanGesture
         $script:zoomToolActive = $false
         Set-ToolMode "Oval"
@@ -6548,14 +12719,46 @@ $rbOval.Add_CheckedChanged({
 })
 $rbFreeform.Add_CheckedChanged({
     if ($rbFreeform.Checked) {
+        $rbText.Checked = $false; $rbLine.Checked = $false; $rbPolyline.Checked = $false
         Reset-ZoomPanGesture
         $script:zoomToolActive = $false
         Set-ToolMode "Polygon"
         Update-PreviewCursor
     }
 })
+$rbText.Add_CheckedChanged({
+    if ($rbText.Checked) {
+        $rbCrop.Checked=$false;$rbRectangle.Checked = $false; $rbOval.Checked = $false; $rbFreeform.Checked = $false; $rbZoom.Checked = $false
+        $rbLine.Checked = $false; $rbPolyline.Checked = $false
+        Reset-ZoomPanGesture
+        $script:zoomToolActive = $false
+        Set-ToolMode "Text"
+        Update-PreviewCursor
+    }
+})
+$rbLine.Add_CheckedChanged({
+    if ($rbLine.Checked) {
+        $rbCrop.Checked=$false;$rbRectangle.Checked = $false; $rbOval.Checked = $false; $rbFreeform.Checked = $false; $rbZoom.Checked = $false
+        $rbText.Checked = $false
+        Reset-ZoomPanGesture
+        $script:zoomToolActive = $false
+        Set-ToolMode "Line"
+        Update-PreviewCursor
+    }
+})
+$rbPolyline.Add_CheckedChanged({
+    if ($rbPolyline.Checked) {
+        $rbCrop.Checked=$false;$rbRectangle.Checked = $false; $rbOval.Checked = $false; $rbFreeform.Checked = $false; $rbZoom.Checked = $false
+        $rbText.Checked = $false
+        Reset-ZoomPanGesture
+        $script:zoomToolActive = $false
+        Set-ToolMode "Polyline"
+        Update-PreviewCursor
+    }
+})
 $rbZoom.Add_CheckedChanged({
     if ($rbZoom.Checked) {
+        $rbText.Checked = $false; $rbLine.Checked = $false; $rbPolyline.Checked = $false
         # Zoom is a VIEW tool, not a new redaction shape. Preserve the last
         # drawing tool and any draft geometry while Zoom is temporarily active.
         $script:zoomToolActive = $true
@@ -6588,7 +12791,13 @@ $picture.Add_MouseEnter({
  
 $picture.Add_MouseDown({
     param($sender,$e)
+    if($isImageMode -and $script:ImageCrop -and $toolMode -ne 'Crop' -and -not (MediaRect-To-ViewRect $script:ImageCrop).Contains([Drawing.PointF]::new($e.X,$e.Y))){return}
+    if($isImageMode -and $toolMode -eq 'Crop'){Start-CropGesture $e;;return}
     if (-not $previewImage) { return }
+    if ($script:suppressFloatingOutsidePreviewClick) { $script:suppressFloatingOutsidePreviewClick = $false; return }
+    if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Left -and $script:floatingTextEditorVisible) {
+        Close-FloatingTextEditor $false
+    }
 
     # v2.1 always-on middle-button pan takes priority over drawing/edit gestures
     # without changing the selected tool. The pointer only needs to be over the
@@ -6617,7 +12826,9 @@ $picture.Add_MouseDown({
     # Zoom tool -> zoom out; Freeform -> cancel the in-progress path.
     if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Right -and
         -not $dragging -and -not $movingShape -and -not $script:resizingShape -and
-        -not $script:editingPolygonVertex) {
+        -not $script:editingPolygonVertex -and -not $script:lineDrawing -and -not $script:textDrawing -and
+        -not $script:textDraftResizing -and -not $script:annotationCommittedMoving -and -not $script:annotationCommittedTextResizing -and -not $script:annotationCommittedResizing -and -not $script:annotationCommittedVertexEditing -and
+        -not $script:redactionCommittedMoving -and -not $script:redactionCommittedResizing -and -not $script:redactionCommittedPolygonEditing) {
         $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
         $mediaRect = Get-MediaViewRect
         if (-not $mediaRect -or -not $mediaRect.Contains($viewPt)) { return }
@@ -6676,7 +12887,7 @@ $picture.Add_MouseDown({
         return
     }
 
-    if ($pendingRedaction) { return }
+    if ($pendingRedaction -or $script:pendingAnnotation) { return }
 
     if ($e.Button -ne [System.Windows.Forms.MouseButtons]::Left) { return }
 
@@ -6688,6 +12899,160 @@ $picture.Add_MouseDown({
     if (-not $viewRect) { return }
 
     $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+
+    # D4c: committed still-image redaction editing is list-selected and takes
+    # priority over starting a new draft. Handle/vertex hit zones are checked
+    # before media containment because edge handles intentionally straddle it.
+    if ($script:selectedRedactionIndex -ge 0) {
+        $selectedRedaction = Get-SelectedCommittedRedaction
+        if ($selectedRedaction) {
+            if ($selectedRedaction.Shape -eq "Polygon") {
+                $redactionVertex = Get-FreeformVertexHandleAtViewPoint $viewPt $selectedRedaction.Points
+                if ($redactionVertex -ge 0) {
+                    $script:redactionCommittedPolygonEditing=$true
+                    $script:redactionCommittedPolygonVertexIndex=[int]$redactionVertex
+                    $picture.Capture=$true
+                    $picture.Cursor=Get-FreeformVertexCursor
+                    $lblPending.Text="Redaction vertex editing — release to keep the new shape."
+                    $picture.Invalidate()
+                    return
+                }
+            }
+            else {
+                $selectedRedactionRect=Get-RedactionMediaBounds $selectedRedaction
+                $redactionHandle = if ($selectedRedaction.Shape -eq "Oval") {
+                    Get-OvalResizeHandleAtViewPoint $viewPt $selectedRedactionRect
+                } else {
+                    Get-RectangleResizeHandleAtViewPoint $viewPt $selectedRedactionRect
+                }
+                if ($redactionHandle -ne "None") {
+                    $script:redactionCommittedResizing=$true
+                    $script:redactionCommittedResizeHandle=[string]$redactionHandle
+                    $script:redactionCommittedResizeOrigRect=$selectedRedactionRect
+                    $picture.Capture=$true
+                    $picture.Cursor=if ($selectedRedaction.Shape -eq "Oval") { Get-OvalResizeCursor $redactionHandle } else { Get-RectangleResizeCursor $redactionHandle }
+                    $lblPending.Text="Redaction resizing — release to keep the new geometry."
+                    $picture.Invalidate()
+                    return
+                }
+            }
+            if ($viewRect.Contains($viewPt)) {
+                $selectedRedactionMediaPoint=ViewPoint-To-MediaPoint $viewPt $true
+                if ($selectedRedactionMediaPoint -and (Test-CommittedRedactionHit $selectedRedaction $selectedRedactionMediaPoint)) {
+                    if (Begin-CommittedRedactionMove $selectedRedaction $selectedRedactionMediaPoint) {
+                        $lblPending.Text="Redaction moving — release to keep the new position."
+                        $picture.Invalidate()
+                        return
+                    }
+                }
+            }
+        }
+        # D4c-r2: clicking away from a selected committed redaction is a
+        # dismissal-only gesture. Consume this click so Freeform (and every
+        # other active tool) cannot also start a new draft from the same input.
+        # The next click returns the canvas to normal active-tool behaviour.
+        $script:selectedRedactionIndex=-1
+        if ($lvRedactions.SelectedItems.Count -gt 0) { $lvRedactions.SelectedItems[0].Selected=$false }
+        $picture.Invalidate()
+        return
+    }
+
+    # D4b: committed annotation editing is list-selected and takes priority over
+    # starting a new draft. Text handles are tested before media containment so
+    # edge handles remain practical, matching the pre-commit Text behaviour.
+    if ($script:selectedAnnotationIndex -ge 0) {
+        if (-not $isImageMode) { Stop-Playback }
+        $selectedAnnotation = Get-SelectedCommittedAnnotation
+
+        # D4d: precise point/vertex handles take precedence over whole-object movement.
+        if ($selectedAnnotation -and ($selectedAnnotation.Kind -eq "Line" -or $selectedAnnotation.Kind -eq "Polyline" -or ($selectedAnnotation.Kind -eq "ShapeOutline" -and $selectedAnnotation.Shape -eq "Polygon"))) {
+            $annotationVertex = Get-CommittedAnnotationVertexHandleAtViewPoint $selectedAnnotation $viewPt
+            if ($annotationVertex -ge 0) {
+                $script:annotationCommittedVertexEditing = $true
+                $script:annotationCommittedVertexIndex = [int]$annotationVertex
+                $picture.Capture = $true
+                $picture.Cursor = Get-FreeformVertexCursor
+                $lblAppearanceStatus.Text = if ($selectedAnnotation.Kind -eq "Line") { "Line endpoint editing — release to keep the new geometry." } else { "Annotation vertex editing — release to keep the new geometry." }
+                $picture.Invalidate()
+                return
+            }
+        }
+
+        # Outline-only Rectangle/Oval annotations now expose the same proven
+        # media-space resize handles as their corresponding redaction shapes.
+        if ($selectedAnnotation -and $selectedAnnotation.Kind -eq "ShapeOutline" -and $selectedAnnotation.Shape -ne "Polygon") {
+            $selectedOutlineRect = Get-AnnotationMediaBounds $selectedAnnotation
+            $annotationResizeHandle = if ($selectedAnnotation.Shape -eq "Oval") {
+                Get-OvalResizeHandleAtViewPoint $viewPt $selectedOutlineRect
+            } else {
+                Get-RectangleResizeHandleAtViewPoint $viewPt $selectedOutlineRect
+            }
+            if ($annotationResizeHandle -ne "None") {
+                $script:annotationCommittedResizing = $true
+                $script:annotationCommittedResizeHandle = [string]$annotationResizeHandle
+                $script:annotationCommittedResizeOrigRect = $selectedOutlineRect
+                $picture.Capture = $true
+                $picture.Cursor = if ($selectedAnnotation.Shape -eq "Oval") { Get-OvalResizeCursor $annotationResizeHandle } else { Get-RectangleResizeCursor $annotationResizeHandle }
+                $lblAppearanceStatus.Text = "Annotation resizing — release to keep the new geometry."
+                $picture.Invalidate()
+                return
+            }
+        }
+
+        if ($selectedAnnotation -and $selectedAnnotation.Kind -eq "Text") {
+            $selectedTextRect = Get-AnnotationMediaBounds $selectedAnnotation
+            $committedTextHandle = Get-RectangleResizeHandleAtViewPoint $viewPt $selectedTextRect
+            if ($committedTextHandle -ne "None") {
+                $script:annotationCommittedTextResizing = $true
+                $script:annotationCommittedTextResizeHandle = [string]$committedTextHandle
+                $script:annotationCommittedTextResizeOrigRect = $selectedTextRect
+                $picture.Capture = $true
+                $picture.Cursor = Get-RectangleResizeCursor $committedTextHandle
+                $lblAppearanceStatus.Text = "Text annotation resizing."
+                $picture.Invalidate()
+                return
+            }
+        }
+        if ($viewRect.Contains($viewPt)) {
+            $selectedMediaPoint = ViewPoint-To-MediaPoint $viewPt $true
+            if ($selectedMediaPoint -and (Test-CommittedAnnotationHit $selectedAnnotation $viewPt)) {
+                if (Begin-CommittedAnnotationMove $selectedAnnotation $selectedMediaPoint) {
+                    $lblAppearanceStatus.Text = "Annotation moving — release to keep the new position."
+                    $picture.Invalidate()
+                    return
+                }
+            }
+        }
+        # D4c-r2: match committed-redaction dismissal semantics. The first
+        # outside click only clears committed annotation selection; the next
+        # click may begin whatever drawing tool is currently active.
+        $script:selectedAnnotationIndex = -1
+        if ($lvAnnotations.SelectedItems.Count -gt 0) { $lvAnnotations.SelectedItems[0].Selected = $false }
+        Sync-DraftAppearanceDefaultsToControls
+        Update-InspectorSectionLayout
+        $picture.Invalidate()
+        return
+    }
+
+    # D4a-r2: Text Box resize handles use the already-proven Rectangle handle
+    # geometry/hit zones, but keep completely separate gesture state from
+    # security redactions. Handle testing happens before media containment so
+    # a handle centred on an image edge remains practical to grab.
+    if ($toolMode -eq "Text" -and $script:textDraftActive -and -not $script:textDrawing) {
+        $textResizeHandle = Get-RectangleResizeHandleAtViewPoint $viewPt $script:textDraftRect
+        if ($textResizeHandle -ne "None") {
+            $script:textDraftResizing = $true
+            $script:textDraftResizeHandle = [string]$textResizeHandle
+            $script:textDraftResizeOrigRect = New-Object System.Drawing.RectangleF(
+                [single]$script:textDraftRect.X,[single]$script:textDraftRect.Y,
+                [single]$script:textDraftRect.Width,[single]$script:textDraftRect.Height)
+            $picture.Capture = $true
+            $picture.Cursor = Get-RectangleResizeCursor $textResizeHandle
+            Update-SelectionFields $null "Text Box resizing. Release to keep the new size, then add the text."
+            $picture.Invalidate()
+            return
+        }
+    }
 
     # Resize Slice 1/2: handle hit-testing deliberately happens before the
     # normal media-rectangle containment check. Handles centred on a media edge
@@ -6750,6 +13115,76 @@ $picture.Add_MouseDown({
 
     $mediaPt = ViewPoint-To-MediaPoint $viewPt $true
     if (-not $mediaPt) { return }
+
+    if ($toolMode -eq "Text") {
+        Stop-Playback
+        if ($script:textDraftActive) {
+            if ($script:textDraftRect.Contains($mediaPt)) {
+                Begin-AnnotationDraftMove "Text" $mediaPt
+                Update-SelectionFields $null "Text Box moving. Release to keep the new position, then add the text."
+                $picture.Invalidate()
+            } else {
+                $lblTextStatus.Text = "Text Box ready. Double-click it to reopen the floating editor, or use Create Annotation / Begin Annotation."
+                if ($picture.CanFocus) { $picture.Focus() }
+            }
+            return
+        }
+        $script:textDrawing = $true
+        $script:textDragStart = $mediaPt
+        $script:textDraftRect = New-Object System.Drawing.RectangleF([single]$mediaPt.X,[single]$mediaPt.Y,[single]0.01,[single]0.01)
+        $picture.Capture = $true
+        $lblTextStatus.Text = "Drag to size the text box."
+        Update-RotationButtons
+        $picture.Invalidate()
+        return
+    }
+
+    if ($toolMode -eq "Line") {
+        Stop-Playback
+        if ($script:lineDraftActive) {
+            if (Test-LineDraftHit $viewPt) {
+                Begin-AnnotationDraftMove "Line" $mediaPt
+                Update-SelectionFields $null "Line moving. Release to keep the new position, then choose Create Annotation."
+                $picture.Invalidate()
+            } else {
+                Update-SelectionFields $null "Line ready. Drag the existing line to reposition it, or choose Create Annotation / Cancel."
+            }
+            return
+        }
+        $script:lineDrawing = $true
+        $script:lineStart = $mediaPt
+        $script:lineEnd = $mediaPt
+        $picture.Capture = $true
+        Update-SelectionFields $null "Line: drag to the end point; hold Shift to constrain angle."
+        Update-RotationButtons
+        $picture.Invalidate()
+        return
+    }
+
+    if ($toolMode -eq "Polyline") {
+        Stop-Playback
+        if ($script:polylineDraftActive) {
+            if (Test-PolylineDraftHit $viewPt) {
+                Begin-AnnotationDraftMove "Polyline" $mediaPt
+                Update-SelectionFields $null "Polyline moving. Release to keep the new position, then choose Create Annotation."
+                $picture.Invalidate()
+            } else {
+                Update-SelectionFields $null "Polyline ready. Drag the existing path to reposition it, or choose Create Annotation / Cancel."
+            }
+            return
+        }
+        $script:polylineActive = $true
+        $script:polylinePoints = New-Object System.Collections.Generic.List[System.Drawing.PointF]
+        [void]$script:polylinePoints.Add($mediaPt)
+        $script:polylineMousePos = $mediaPt
+        $script:polylineGestureAxis = "None"
+        $script:polylineGestureLastRaw = $mediaPt
+        $picture.Capture = $true
+        Update-SelectionFields $null "Polyline: keep the left mouse button held and draw; release to finish."
+        Update-RotationButtons
+        $picture.Invalidate()
+        return
+    }
 
     if ($toolMode -eq "Polygon") {
         if (-not $polygonActive -and $polygonPoints.Count -ge 3) {
@@ -6846,8 +13281,57 @@ $picture.Add_MouseDown({
     $picture.Invalidate()
 })
 
+# D5c-r2: double-clicking the current Text draft or a selected committed Text
+# annotation reopens the floating editor without changing geometry/timing.
+$picture.Add_MouseDoubleClick({
+    param($sender,$e)
+    if (-not $previewImage -or $e.Button -ne [System.Windows.Forms.MouseButtons]::Left) { return }
+    $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+    if ($toolMode -eq "Text" -and $script:textDraftActive) {
+        $mediaPt = ViewPoint-To-MediaPoint $viewPt $false
+        if ($mediaPt -and $script:textDraftRect.Contains($mediaPt)) {
+            [void](Show-FloatingTextEditor "Draft")
+            return
+        }
+    }
+    if (($toolMode -eq "Line" -and (Test-LineDraftHit $viewPt)) -or ($toolMode -eq "Polyline" -and (Test-PolylineDraftHit $viewPt))) {
+        [void](Show-FloatingTextEditor "Draft")
+        return
+    }
+    $mediaPt=ViewPoint-To-MediaPoint $viewPt $false
+    if($mediaPt -and -not $pendingRedaction -and -not $script:pendingAnnotation){
+        for($idx=$redactions.Count-1;$idx -ge 0;$idx--){
+            $r=$redactions[$idx]
+            if(-not $isImageMode -and -not (Test-FrameInRange $currentFrame $r.BufferedStartFrame $r.BufferedEndFrame)){continue}
+            if(Test-CommittedRedactionHit $r $mediaPt){Show-RedactionEditor $idx;return}
+        }
+    }
+    $a = Get-SelectedAppearanceAnnotation
+    if ($a -and $a.Kind -in @("Text","Line","Polyline") -and (Test-CommittedAnnotationHit $a $viewPt)) {
+        [void](Show-FloatingTextEditor "Committed")
+        return
+    }
+    # Reopen a visible committed annotation directly from the canvas, even
+    # when it was not already selected in the Annotations list.
+    for ($idx = $annotations.Count - 1; $idx -ge 0; $idx--) {
+        $candidate = $annotations[$idx]
+        if ($candidate.Kind -notin @("Text","Line","Polyline")) { continue }
+        if (-not $isImageMode -and -not (Test-AnnotationFrameActive $candidate $currentFrame)) { continue }
+        if (Test-CommittedAnnotationHit $candidate $viewPt) {
+            Reset-DrawingState
+            if ($idx -lt $lvAnnotations.Items.Count) { $lvAnnotations.Items[$idx].Selected = $true }
+            $script:selectedAnnotationIndex = $idx
+            Sync-SelectedAnnotationAppearanceToControls
+            Update-InspectorSectionLayout
+            [void](Show-FloatingTextEditor "Committed")
+            return
+        }
+    }
+})
+
 $picture.Add_MouseMove({
     param($sender,$e)
+    if($isImageMode -and $toolMode -eq 'Crop'){Update-CropGesture $e;;return}
 
     if ($script:zoomToolActive -or $script:spacePanActive -or $script:middlePanActive -or $script:rightPanActive) {
         if ($script:zoomPanCandidate) {
@@ -6872,6 +13356,181 @@ $picture.Add_MouseMove({
         }
 
         Update-PreviewCursor
+        return
+    }
+
+    if ($script:pendingAnnotation) {
+        Update-PreviewCursor
+        return
+    }
+
+    if ($script:redactionCommittedPolygonEditing) {
+        $r=Get-SelectedCommittedRedaction
+        $viewPt=New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+        $rawPt=ViewPoint-To-MediaPoint $viewPt $true
+        $mediaBounds=Get-DraftMediaBounds
+        if ($r -and $r.Shape -eq "Polygon" -and $rawPt -and $mediaBounds -and $script:redactionCommittedPolygonVertexIndex -ge 0) {
+            $r.Points=Get-FreeformVertexEditResult $r.Points $script:redactionCommittedPolygonVertexIndex $rawPt $mediaBounds
+            Update-CommittedPolygonBounds $r
+            $picture.Cursor=Get-FreeformVertexCursor
+            $picture.Invalidate()
+        }
+        return
+    }
+
+    if ($script:redactionCommittedResizing) {
+        $r=Get-SelectedCommittedRedaction
+        $viewPt=New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+        $rawPt=ViewPoint-To-MediaPoint $viewPt $true
+        $mediaBounds=Get-DraftMediaBounds
+        if ($r -and $rawPt -and $mediaBounds -and $script:redactionCommittedResizeOrigRect) {
+            $constrain=[bool]([System.Windows.Forms.Control]::ModifierKeys -band [System.Windows.Forms.Keys]::Shift)
+            $rr=if ($r.Shape -eq "Oval") {
+                Get-OvalResizeResult $script:redactionCommittedResizeOrigRect $script:redactionCommittedResizeHandle $rawPt $constrain $mediaBounds
+            } else {
+                Get-RectangleResizeResult $script:redactionCommittedResizeOrigRect $script:redactionCommittedResizeHandle $rawPt $constrain $mediaBounds
+            }
+            $r.X=[double]$rr.X; $r.Y=[double]$rr.Y; $r.W=[double]$rr.Width; $r.H=[double]$rr.Height
+            $picture.Cursor=if ($r.Shape -eq "Oval") { Get-OvalResizeCursor $script:redactionCommittedResizeHandle } else { Get-RectangleResizeCursor $script:redactionCommittedResizeHandle }
+            $picture.Invalidate()
+        }
+        return
+    }
+
+    if ($script:redactionCommittedMoving) {
+        $viewPt=New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+        $rawPt=ViewPoint-To-MediaPoint $viewPt $true
+        if ($rawPt) {
+            Update-CommittedRedactionMove $rawPt
+            $picture.Cursor=[System.Windows.Forms.Cursors]::SizeAll
+            $picture.Invalidate()
+        }
+        return
+    }
+
+    if ($script:annotationCommittedVertexEditing) {
+        $a = Get-SelectedCommittedAnnotation
+        $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+        $rawPt = ViewPoint-To-MediaPoint $viewPt $true
+        $mediaBounds = Get-DraftMediaBounds
+        if ($a -and $rawPt -and $mediaBounds -and $script:annotationCommittedVertexIndex -ge 0) {
+            Update-CommittedAnnotationVertex $a $script:annotationCommittedVertexIndex $rawPt $mediaBounds
+            $picture.Cursor = Get-FreeformVertexCursor
+            $lblAppearanceStatus.Text = if ($a.Kind -eq "Line") { "Line endpoint editing." } else { "Annotation vertex editing." }
+            $picture.Invalidate()
+        }
+        return
+    }
+
+    if ($script:annotationCommittedResizing) {
+        $a = Get-SelectedCommittedAnnotation
+        $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+        $rawPt = ViewPoint-To-MediaPoint $viewPt $true
+        $mediaBounds = Get-DraftMediaBounds
+        if ($a -and $a.Kind -eq "ShapeOutline" -and $rawPt -and $mediaBounds -and $script:annotationCommittedResizeOrigRect) {
+            $constrain = [bool]([System.Windows.Forms.Control]::ModifierKeys -band [System.Windows.Forms.Keys]::Shift)
+            $r = if ($a.Shape -eq "Oval") {
+                Get-OvalResizeResult $script:annotationCommittedResizeOrigRect $script:annotationCommittedResizeHandle $rawPt $constrain $mediaBounds
+            } else {
+                Get-RectangleResizeResult $script:annotationCommittedResizeOrigRect $script:annotationCommittedResizeHandle $rawPt $constrain $mediaBounds
+            }
+            $a.X=[double]$r.X; $a.Y=[double]$r.Y; $a.W=[double]$r.Width; $a.H=[double]$r.Height
+            $picture.Cursor = if ($a.Shape -eq "Oval") { Get-OvalResizeCursor $script:annotationCommittedResizeHandle } else { Get-RectangleResizeCursor $script:annotationCommittedResizeHandle }
+            $lblAppearanceStatus.Text = "Annotation resizing."
+            $picture.Invalidate()
+        }
+        return
+    }
+
+    if ($script:annotationCommittedTextResizing) {
+        $a = Get-SelectedCommittedAnnotation
+        $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+        $rawPt = ViewPoint-To-MediaPoint $viewPt $true
+        $mediaBounds = Get-DraftMediaBounds
+        if ($a -and $a.Kind -eq "Text" -and $rawPt -and $mediaBounds -and $script:annotationCommittedTextResizeOrigRect) {
+            $r = Get-RectangleResizeResult $script:annotationCommittedTextResizeOrigRect $script:annotationCommittedTextResizeHandle $rawPt $false $mediaBounds
+            $a.X=[double]$r.X; $a.Y=[double]$r.Y; $a.W=[double]$r.Width; $a.H=[double]$r.Height
+            $picture.Cursor = Get-RectangleResizeCursor $script:annotationCommittedTextResizeHandle
+            $lblAppearanceStatus.Text = "Text annotation resizing."
+            $picture.Invalidate()
+        }
+        return
+    }
+
+    if ($script:annotationCommittedMoving) {
+        $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+        $rawPt = ViewPoint-To-MediaPoint $viewPt $true
+        if ($rawPt) {
+            Update-CommittedAnnotationMove $rawPt
+            $picture.Cursor = [System.Windows.Forms.Cursors]::SizeAll
+            $picture.Invalidate()
+        }
+        return
+    }
+
+    if ($script:textDraftResizing -and $toolMode -eq "Text") {
+        $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+        $rawPt = ViewPoint-To-MediaPoint $viewPt $true
+        $mediaBounds = Get-DraftMediaBounds
+        if ($rawPt -and $mediaBounds -and $script:textDraftResizeOrigRect) {
+            # Text boxes are freely resizable; Shift is intentionally not used
+            # for a square constraint because text layout has no 1:1 semantic.
+            $script:textDraftRect = Get-RectangleResizeResult `
+                $script:textDraftResizeOrigRect `
+                $script:textDraftResizeHandle `
+                $rawPt `
+                $false `
+                $mediaBounds
+            $picture.Cursor = Get-RectangleResizeCursor $script:textDraftResizeHandle
+            Update-SelectionFields $null "Text Box resizing."
+            $picture.Invalidate()
+        }
+        return
+    }
+
+    if ($script:annotationDraftMoving) {
+        $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+        $rawPt = ViewPoint-To-MediaPoint $viewPt $true
+        if ($rawPt) {
+            Update-AnnotationDraftMove $rawPt
+            $picture.Cursor = [System.Windows.Forms.Cursors]::SizeAll
+            $picture.Invalidate()
+        }
+        return
+    }
+
+    if ($script:textDrawing -and $toolMode -eq "Text" -and $script:textDragStart) {
+        $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+        $rawPt = ViewPoint-To-MediaPoint $viewPt $true
+        if ($rawPt) {
+            $x = [Math]::Min([double]$script:textDragStart.X, [double]$rawPt.X)
+            $y = [Math]::Min([double]$script:textDragStart.Y, [double]$rawPt.Y)
+            $w = [Math]::Max(0.01, [Math]::Abs([double]$rawPt.X - [double]$script:textDragStart.X))
+            $h = [Math]::Max(0.01, [Math]::Abs([double]$rawPt.Y - [double]$script:textDragStart.Y))
+            $script:textDraftRect = New-Object System.Drawing.RectangleF([single]$x,[single]$y,[single]$w,[single]$h)
+            $picture.Invalidate()
+        }
+        return
+    }
+
+    if ($script:lineDrawing -and $toolMode -eq "Line") {
+        $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+        $rawPt = ViewPoint-To-MediaPoint $viewPt $true
+        if ($rawPt -and $script:lineStart) {
+            $constrainAngle = [bool]([System.Windows.Forms.Control]::ModifierKeys -band [System.Windows.Forms.Keys]::Shift)
+            $script:lineEnd = Clamp-MediaPoint (Get-AngleSnappedPoint $script:lineStart $rawPt $constrainAngle)
+            $picture.Invalidate()
+        }
+        return
+    }
+
+    if ($script:polylineActive -and $toolMode -eq "Polyline") {
+        $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+        $rawPt = ViewPoint-To-MediaPoint $viewPt $true
+        if ($rawPt -and $script:polylinePoints.Count -gt 0) {
+            Update-PolylineGesture $rawPt
+            $picture.Invalidate()
+        }
         return
     }
 
@@ -6940,6 +13599,91 @@ $picture.Add_MouseMove({
         }
         $picture.Invalidate()
         return
+    }
+
+    if (-not $dragging -and -not $pendingRedaction) {
+        $hoverViewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+        if ($script:selectedRedactionIndex -ge 0) {
+            $selectedHoverRedaction=Get-SelectedCommittedRedaction
+            if ($selectedHoverRedaction) {
+                if ($selectedHoverRedaction.Shape -eq "Polygon") {
+                    $selectedRedactionVertex=Get-FreeformVertexHandleAtViewPoint $hoverViewPt $selectedHoverRedaction.Points
+                    if ($selectedRedactionVertex -ge 0) {
+                        $picture.Cursor=Get-FreeformVertexCursor
+                        return
+                    }
+                }
+                else {
+                    $selectedHoverRedactionRect=Get-RedactionMediaBounds $selectedHoverRedaction
+                    $selectedRedactionHandle=if ($selectedHoverRedaction.Shape -eq "Oval") {
+                        Get-OvalResizeHandleAtViewPoint $hoverViewPt $selectedHoverRedactionRect
+                    } else {
+                        Get-RectangleResizeHandleAtViewPoint $hoverViewPt $selectedHoverRedactionRect
+                    }
+                    if ($selectedRedactionHandle -ne "None") {
+                        $picture.Cursor=if ($selectedHoverRedaction.Shape -eq "Oval") { Get-OvalResizeCursor $selectedRedactionHandle } else { Get-RectangleResizeCursor $selectedRedactionHandle }
+                        return
+                    }
+                }
+                $selectedHoverRedactionMedia=ViewPoint-To-MediaPoint $hoverViewPt $false
+                if ($selectedHoverRedactionMedia -and (Test-CommittedRedactionHit $selectedHoverRedaction $selectedHoverRedactionMedia)) {
+                    $picture.Cursor=[System.Windows.Forms.Cursors]::SizeAll
+                    return
+                }
+            }
+        }
+        if ($script:selectedAnnotationIndex -ge 0) {
+            $selectedHoverAnnotation = Get-SelectedCommittedAnnotation
+            if ($selectedHoverAnnotation -and ($selectedHoverAnnotation.Kind -eq "Line" -or $selectedHoverAnnotation.Kind -eq "Polyline" -or ($selectedHoverAnnotation.Kind -eq "ShapeOutline" -and $selectedHoverAnnotation.Shape -eq "Polygon"))) {
+                $selectedHoverVertex = Get-CommittedAnnotationVertexHandleAtViewPoint $selectedHoverAnnotation $hoverViewPt
+                if ($selectedHoverVertex -ge 0) {
+                    $picture.Cursor = Get-FreeformVertexCursor
+                    return
+                }
+            }
+            if ($selectedHoverAnnotation -and $selectedHoverAnnotation.Kind -eq "ShapeOutline" -and $selectedHoverAnnotation.Shape -ne "Polygon") {
+                $selectedHoverRect = Get-AnnotationMediaBounds $selectedHoverAnnotation
+                $selectedHoverHandle = if ($selectedHoverAnnotation.Shape -eq "Oval") {
+                    Get-OvalResizeHandleAtViewPoint $hoverViewPt $selectedHoverRect
+                } else {
+                    Get-RectangleResizeHandleAtViewPoint $hoverViewPt $selectedHoverRect
+                }
+                if ($selectedHoverHandle -ne "None") {
+                    $picture.Cursor = if ($selectedHoverAnnotation.Shape -eq "Oval") { Get-OvalResizeCursor $selectedHoverHandle } else { Get-RectangleResizeCursor $selectedHoverHandle }
+                    return
+                }
+            }
+            if ($selectedHoverAnnotation -and $selectedHoverAnnotation.Kind -eq "Text") {
+                $selectedHoverRect = Get-AnnotationMediaBounds $selectedHoverAnnotation
+                $selectedHoverHandle = Get-RectangleResizeHandleAtViewPoint $hoverViewPt $selectedHoverRect
+                if ($selectedHoverHandle -ne "None") {
+                    $picture.Cursor = Get-RectangleResizeCursor $selectedHoverHandle
+                    return
+                }
+            }
+            if ($selectedHoverAnnotation -and (Test-CommittedAnnotationHit $selectedHoverAnnotation $hoverViewPt)) {
+                $picture.Cursor = [System.Windows.Forms.Cursors]::SizeAll
+                return
+            }
+        }
+        if ($toolMode -eq "Text" -and $script:textDraftActive) {
+            $hoverTextHandle = Get-RectangleResizeHandleAtViewPoint $hoverViewPt $script:textDraftRect
+            if ($hoverTextHandle -ne "None") {
+                $picture.Cursor = Get-RectangleResizeCursor $hoverTextHandle
+                return
+            }
+            $hoverMediaPt = ViewPoint-To-MediaPoint $hoverViewPt $false
+            $picture.Cursor = if ($hoverMediaPt -and $script:textDraftRect.Contains($hoverMediaPt)) { [System.Windows.Forms.Cursors]::SizeAll } else { [System.Windows.Forms.Cursors]::Default }
+            return
+        }
+        if ($toolMode -eq "Line" -and $script:lineDraftActive) {
+            $picture.Cursor = if (Test-LineDraftHit $hoverViewPt) { [System.Windows.Forms.Cursors]::SizeAll } else { [System.Windows.Forms.Cursors]::Default }
+            return
+        }
+        if ($toolMode -eq "Polyline" -and $script:polylineDraftActive) {
+            $picture.Cursor = if (Test-PolylineDraftHit $hoverViewPt) { [System.Windows.Forms.Cursors]::SizeAll } else { [System.Windows.Forms.Cursors]::Default }
+            return
+        }
     }
 
     if ($toolMode -eq "Polygon") {
@@ -7060,7 +13804,10 @@ $picture.Add_MouseWheel({
     # middle of an active geometry drag/edit or pan gesture; between gestures,
     # wheel zoom remains available with Rectangle/Oval/Freeform/Zoom selected.
     if (-not $previewImage -or $e.Delta -eq 0 -or $script:zoomPanCandidate -or
-        $dragging -or $movingShape -or $script:resizingShape -or $script:editingPolygonVertex) { return }
+        $dragging -or $movingShape -or $script:resizingShape -or $script:editingPolygonVertex -or
+        $script:lineDrawing -or $script:textDrawing -or $script:textDraftResizing -or
+        $script:annotationCommittedMoving -or $script:annotationCommittedTextResizing -or $script:annotationCommittedResizing -or $script:annotationCommittedVertexEditing -or
+        $script:redactionCommittedMoving -or $script:redactionCommittedResizing -or $script:redactionCommittedPolygonEditing) { return }
 
     $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
     $mediaRect = Get-MediaViewRect
@@ -7071,6 +13818,7 @@ $picture.Add_MouseWheel({
 
 $picture.Add_MouseUp({
     param($sender,$e)
+    if($isImageMode -and $toolMode -eq 'Crop'){Update-CropGesture $e;$script:CropGesture=$null;$picture.Capture=$false;return}
 
     if ($script:rightPanActive) {
         if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Right) {
@@ -7090,8 +13838,11 @@ $picture.Add_MouseUp({
                 elseif ($script:zoomToolActive) {
                     Step-ZoomAtViewPoint -1 $clickPoint
                 }
-                elseif ($toolMode -eq "Polygon" -and ($polygonActive -or $polygonPoints.Count -gt 0)) {
-                    # Preserve the established Freeform right-click cancel.
+                elseif (-not $script:pendingAnnotation -and (($toolMode -eq "Polygon" -and ($polygonActive -or $polygonPoints.Count -gt 0)) -or
+                        ($toolMode -eq "Polyline" -and ($script:polylineActive -or $script:polylineDraftActive -or $script:polylinePoints.Count -gt 0)) -or
+                        ($toolMode -eq "Line" -and ($script:lineDrawing -or $script:lineDraftActive)) -or
+                        ($toolMode -eq "Text" -and ($script:textDrawing -or $script:textDraftActive)))) {
+                    # Preserve simple right-click as a cancel gesture for an uncommitted draft.
                     Stop-Playback
                     Reset-DrawingState
                     Update-SelectionFields $null
@@ -7106,6 +13857,149 @@ $picture.Add_MouseUp({
         if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Middle) {
             Stop-MiddlePanMode
         }
+        return
+    }
+
+    if ($script:pendingAnnotation -and $e.Button -eq [System.Windows.Forms.MouseButtons]::Left) { return }
+
+    if ($script:redactionCommittedPolygonEditing -and $e.Button -eq [System.Windows.Forms.MouseButtons]::Left) {
+        $r=Get-SelectedCommittedRedaction
+        if ($r) { Normalize-CommittedRedactionGeometry $r }
+        $script:redactionCommittedPolygonEditing=$false
+        $script:redactionCommittedPolygonVertexIndex=-1
+        $picture.Capture=$false
+        $lblPending.Text="Redaction shape updated."
+        Refresh-RedactionList
+        $picture.Cursor=[System.Windows.Forms.Cursors]::Default
+        $picture.Invalidate()
+        return
+    }
+
+    if ($script:redactionCommittedResizing -and $e.Button -eq [System.Windows.Forms.MouseButtons]::Left) {
+        $r=Get-SelectedCommittedRedaction
+        if ($r) { Normalize-CommittedRedactionGeometry $r }
+        $script:redactionCommittedResizing=$false
+        $script:redactionCommittedResizeHandle="None"
+        $script:redactionCommittedResizeOrigRect=$null
+        $picture.Capture=$false
+        $lblPending.Text="Redaction size updated."
+        Refresh-RedactionList
+        $picture.Cursor=[System.Windows.Forms.Cursors]::Default
+        $picture.Invalidate()
+        return
+    }
+
+    if ($script:redactionCommittedMoving -and $e.Button -eq [System.Windows.Forms.MouseButtons]::Left) {
+        Stop-CommittedRedactionMove
+        $lblPending.Text="Redaction position updated."
+        Refresh-RedactionList
+        $picture.Cursor=[System.Windows.Forms.Cursors]::Default
+        $picture.Invalidate()
+        return
+    }
+
+    if ($script:annotationCommittedVertexEditing -and $e.Button -eq [System.Windows.Forms.MouseButtons]::Left) {
+        $script:annotationCommittedVertexEditing = $false
+        $script:annotationCommittedVertexIndex = -1
+        $picture.Capture = $false
+        $lblAppearanceStatus.Text = "Annotation geometry updated."
+        $picture.Cursor = [System.Windows.Forms.Cursors]::Default
+        $picture.Invalidate()
+        return
+    }
+
+    if ($script:annotationCommittedResizing -and $e.Button -eq [System.Windows.Forms.MouseButtons]::Left) {
+        $script:annotationCommittedResizing = $false
+        $script:annotationCommittedResizeHandle = "None"
+        $script:annotationCommittedResizeOrigRect = $null
+        $picture.Capture = $false
+        $lblAppearanceStatus.Text = "Annotation size updated."
+        $picture.Cursor = [System.Windows.Forms.Cursors]::Default
+        $picture.Invalidate()
+        return
+    }
+
+    if ($script:annotationCommittedTextResizing -and $e.Button -eq [System.Windows.Forms.MouseButtons]::Left) {
+        $script:annotationCommittedTextResizing = $false
+        $picture.Capture = $false
+        $script:annotationCommittedTextResizeOrigRect = $null
+        $script:annotationCommittedTextResizeHandle = "None"
+        $lblAppearanceStatus.Text = "Text annotation resized — drag inside it to reposition if needed."
+        $picture.Cursor = [System.Windows.Forms.Cursors]::Default
+        $picture.Invalidate()
+        return
+    }
+
+    if ($script:annotationCommittedMoving -and $e.Button -eq [System.Windows.Forms.MouseButtons]::Left) {
+        Stop-CommittedAnnotationMove
+        $lblAppearanceStatus.Text = "Annotation position updated."
+        $picture.Cursor = [System.Windows.Forms.Cursors]::Default
+        $picture.Invalidate()
+        return
+    }
+
+    if ($script:textDraftResizing -and $e.Button -eq [System.Windows.Forms.MouseButtons]::Left) {
+        $script:textDraftResizing = $false
+        $picture.Capture = $false
+        $script:textDraftResizeOrigRect = $null
+        Update-SelectionFields $null "Text Box resized. Type/edit the text, then choose Create Annotation."
+        Update-RedactionButtons
+
+        $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+        $hoverTextHandle = Get-RectangleResizeHandleAtViewPoint $viewPt $script:textDraftRect
+        if ($hoverTextHandle -ne "None") {
+            $picture.Cursor = Get-RectangleResizeCursor $hoverTextHandle
+        } else {
+            $hoverMediaPt = ViewPoint-To-MediaPoint $viewPt $false
+            $picture.Cursor = if ($hoverMediaPt -and $script:textDraftRect.Contains($hoverMediaPt)) { [System.Windows.Forms.Cursors]::SizeAll } else { [System.Windows.Forms.Cursors]::Default }
+        }
+        $script:textDraftResizeHandle = "None"
+        $picture.Invalidate()
+        return
+    }
+
+    if ($script:annotationDraftMoving -and $e.Button -eq [System.Windows.Forms.MouseButtons]::Left) {
+        $kind = [string]$script:annotationDraftMoveKind
+        Stop-AnnotationDraftMove
+        $picture.Cursor = [System.Windows.Forms.Cursors]::SizeAll
+        if ($kind -eq "Text") {
+            Update-SelectionFields $null "Text Box position adjusted. Type/edit the text, then choose Create Annotation."
+        } elseif ($kind -eq "Line") {
+            Update-SelectionFields $null "Line position adjusted. Choose Create Annotation when ready."
+        } elseif ($kind -eq "Polyline") {
+            Update-SelectionFields $null "Polyline position adjusted. Choose Create Annotation when ready."
+        }
+        Update-RedactionButtons
+        $picture.Invalidate()
+        return
+    }
+
+    if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Left -and $toolMode -eq "Text" -and $script:textDrawing) {
+        $picture.Capture = $false
+        $script:textDrawing = $false
+        if ($script:textDraftRect.Width -ge 2.0 -and $script:textDraftRect.Height -ge 2.0) {
+            $script:textDraftActive = $true
+            $lblTextStatus.Text = "Type in the floating editor; the annotation updates live. Ctrl+Enter closes; Create Annotation commits."
+            $txtAnnotationText.Enabled = $true
+            Update-RedactionButtons
+            [void](Show-FloatingTextEditor "Draft")
+        }
+        else {
+            $script:textDraftActive = $false
+            $script:textDraftRect = New-Object System.Drawing.RectangleF(0,0,0,0)
+        }
+        Update-OutlineControlsAvailability
+        Update-RotationButtons
+        $picture.Invalidate()
+        return
+    }
+
+    if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Left -and $toolMode -eq "Polyline" -and $script:polylineActive) {
+        $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+        $rawPt = ViewPoint-To-MediaPoint $viewPt $true
+        $picture.Capture = $false
+        [void](Finish-PolylineGesture $rawPt)
+        $picture.Invalidate()
         return
     }
 
@@ -7129,6 +14023,30 @@ $picture.Add_MouseUp({
                 $picture.Refresh()
             }
         }
+        return
+    }
+
+    if ($toolMode -eq "Line" -and $script:lineDrawing -and $e.Button -eq [System.Windows.Forms.MouseButtons]::Left) {
+        $viewPt = New-Object System.Drawing.PointF([single]$e.X,[single]$e.Y)
+        $rawPt = ViewPoint-To-MediaPoint $viewPt $true
+        if ($rawPt -and $script:lineStart) {
+            $constrainAngle = [bool]([System.Windows.Forms.Control]::ModifierKeys -band [System.Windows.Forms.Keys]::Shift)
+            $script:lineEnd = Clamp-MediaPoint (Get-AngleSnappedPoint $script:lineStart $rawPt $constrainAngle)
+        }
+        $picture.Capture = $false
+        $script:lineDrawing = $false
+        $dx = if ($script:lineStart -and $script:lineEnd) { [double]$script:lineEnd.X - [double]$script:lineStart.X } else { 0.0 }
+        $dy = if ($script:lineStart -and $script:lineEnd) { [double]$script:lineEnd.Y - [double]$script:lineStart.Y } else { 0.0 }
+        if ($script:lineStart -and $script:lineEnd -and [Math]::Sqrt(($dx*$dx)+($dy*$dy)) -ge 1.0) {
+            $script:lineDraftActive = $true
+            Update-SelectionFields $null "Line ready. Create Annotation locks it in."
+            [void](Show-FloatingTextEditor "Draft")
+        } else {
+            Reset-DrawingState
+            Update-SelectionFields $null
+        }
+        Update-RedactionButtons
+        $picture.Invalidate()
         return
     }
 
@@ -7266,7 +14184,7 @@ function Get-LiveEffectPatch([string]$mode, [int]$sx, [int]$sy, [int]$sw, [int]$
     } else {
         [System.Drawing.Drawing2D.InterpolationMode]::NearestNeighbor
     }
-    # D1a preview/export parity fix:
+    # D1b preview/export parity fix:
     # Standard/Default Pixelate export has always enforced a minimum 8x8
     # reduced grid. Mirror that here so the on-screen Pixelate block layout
     # does not visibly change merely because the user exports the image.
@@ -7349,7 +14267,7 @@ function Draw-LiveEffectPatchToView($gfx, $patch, $dr, [string]$mode) {
 # there's a single static frame to sample from, so this stays cheap; video
 # mode keeps the lighter tint overlay, since re-sampling/re-blurring a fresh
 # source frame on every drag or frame step would be far more expensive there.
-function Draw-RedactionShapeLiveEffect($gfx, $r, [System.Drawing.Color]$borderColor) {
+function Draw-RedactionShapeLiveEffect($gfx, $r, [System.Drawing.Color]$borderColor, [bool]$drawGuideBorder = $true) {
     $pen = New-Object System.Drawing.Pen($borderColor, 2)
 
     # Resize Slice 1 r2 / Slice 2: an uncommitted Rectangle or Oval may still
@@ -7369,15 +14287,15 @@ function Draw-RedactionShapeLiveEffect($gfx, $r, [System.Drawing.Color]$borderCo
         $brush = New-Object System.Drawing.SolidBrush((Get-RedactionColor $r))
         if ($r.Shape -eq "Oval") {
             $dr = if ($draftDisplayRect) { $draftDisplayRect } else { VideoRect-To-Display $r.X $r.Y $r.W $r.H }
-            if ($dr) { $gfx.FillEllipse($brush, $dr); $gfx.DrawEllipse($pen, $dr) }
+            if ($dr) { $gfx.FillEllipse($brush, $dr); if ($drawGuideBorder) { $gfx.DrawEllipse($pen, $dr) } }
         }
         elseif ($r.Shape -eq "Polygon") {
             $dpts = VideoPoints-To-DisplayPoints $r.Points
-            if ($dpts -and $dpts.Count -ge 3) { $gfx.FillPolygon($brush, $dpts); $gfx.DrawPolygon($pen, $dpts) }
+            if ($dpts -and $dpts.Count -ge 3) { $gfx.FillPolygon($brush, $dpts); if ($drawGuideBorder) { $gfx.DrawPolygon($pen, $dpts) } }
         }
         else {
             $dr = if ($draftDisplayRect) { $draftDisplayRect } else { VideoRect-To-Display $r.X $r.Y $r.W $r.H }
-            if ($dr) { $gfx.FillRectangle($brush, $dr); Draw-ViewportRectangleOutline $gfx $pen $dr }
+            if ($dr) { $gfx.FillRectangle($brush, $dr); if ($drawGuideBorder) { Draw-ViewportRectangleOutline $gfx $pen $dr } }
         }
         $brush.Dispose()
         $pen.Dispose()
@@ -7398,7 +14316,7 @@ function Draw-RedactionShapeLiveEffect($gfx, $r, [System.Drawing.Color]$borderCo
         $gfx.SetClip($path, [System.Drawing.Drawing2D.CombineMode]::Intersect)
         Draw-LiveEffectPatchToView $gfx $patch $dr $r.Mode
         $gfx.Clip = $savedClip
-        $gfx.DrawEllipse($pen, $dr)
+        if ($drawGuideBorder) { $gfx.DrawEllipse($pen, $dr) }
         $path.Dispose()
     }
     elseif ($r.Shape -eq "Polygon") {
@@ -7410,12 +14328,12 @@ function Draw-RedactionShapeLiveEffect($gfx, $r, [System.Drawing.Color]$borderCo
             $gfx.SetClip($path, [System.Drawing.Drawing2D.CombineMode]::Intersect)
             Draw-LiveEffectPatchToView $gfx $patch $dr $r.Mode
             $gfx.Clip = $savedClip
-            $gfx.DrawPolygon($pen, $dpts)
+            if ($drawGuideBorder) { $gfx.DrawPolygon($pen, $dpts) }
         }
     }
     else {
         Draw-LiveEffectPatchToView $gfx $patch $dr $r.Mode
-        Draw-ViewportRectangleOutline $gfx $pen $dr
+        if ($drawGuideBorder) { Draw-ViewportRectangleOutline $gfx $pen $dr }
     }
 
     $patch.Dispose()
@@ -7424,6 +14342,9 @@ function Draw-RedactionShapeLiveEffect($gfx, $r, [System.Drawing.Color]$borderCo
 
 $picture.Add_Paint({
     param($sender,$e)
+    $cropClipState=$null
+    if($isImageMode -and $script:ImageCrop){$cropClipState=$e.Graphics.Save();$e.Graphics.SetClip((MediaRect-To-ViewRect $script:ImageCrop))}
+    if ($script:floatingTextEditorVisible) { Update-FloatingTextEditorPosition }
 
     # Slice 3: the PictureBox no longer renders its Image property. Draw the
     # current decoded/autorotated frame explicitly through the viewport
@@ -7461,7 +14382,8 @@ $picture.Add_Paint({
     foreach ($r in $redactions) {
         if (Test-FrameInRange $currentFrame $r.BufferedStartFrame $r.BufferedEndFrame) {
             if ($isImageMode) {
-                Draw-RedactionShapeLiveEffect $e.Graphics $r ([System.Drawing.Color]::Lime)
+                $drawGuide = -not (Test-RedactionHasOutline $r)
+                Draw-RedactionShapeLiveEffect $e.Graphics $r ([System.Drawing.Color]::Lime) $drawGuide
             }
             elseif ($r.Mode -eq "Black box") {
                 # Show the redaction's own assigned color while scrubbing,
@@ -7469,14 +14391,92 @@ $picture.Add_Paint({
                 # so it's obvious at a glance which box is which color.
                 $boxColor = Get-RedactionColor $r
                 $fillTint = [System.Drawing.Color]::FromArgb(90, $boxColor.R, $boxColor.G, $boxColor.B)
-                Draw-RedactionShape $e.Graphics $r $boxColor $fillTint
+                Draw-RedactionShape $e.Graphics $r $boxColor $fillTint (-not (Test-RedactionHasOutline $r))
             }
             else {
-                Draw-RedactionShape $e.Graphics $r ([System.Drawing.Color]::Lime) ([System.Drawing.Color]::FromArgb(60,0,255,0))
+                Draw-RedactionShape $e.Graphics $r ([System.Drawing.Color]::Lime) ([System.Drawing.Color]::FromArgb(60,0,255,0)) (-not (Test-RedactionHasOutline $r))
             }
         }
     }
+
+    # Decorative annotations are always painted after every committed security
+    # redaction/effect. They therefore cannot reveal or replace source pixels.
+    Draw-AnnotationsToView $e.Graphics
+    Draw-SelectedCommittedRedactionGuide $e.Graphics
+    Draw-SelectedCommittedAnnotationGuide $e.Graphics
  
+    if ($toolMode -eq "Text" -and ($script:textDrawing -or $script:textDraftActive)) {
+        $transform = Get-ViewportTransform
+        $mediaRect = Get-MediaViewRect
+        if ($transform -and $mediaRect -and $script:textDraftRect.Width -gt 0.0 -and $script:textDraftRect.Height -gt 0.0) {
+            $draftView = MediaRect-To-ViewRect $script:textDraftRect
+            if ($draftView) {
+                $draftPen = New-Object System.Drawing.Pen([System.Drawing.Color]::Gold, 1)
+                $draftPen.DashStyle = [System.Drawing.Drawing2D.DashStyle]::Dash
+                try { $e.Graphics.DrawRectangle($draftPen, $draftView.X, $draftView.Y, $draftView.Width, $draftView.Height) }
+                finally { $draftPen.Dispose() }
+                if ($script:textDraftActive -and -not $script:textDrawing) {
+                    Draw-RectangleResizeHandles $e.Graphics $script:textDraftRect
+                }
+            }
+            $draftText = Get-CurrentTextDraftAnnotation
+            if ($draftText) {
+                $saved = $e.Graphics.Save()
+                try {
+                    $e.Graphics.SetClip($mediaRect, [System.Drawing.Drawing2D.CombineMode]::Intersect)
+                    Draw-AnnotationObject $e.Graphics $draftText $transform.ScaleX $transform.ScaleY $transform.OriginX $transform.OriginY
+                }
+                finally { $e.Graphics.Restore($saved) }
+            }
+        }
+    }
+    elseif ($toolMode -eq "Line" -and ($script:lineDrawing -or $script:lineDraftActive) -and $script:lineStart -and $script:lineEnd) {
+        $draftLine = New-LineDrawingAnnotation $script:lineStart $script:lineEnd $script:outlineColor $script:outlineWidth $script:outlineDashStyle $script:drawEndpointStyle -1
+        $transform = Get-ViewportTransform
+        $mediaRect = Get-MediaViewRect
+        if ($transform -and $mediaRect) {
+            $saved = $e.Graphics.Save()
+            try {
+                $e.Graphics.SetClip($mediaRect, [System.Drawing.Drawing2D.CombineMode]::Intersect)
+                Draw-AnnotationObject $e.Graphics $draftLine $transform.ScaleX $transform.ScaleY $transform.OriginX $transform.OriginY
+            }
+            finally { $e.Graphics.Restore($saved) }
+        }
+    }
+    elseif ($toolMode -eq "Polyline" -and ($script:polylineActive -or $script:polylineDraftActive) -and $script:polylinePoints.Count -gt 0) {
+        $draftPoints = New-Object System.Collections.Generic.List[System.Drawing.PointF]
+        foreach ($pt in $script:polylinePoints) { [void]$draftPoints.Add($pt) }
+        if ($script:polylineMousePos -and $draftPoints.Count -gt 0) { [void]$draftPoints.Add($script:polylineMousePos) }
+        if ($draftPoints.Count -ge 2) {
+            $draftPolyline = New-PolylineDrawingAnnotation $draftPoints $script:outlineColor $script:outlineWidth $script:outlineDashStyle $script:drawPolylineJoinStyle $script:drawEndpointStyle -1
+            $transform = Get-ViewportTransform
+            $mediaRect = Get-MediaViewRect
+            if ($transform -and $mediaRect) {
+                $saved = $e.Graphics.Save()
+                try {
+                    $e.Graphics.SetClip($mediaRect, [System.Drawing.Drawing2D.CombineMode]::Intersect)
+                    Draw-AnnotationObject $e.Graphics $draftPolyline $transform.ScaleX $transform.ScaleY $transform.OriginX $transform.OriginY
+                }
+                finally { $e.Graphics.Restore($saved) }
+            }
+        }
+        # Constant-screen-space vertex markers keep the click path readable at any zoom.
+        $dpts = MediaPoints-To-ViewPoints $script:polylinePoints
+        if ($dpts) {
+            $markerBrush = New-Object System.Drawing.SolidBrush($script:outlineColor)
+            try {
+                for ($i = 0; $i -lt $dpts.Count; $i++) {
+                    $isArrowStart = [bool]($i -eq 0 -and ($script:drawEndpointStyle -eq "ArrowStart" -or $script:drawEndpointStyle -eq "ArrowBoth"))
+                    $isArrowEnd = [bool]($i -eq ($dpts.Count - 1) -and ($script:drawEndpointStyle -eq "ArrowEnd" -or $script:drawEndpointStyle -eq "ArrowBoth"))
+                    if ($isArrowStart -or $isArrowEnd) { continue }
+                    $vp = $dpts[$i]
+                    $e.Graphics.FillEllipse($markerBrush,($vp.X-3),($vp.Y-3),6,6)
+                }
+            }
+            finally { $markerBrush.Dispose() }
+        }
+    }
+
     if ($pendingRedaction) {
         # The timeline only moves forward from here: a pending redaction has
         # a start but no end yet, so it should show on its start frame and
@@ -7513,11 +14513,16 @@ $picture.Add_Paint({
                     if ($isImageMode) {
                         $shapeData = Polygon-To-VideoShape $polygonPoints
                         if ($shapeData) {
-                            $shapeData.Mode = Get-SelectedMode
-                            $shapeData.Strength = $redactionStrength
-                            $shapeData.Enhanced = Get-SelectedEnhanced
-                            $shapeData.Color = $redactionColor
-                            Draw-RedactionShapeLiveEffect $e.Graphics $shapeData ([System.Drawing.Color]::Red)
+                            if ($script:fillEnabled) {
+                                $shapeData.Mode = Get-SelectedMode
+                                $shapeData.Strength = $redactionStrength
+                                $shapeData.Enhanced = Get-SelectedEnhanced
+                                $shapeData.Color = $redactionColor
+                                Draw-RedactionShapeLiveEffect $e.Graphics $shapeData ([System.Drawing.Color]::Red) (-not $script:outlineEnabled)
+                            }
+                            if ($script:outlineEnabled) {
+                                Draw-DraftShapeOutlineToView $e.Graphics $shapeData
+                            }
                         }
                     }
                     elseif ($dpts.Count -ge 3) {
@@ -7566,7 +14571,12 @@ $picture.Add_Paint({
                         # resize handles on one identical projected RectangleF.
                         $shapeData.DraftDisplayRect = $displaySelection
                     }
-                    Draw-RedactionShapeLiveEffect $e.Graphics $shapeData ([System.Drawing.Color]::Red)
+                    if ($script:fillEnabled) {
+                        Draw-RedactionShapeLiveEffect $e.Graphics $shapeData ([System.Drawing.Color]::Red) (-not $script:outlineEnabled)
+                    }
+                    if ($script:outlineEnabled) {
+                        Draw-DraftShapeOutlineToView $e.Graphics $shapeData
+                    }
                 }
             }
             else {
@@ -7596,42 +14606,75 @@ $picture.Add_Paint({
             }
         }
     }
+    if($cropClipState){$e.Graphics.Restore($cropClipState)}
+    Draw-CropGuide $e.Graphics
 })
  
 $scrubberMarkers.Add_Paint({
     param($sender,$e)
 
     # Always clear this control explicitly before drawing the current model.
-    # The v1.4 preview resizes this marker strip whenever the window or
-    # Redaction Area changes width. Without an explicit clear, stale pixels
-    # from a previous paint can survive long enough to look like extra or
-    # differently-sized redaction ranges.
+    # The marker strip is repainted from the current redaction + annotation
+    # collections, preventing stale pixels after resize/remove/clear operations.
     $e.Graphics.Clear($sender.BackColor)
 
-    if ($videoDuration -le 0 -or $redactions.Count -eq 0) { return }
+    if ($videoDuration -le 0 -or ($redactions.Count -eq 0 -and $annotations.Count -eq 0)) { return }
 
     $w = $sender.ClientSize.Width
     if ($w -le 1) { return }
-    $midY = [int]($sender.ClientSize.Height / 2)
-    $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::Red, 3)
-    $pen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
-    $pen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
-    $brush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::Red)
+
+    # D5b-r3 uses two slim lanes inside the compact marker strip so overlapping
+    # redaction and annotation ranges stay independently visible without making
+    # the playback panel taller. Red remains security redaction; violet is annotation.
+    $redY = 3
+    $annotationY = [Math]::Max(7, $sender.ClientSize.Height - 2)
+
+    $redPen = New-Object System.Drawing.Pen([System.Drawing.Color]::Red, 3)
+    $redPen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
+    $redPen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
+    $redBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::Red)
 
     foreach ($r in $redactions) {
         $x1 = Get-MarkerX $r.BufferedStart $videoDuration $w
         $x2 = Get-MarkerX $r.BufferedEnd $videoDuration $w
-        $e.Graphics.DrawLine($pen, $x1, $midY, $x2, $midY)
-        $e.Graphics.FillEllipse($brush, ($x1 - 3), ($midY - 3), 6, 6)
-        $e.Graphics.FillEllipse($brush, ($x2 - 3), ($midY - 3), 6, 6)
+        $e.Graphics.DrawLine($redPen, $x1, $redY, $x2, $redY)
+        $e.Graphics.FillEllipse($redBrush, ($x1 - 3), ($redY - 3), 6, 6)
+        $e.Graphics.FillEllipse($redBrush, ($x2 - 3), ($redY - 3), 6, 6)
     }
 
-    $pen.Dispose()
-    $brush.Dispose()
+    $annotationColor = [System.Drawing.Color]::FromArgb(168,85,247) # violet #A855F7
+    $annotationPen = New-Object System.Drawing.Pen($annotationColor, 2)
+    $annotationPen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
+    $annotationPen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
+    $annotationBrush = New-Object System.Drawing.SolidBrush($annotationColor)
+
+    foreach ($a in $annotations) {
+        if ($a.Kind -notin @("Text","Line","Polyline")) { continue }
+        $ar = Get-AnnotationFrameRange $a
+        if ([int]$ar.End -lt [int]$ar.Start) { continue }
+        $startTime = Get-FramePresentationTime ([int]$ar.Start)
+        $endTime = Get-FramePresentationTime ([int]$ar.End)
+        if ([double]::IsNaN($startTime) -or [double]::IsInfinity($startTime) -or
+            [double]::IsNaN($endTime) -or [double]::IsInfinity($endTime)) { continue }
+        $x1 = Get-MarkerX $startTime $videoDuration $w
+        $x2 = Get-MarkerX $endTime $videoDuration $w
+        $e.Graphics.DrawLine($annotationPen, $x1, $annotationY, $x2, $annotationY)
+        $e.Graphics.FillEllipse($annotationBrush, ($x1 - 2), ($annotationY - 2), 4, 4)
+        $e.Graphics.FillEllipse($annotationBrush, ($x2 - 2), ($annotationY - 2), 4, 4)
+    }
+
+    $redPen.Dispose()
+    $redBrush.Dispose()
+    $annotationPen.Dispose()
+    $annotationBrush.Dispose()
 })
 
 $btnStartRedaction.Add_Click({
     if (-not $videoPath) { return }
+    if (-not $isImageMode -and (Test-IsStandaloneDrawTool)) {
+        [void](Begin-VideoAnnotationRange)
+        return
+    }
     Stop-Playback
  
     $shapeData = Get-CurrentShapeVideoData
@@ -7676,6 +14719,20 @@ $btnStartRedaction.Add_Click({
 })
  
 $btnCancelRedaction.Add_Click({
+    if ($script:pendingAnnotation) {
+        [void](Cancel-VideoAnnotationRange)
+        return
+    }
+    if (-not $isImageMode -and (Test-IsStandaloneDrawTool) -and (Test-VideoAnnotationDraftPresent)) {
+        Stop-Playback
+        Reset-DrawingState
+        Update-SelectionFields $null
+        $lblPending.Text = "Annotation draft cancelled."
+        Update-RedactionButtons
+        Update-AppearanceStatus
+        $picture.Invalidate()
+        return
+    }
     Stop-Playback
     $script:pendingRedaction = $null
     Reset-DrawingState
@@ -7686,6 +14743,10 @@ $btnCancelRedaction.Add_Click({
 })
  
 $btnEndRedaction.Add_Click({
+    if ($script:pendingAnnotation) {
+        [void](End-VideoAnnotationRange)
+        return
+    }
     if (-not $pendingRedaction) { return }
     Stop-Playback
  
@@ -7760,39 +14821,86 @@ $btnEndRedaction.Add_Click({
 })
  
 $btnAddRedaction.Add_Click({
-    if (-not $videoPath) { return }
+    if($isImageMode -and $toolMode -eq 'Crop'){Confirm-ImageCrop;return}
+    if (-not $videoPath -or -not $isImageMode) { return }
+    if (Test-IsStandaloneDrawTool) {
+        Close-FloatingTextEditor $false
+        if ($toolMode -eq "Text") { Confirm-TextAnnotation } else { Confirm-DrawingAnnotation }
+        return
+    }
  
     $shapeData = Get-CurrentShapeVideoData
     if (-not $shapeData) {
         [System.Windows.Forms.MessageBox]::Show(
-            "Draw a shape over the area to redact first.",
+            "Draw a shape first.",
             "Nothing selected",
             "OK",
             "Warning"
         ) | Out-Null
         return
     }
- 
-    $entry = [PSCustomObject]@{
-        Shape = $shapeData.Shape
-        X = $shapeData.X; Y = $shapeData.Y; W = $shapeData.W; H = $shapeData.H
-        Points = $shapeData.Points
-        Mode = Get-SelectedMode
-        Strength = $redactionStrength
-        Enhanced = Get-SelectedEnhanced
-        Color = $redactionColor
-        StartFrame = 0; EndFrame = 0
-        BufferedStartFrame = 0; BufferedEndFrame = 0
-        MarkStart = 0.0; MarkEnd = 0.0
-        BufferedStart = 0.0; BufferedEnd = 0.0
-    }
-    [void]$script:redactions.Add($entry)
-    Refresh-RedactionList
 
-    if (Get-RedactionEnhanced $entry) {
-        $lblPending.Text = "Aggressive redaction #$($redactions.Count) added. Draw a new shape for the next redaction, or export."
+    if (-not $script:fillEnabled -and -not $script:outlineEnabled) {
+        [System.Windows.Forms.MessageBox]::Show(
+            "Choose Fill, Outline, or both before creating the shape.",
+            "Nothing to create",
+            "OK",
+            "Warning"
+        ) | Out-Null
+        return
+    }
+
+    if (-not $script:fillEnabled) {
+        # Annotation-only objects are deliberately stored outside $redactions.
+        # They never enter Build-RedactionFilterComplex or security-mask logic.
+        $commitOrder = Get-NextObjectCommitOrder
+        $annotation = New-ShapeOutlineAnnotation `
+            $shapeData `
+            $script:outlineColor `
+            $script:outlineWidth `
+            $script:outlineDashStyle `
+            (Get-CurrentOutlineJoinStyle) `
+            -1 `
+            $commitOrder
+        if (-not $annotation) { return }
+        [void]$script:annotations.Add($annotation)
+        Refresh-AnnotationList
+        $lblPending.Text = "Annotation #$($annotations.Count) added. This object does not redact or obscure media."
+    }
+    else {
+        $commitOrder = Get-NextObjectCommitOrder
+        $entry = [PSCustomObject]@{
+            Shape = $shapeData.Shape
+            X = $shapeData.X; Y = $shapeData.Y; W = $shapeData.W; H = $shapeData.H
+            Points = $shapeData.Points
+            Mode = Get-SelectedMode
+            Strength = $redactionStrength
+            Enhanced = Get-SelectedEnhanced
+            Color = $redactionColor
+            OutlineEnabled = [bool]$script:outlineEnabled
+            OutlineColor = $script:outlineColor
+            OutlineWidth = [int]$script:outlineWidth
+            OutlineDashStyle = $script:outlineDashStyle
+            OutlineJoinStyle = Get-CurrentOutlineJoinStyle
+            CommitOrder = [int]$commitOrder
+            StartFrame = 0; EndFrame = 0
+            BufferedStartFrame = 0; BufferedEndFrame = 0
+            MarkStart = 0.0; MarkEnd = 0.0
+            BufferedStart = 0.0; BufferedEnd = 0.0
+        }
+        [void]$script:redactions.Add($entry)
+        Refresh-RedactionList
+
+        if (Get-RedactionEnhanced $entry) {
+            $lblPending.Text = "Aggressive redaction #$($redactions.Count) added. Draw a new shape for the next object, or export."
+        }
+        else {
+            $lblPending.Text = "Redaction #$($redactions.Count) added. Draw a new shape for the next object, or export."
+        }
     }
  
+    $script:selectedRedactionIndex = -1
+    if ($lvRedactions.SelectedItems.Count -gt 0) { $lvRedactions.SelectedItems[0].Selected = $false }
     Reset-DrawingState
     Update-SelectionFields $null
     Update-RedactionButtons
@@ -7802,6 +14910,8 @@ $btnRemoveRedaction.Add_Click({
     if ($lvRedactions.SelectedIndices.Count -eq 0) { return }
     $idx = $lvRedactions.SelectedIndices[0]
     $script:redactions.RemoveAt($idx)
+    $script:selectedRedactionIndex = -1
+    Reset-DrawingState
     Refresh-RedactionList
     Update-RedactionButtons
 })
@@ -7809,33 +14919,190 @@ $btnRemoveRedaction.Add_Click({
 $btnClearRedactions.Add_Click({
     if ($redactions.Count -eq 0) { return }
     $script:redactions.Clear()
+    $script:selectedRedactionIndex = -1
+    Reset-DrawingState
     Refresh-RedactionList
     Update-RedactionButtons
 })
  
+$btnRemoveAnnotation.Add_Click({
+    if ($script:floatingTextEditorVisible) { Close-FloatingTextEditor $false }
+    if ($lvAnnotations.SelectedIndices.Count -eq 0) { return }
+    $idx = $lvAnnotations.SelectedIndices[0]
+    if ($idx -lt 0 -or $idx -ge $annotations.Count) { return }
+    $script:annotations.RemoveAt($idx)
+    $script:selectedAnnotationIndex = -1
+    Refresh-AnnotationList
+    Sync-DraftAppearanceDefaultsToControls
+    Update-InspectorSectionLayout
+    Update-RedactionButtons
+})
+
+$btnClearAnnotations.Add_Click({
+    if ($script:floatingTextEditorVisible) { Close-FloatingTextEditor $false }
+    if ($annotations.Count -eq 0) { return }
+    $script:annotations.Clear()
+    $script:selectedAnnotationIndex = -1
+    Refresh-AnnotationList
+    Sync-DraftAppearanceDefaultsToControls
+    Update-InspectorSectionLayout
+    Update-RedactionButtons
+})
+ 
+function Complete-AsyncExport($result,$failure,$cancelled,$context) {
+    foreach($key in $context.Keys){Set-Variable -Name $key -Value $context[$key] -Scope Local}
+    $err=if($result){$result.Error}else{$failure}
+    try{
+        if ($failure -or -not $result -or $result.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $partial)) {
+            if(-not $copyOperation){Remove-Item -LiteralPath $partial -Force -ErrorAction SilentlyContinue}
+            $progress.Visible = $false
+            Update-RedactionButtons
+            $status.Text = "Export failed."
+            [System.Windows.Forms.MessageBox]::Show(
+                "FFmpeg failed to create a complete export. No destination file was replaced.`r`n`r`n$(Get-SafeFFmpegError $err $videoPath)",
+                "Export failed",
+                "OK",
+                "Error"
+            ) | Out-Null
+            return
+        }
+
+        $status.Text = "Validating export..."
+        $form.Refresh()
+        $expectAudio = (-not $isImageMode -and $chkAudio.Checked -and $sourceHasAudio)
+        $validation = $result.Validation
+        if (-not $validation.Ok) {
+            if(-not $copyOperation){Remove-Item -LiteralPath $partial -Force -ErrorAction SilentlyContinue}
+            $progress.Visible = $false
+            Update-RedactionButtons
+            $status.Text = "Export validation failed."
+            [System.Windows.Forms.MessageBox]::Show(
+                "The exported file failed post-export validation and was not finalized.`r`n`r`n$($validation.Error)",
+                "Export validation failed",
+                "OK",
+                "Error"
+            ) | Out-Null
+            return
+        }
+
+        if($copyOperation){
+            $stream=[IO.File]::OpenRead($partial)
+            try{
+                $image=[Drawing.Image]::FromStream($stream)
+                try{$clipboardBitmap=[Drawing.Bitmap]::new($image)}finally{$image.Dispose()}
+            }finally{$stream.Dispose()}
+            try{[Windows.Forms.Clipboard]::SetImage($clipboardBitmap)}finally{$clipboardBitmap.Dispose()}
+            $status.Text='Redacted image copied to clipboard.'
+            Show-ClipboardConfirmation
+        }else{
+        # Commit only after validation. Existing destination files remain
+        # untouched until this point; File.Replace is atomic on supported
+        # same-volume Windows filesystems.
+        try {
+            if (Test-Path -LiteralPath $out -PathType Leaf) {
+                [System.IO.File]::Replace($partial, $out, [System.Management.Automation.Language.NullString]::Value)
+            }
+            else {
+                [System.IO.File]::Move($partial, $out)
+            }
+        }
+        catch {
+            if(-not $copyOperation){Remove-Item -LiteralPath $partial -Force -ErrorAction SilentlyContinue}
+            $progress.Visible = $false
+            Update-RedactionButtons
+            $status.Text = "Could not finalize export."
+            [System.Windows.Forms.MessageBox]::Show(
+                "The temporary export passed validation, but Windows could not atomically finalize it. Any existing destination file was left untouched.",
+                "Could not finalize export",
+                "OK",
+                "Error"
+            ) | Out-Null
+            return
+        }
+
+        $progress.Visible = $false
+        Update-RedactionButtons
+        $status.Text = "Done: $out"
+        if($form.Visible){
+            Show-CompactInformationDialog "Export complete" "Export complete" ("Finished and validated.`r`n`r`n" + $out)
+        }else{
+            $script:CaptureState.Tray.ShowBalloonTip(3000,'Export complete','The redacted output has finished and passed validation.',[Windows.Forms.ToolTipIcon]::Info)
+        }
+
+
+        }
+        if ($deleteRequestedForExport -and -not $copyOperation) {
+            Invoke-S1bDeleteOriginalFlow
+        }
+    }
+    catch {
+        # Fail closed for unexpected mask/filter/process/finalization exceptions.
+        # The selected destination is never touched before validation/commit.
+        if ($partial -and (Test-Path -LiteralPath $partial)) {
+            if(-not $copyOperation){Remove-Item -LiteralPath $partial -Force -ErrorAction SilentlyContinue}
+        }
+        $status.Text = "Export failed."
+        [System.Windows.Forms.MessageBox]::Show(
+            "The export stopped because an unexpected error occurred. No unvalidated destination file was finalized.",
+            "Export failed",
+            "OK",
+            "Error"
+        ) | Out-Null
+    }
+    finally {
+
+
+
+        if (-not $copyOperation -and (Test-Path -LiteralPath $partial)) { if(-not $copyOperation){Remove-Item -LiteralPath $partial -Force -ErrorAction SilentlyContinue} }
+        try { Remove-UnusedCaptureFiles } finally { Set-ExportWindowBusy $false; if($script:QuitAfterExport){$script:QuitAfterExport=$false;Quit-TRTFromTray} }
+        $progress.Visible = $false
+        Update-RedactionButtons
+    }
+
+}
 $btnExport.Add_Click({
     if (-not $videoPath) { return }
+    $copyOperation=[bool]$script:CopyRequested;$script:CopyRequested=$false;$handedOff=$false
     Stop-Playback
 
-    if ($redactions.Count -eq 0) {
+    $hasStandaloneAnnotations = [bool]($annotations.Count -gt 0)
+    if ($redactions.Count -eq 0 -and -not $hasStandaloneAnnotations -and -not ($isImageMode -and $script:ImageCrop)) {
         [System.Windows.Forms.MessageBox]::Show(
-            "Add at least one redaction before exporting.",
-            "Nothing to redact",
+            "Create at least one redaction or annotation before exporting.",
+            "Nothing to export",
             "OK",
             "Warning"
         ) | Out-Null
         return
     }
 
-    $selectedFormat = [string]$cmbFormat.SelectedItem
+    # G2d defence in depth: managed policy forbids Blur/Pixelate redactions. Normal
+    # UI cannot create them while the control is active, but reject unexpected state
+    # before even opening the save dialog rather than silently converting it.
+    if ($script:ManagedPolicy -and $script:ManagedPolicy.DisableVisualObscuration) {
+        foreach ($managedRedaction in $redactions) {
+            if ($managedRedaction.Mode -eq "Blur" -or $managedRedaction.Mode -eq "Pixelate") {
+                [System.Windows.Forms.MessageBox]::Show(
+                    "The configured managed policy does not allow Blur or Pixelate redactions. Remove the visual-obscuration redaction and use Coloured Box instead.",
+                    "Managed policy restriction",
+                    "OK",
+                    "Warning"
+                ) | Out-Null
+                return
+            }
+        }
+    }
+
+    $selectedFormat = if($copyOperation){"PNG"}else{[string]$cmbFormat.SelectedItem}
     if (-not $selectedFormat) { $selectedFormat = if ($isImageMode) { "PNG" } else { "MP4" } }
     $outExt = "." + $selectedFormat.ToLowerInvariant()
-    $neutralName = "REDACTED_" + (Get-Date -Format "yyyyMMdd_HHmmss") + $outExt
+    $outputPrefix = if($isImageMode -and $script:ImageCrop -and $redactions.Count -eq 0 -and -not $hasStandaloneAnnotations){"CROPPED_"} elseif ($redactions.Count -eq 0 -and $hasStandaloneAnnotations) { "ANNOTATED_" } else { "REDACTED_" }
+    $neutralName = $outputPrefix + (Get-Date -Format "yyyyMMdd_HHmmss") + $outExt
     $saveFilter = if ($isImageMode) { "$selectedFormat image|*$outExt|All files|*.*" } else { "$selectedFormat video|*$outExt|All files|*.*" }
-    $saveTitle = if ($isImageMode) { "Save redacted image" } else { "Save redacted video" }
+    $saveTitle = if($isImageMode -and $script:ImageCrop -and $redactions.Count -eq 0 -and -not $hasStandaloneAnnotations){"Save cropped image"} elseif ($redactions.Count -eq 0 -and $hasStandaloneAnnotations) { if ($isImageMode) { "Save annotated image" } else { "Save annotated video" } } elseif ($isImageMode) { "Save redacted image" } else { "Save redacted video" }
 
     try {
-        $out = [SecureFileDialogNativeV2]::ShowSave($form.Handle, $saveFilter, $saveTitle, $neutralName, $selectedFormat.ToLowerInvariant())
+        $out = if($copyOperation){New-CaptureFile '.png'}else{[SecureFileDialogNativeV2]::ShowSave($form.Handle, $saveFilter, $saveTitle, $neutralName, $selectedFormat.ToLowerInvariant())}
     }
     catch {
         [System.Windows.Forms.MessageBox]::Show(("Windows could not open the secure save dialog.`r`n`r`n" + $_.Exception.Message), "File dialog error", "OK", "Error") | Out-Null
@@ -7849,10 +15116,38 @@ $btnExport.Add_Click({
         $out = [System.IO.Path]::ChangeExtension($out, $outExt)
     }
 
+
+    # G2c defence in depth: even if UI state is changed unexpectedly, a managed
+    # disableAudioRetention policy cannot cause unredacted source audio to be exported.
+    if ($script:ManagedPolicy -and $script:ManagedPolicy.DisableAudioRetention) {
+        $chkAudio.Checked = $false
+    }
+
+    # G2b defence in depth: even if UI state is changed unexpectedly, a managed
+    # disableSourceDeletion policy cannot reach the destructive deletion path.
+    if ($script:ManagedPolicy -and $script:ManagedPolicy.DisableSourceDeletion) {
+        $chkDeleteOriginal.Checked = $false
+        $script:deleteOriginalRequested = $false
+    }
+    $deleteRequestedForExport = [bool](-not $copyOperation -and $chkDeleteOriginal.Checked -and $chkDeleteOriginal.Enabled)
+    if ($deleteRequestedForExport -and (Test-DeletionOutputCollision $videoPath $out $sourceDeletionIdentity)) {
+        [System.Windows.Forms.MessageBox]::Show(
+            'The export destination must be different from the original file when automatic deletion is selected. Choose another destination.',
+            'Choose a different destination', 'OK', 'Warning') | Out-Null
+        return
+    }
+
     $networkReason = Get-NetworkPathReason $out
     if ($networkReason) {
-        # UNC and mapped-network destinations are permitted after an explicit
-        # warning. The same-directory partial/validation workflow remains intact.
+        if ($script:ManagedPolicy -and $script:ManagedPolicy.BlockNetworkDestination) {
+            # Managed G2a-G2d block occurs before partial-file creation or encoding.
+            # No selected output path is logged or persisted by this decision.
+            Show-ManagedNetworkLocationBlock "Destination"
+            return
+        }
+
+        # Without a managed block, preserve the accepted public warning flow and
+        # the same-directory partial/validation workflow.
         if (-not (Show-NetworkLocationWarning "Destination")) { return }
     }
 
@@ -7861,18 +15156,21 @@ $btnExport.Add_Click({
     # is atomically moved/replaced only after validation succeeds.
     $outDir = [System.IO.Path]::GetDirectoryName($out)
     $outStem = [System.IO.Path]::GetFileNameWithoutExtension($out)
-    $partial = Join-Path $outDir ($outStem + ".partial." + [guid]::NewGuid().ToString("N") + $outExt)
+    $partial = if($copyOperation){New-CaptureFile '.png'}else{Join-Path $outDir ($outStem + ".partial." + [guid]::NewGuid().ToString("N") + $outExt)}
 
     $exportRedactions = Get-ExportRedactionList $redactions
 
     # Oval/Polygon redactions each need a pre-rendered geometry-only mask.
     $maskPaths = @{}
     $maskTempFiles = New-Object System.Collections.Generic.List[string]
+    $annotationTempFiles = New-Object System.Collections.Generic.List[string]
+    $annotationRestoreMaskTempFiles = New-Object System.Collections.Generic.List[string]
+    Set-ExportWindowBusy $true
     try {
         for ($i = 0; $i -lt $exportRedactions.Count; $i++) {
             $r = $exportRedactions[$i]
             if ($r.Shape -and $r.Shape -ne "Rectangle") {
-                $maskFile = Join-Path $env:TEMP ("TinyVideoRedactor_mask_" + [guid]::NewGuid().ToString() + ".png")
+                $maskFile = New-CaptureFile '.png'
                 New-ShapeMaskFile $r $maskFile
                 $maskPaths[$i] = $maskFile
                 [void]$maskTempFiles.Add($maskFile)
@@ -7883,6 +15181,146 @@ $btnExport.Add_Click({
         $filterComplex = $built.FilterComplex
         $finalLabel = $built.FinalLabel
         $maskInputArgsStr = if ($built.MaskInputArgs.Count -gt 0) { " -i " + ([string]::Join(" -i ", $built.MaskInputArgs)) } else { "" }
+        $annotationInputArgsStr = ""
+
+        # The shared GDI+ renderer remains the sole annotation visual source.
+        # Stills use one combined overlay. D5b video uses one full-media RGBA
+        # overlay per annotation so exact logical-frame activation and commit-order
+        # redaction occlusion can be expressed without changing the security pass.
+        $annotationObjects = Get-ImageAnnotationObjects
+        if ($annotationObjects.Count -gt 0) {
+            if ($isImageMode) {
+                $annotationFile = New-CaptureFile '.png'
+                New-ImageAnnotationOverlayFile $annotationObjects $redactions $annotationFile
+                [void]$annotationTempFiles.Add($annotationFile)
+
+                $annotationInputIndex = 1 + [int]$built.MaskInputArgs.Count
+                $annotationInputArgsStr = " -i " + (Quote-Arg $annotationFile)
+                $annotationFmtLabel = "annfmt0"
+                $annotationOutLabel = "annout0"
+                $annotationPrefix = if ([string]::IsNullOrWhiteSpace($filterComplex)) { "" } else { ";" }
+                $filterComplex += $annotationPrefix + "[${annotationInputIndex}:v]format=rgba[$annotationFmtLabel];[$finalLabel][$annotationFmtLabel]overlay=0:0[$annotationOutLabel]"
+                $finalLabel = $annotationOutLabel
+            }
+            else {
+                $annInputStart = 1 + [int]$built.MaskInputArgs.Count
+                $annInputIndexes = New-Object System.Collections.ArrayList
+                for ($ai=0; $ai -lt $annotationObjects.Count; $ai++) {
+                    $a = $annotationObjects[$ai]
+                    $annotationFile = New-CaptureFile '.png'
+                    New-ImageAnnotationOverlayFile @($a) @() $annotationFile
+                    [void]$annotationTempFiles.Add($annotationFile)
+                    $annotationInputArgsStr += " -i " + (Quote-Arg $annotationFile)
+                    [void]$annInputIndexes.Add($annInputStart + $ai)
+                }
+
+                # Identify every case where an annotation must visually sit below
+                # a redaction committed later. Security redactions have already
+                # been applied to $finalLabel; the restore operation copies those
+                # already-redacted pixels, never original source pixels.
+                $restorePairs = New-Object System.Collections.ArrayList
+                for ($ai=0; $ai -lt $annotationObjects.Count; $ai++) {
+                    $a=$annotationObjects[$ai]
+                    $aOrder=if ($a.PSObject.Properties['CommitOrder']) { [int]$a.CommitOrder } else { -1 }
+                    $ar=Get-AnnotationFrameRange $a
+                    for ($ri=0; $ri -lt $exportRedactions.Count; $ri++) {
+                        $r=$exportRedactions[$ri]
+                        $rOrder=if ($r.PSObject.Properties['CommitOrder']) { [int]$r.CommitOrder } else { -1 }
+                        if ($aOrder -lt 0 -or $rOrder -le $aOrder) { continue }
+                        $rs=[Math]::Max([int]$ar.Start,[int]$r.BufferedStartFrame)
+                        $re=[Math]::Min([int]$ar.End,[int]$r.BufferedEndFrame)
+                        if ($re -ge $rs) {
+                            [void]$restorePairs.Add([PSCustomObject]@{ AnnotationIndex=$ai; RedactionIndex=$ri; StartFrame=$rs; EndFrame=$re })
+                        }
+                    }
+                }
+
+                # Non-rectangular restoration needs a geometry-only luma mask.
+                # One mask input per redaction is split if several earlier
+                # annotations need restoration under the same redaction.
+                $restoreMaskInputIndex = @{}
+                $restoreMaskUses = @{}
+                foreach ($pair in $restorePairs) {
+                    $ri=[int]$pair.RedactionIndex; $r=$exportRedactions[$ri]
+                    if ($r.Shape -eq 'Rectangle' -or -not $r.Shape) { continue }
+                    if (-not $restoreMaskUses.ContainsKey($ri)) { $restoreMaskUses[$ri]=0 }
+                    $restoreMaskUses[$ri]=[int]$restoreMaskUses[$ri]+1
+                }
+                $nextAuxIndex = $annInputStart + $annotationObjects.Count
+                foreach ($ri in @($restoreMaskUses.Keys | Sort-Object)) {
+                    $r=$exportRedactions[[int]$ri]
+                    $restoreMaskFile=New-CaptureFile '.png'
+                    New-AnnotationOcclusionMaskFile $r $restoreMaskFile
+                    [void]$annotationRestoreMaskTempFiles.Add($restoreMaskFile)
+                    $annotationInputArgsStr += " -i " + (Quote-Arg $restoreMaskFile)
+                    $restoreMaskInputIndex[[int]$ri]=$nextAuxIndex
+                    $nextAuxIndex++
+                }
+
+                $annParts=New-Object System.Collections.Generic.List[string]
+                $restoreCopies=New-Object System.Collections.ArrayList
+                if ($restorePairs.Count -gt 0) {
+                    $labels=@('[annsecbase]')
+                    for ($k=0;$k -lt $restorePairs.Count;$k++) { $labels += "[annsec$k]" }
+                    $annParts.Add("[$finalLabel]split=$($restorePairs.Count+1)" + ([string]::Join('', $labels)))
+                    for ($k=0;$k -lt $restorePairs.Count;$k++) { [void]$restoreCopies.Add("annsec$k") }
+                    $curAnn='annsecbase'
+                } else { $curAnn=$finalLabel }
+
+                $restoreMaskLabelQueues=@{}
+                foreach ($ri in @($restoreMaskUses.Keys | Sort-Object)) {
+                    $count=[int]$restoreMaskUses[$ri]
+                    $idx=[int]$restoreMaskInputIndex[$ri]
+                    $queue=New-Object System.Collections.Queue
+                    if ($count -eq 1) {
+                        $label="arm${ri}_0"
+                        $annParts.Add("[${idx}:v]format=gray[$label]")
+                        $queue.Enqueue($label)
+                    } else {
+                        $labels=@()
+                        for ($m=0;$m -lt $count;$m++) { $labels += "[arm${ri}_$m]"; $queue.Enqueue("arm${ri}_$m") }
+                        $annParts.Add("[${idx}:v]format=gray,split=$count" + ([string]::Join('', $labels)))
+                    }
+                    $restoreMaskLabelQueues[[int]$ri]=$queue
+                }
+
+                $restoreCopyIndex=0
+                for ($ai=0;$ai -lt $annotationObjects.Count;$ai++) {
+                    $a=$annotationObjects[$ai]; $ar=Get-AnnotationFrameRange $a
+                    $annIdx=[int]$annInputIndexes[$ai]
+                    $fmt="vaf$ai"; $outLbl="vao$ai"
+                    $annParts.Add("[${annIdx}:v]format=rgba[$fmt]")
+                    $annEnable="between(n\,$([int]$ar.Start)\,$([int]$ar.End))"
+                    $annParts.Add("[$curAnn][$fmt]overlay=0:0:enable='$annEnable'[$outLbl]")
+                    $curAnn=$outLbl
+
+                    foreach ($pair in @($restorePairs | Where-Object { [int]$_.AnnotationIndex -eq $ai })) {
+                        $ri=[int]$pair.RedactionIndex; $r=$exportRedactions[$ri]
+                        $sec=[string]$restoreCopies[$restoreCopyIndex]; $restoreCopyIndex++
+                        $crop="arc${ai}_${ri}_${restoreCopyIndex}"
+                        $next="arv${ai}_${ri}_${restoreCopyIndex}"
+                        $annParts.Add("[$sec]crop=$($r.W):$($r.H):$($r.X):$($r.Y)[$crop]")
+                        $restoreEnable="between(n\,$([int]$pair.StartFrame)\,$([int]$pair.EndFrame))"
+                        if ($r.Shape -and $r.Shape -ne 'Rectangle') {
+                            $maskLabel=[string]$restoreMaskLabelQueues[$ri].Dequeue()
+                            $patch="arp${ai}_${ri}_${restoreCopyIndex}"
+                            $annParts.Add("[$crop][$maskLabel]alphamerge[$patch]")
+                            $annParts.Add("[$curAnn][$patch]overlay=$($r.X):$($r.Y):enable='$restoreEnable'[$next]")
+                        } else {
+                            $annParts.Add("[$curAnn][$crop]overlay=$($r.X):$($r.Y):enable='$restoreEnable'[$next]")
+                        }
+                        $curAnn=$next
+                    }
+                }
+
+                $annotationPrefix = if ([string]::IsNullOrWhiteSpace($filterComplex)) { '' } else { ';' }
+                $filterComplex += $annotationPrefix + ([string]::Join(';',$annParts))
+                $finalLabel=$curAnn
+            }
+        }
+        $cropExport=Add-ImageCropFilter $filterComplex $finalLabel
+        $filterComplex=$cropExport.Filter;$finalLabel=$cropExport.Label
+        $auxInputArgsStr = $maskInputArgsStr + $annotationInputArgsStr
 
         $progress.Minimum = 0
         $progress.Maximum = 100
@@ -7895,7 +15333,16 @@ $btnExport.Add_Click({
         }
         $progress.Visible = $true
         $btnExport.Enabled = $false
-        $status.Text = "Exporting $($redactions.Count) redaction(s)..."
+        Update-ExportButtonAppearance
+        if ($redactions.Count -eq 0 -and $annotations.Count -gt 0) {
+            $status.Text = "Exporting $($annotations.Count) annotation(s)..."
+        }
+        elseif ($annotations.Count -gt 0) {
+            $status.Text = "Exporting $($redactions.Count) redaction(s) and $($annotations.Count) annotation(s)..."
+        }
+        else {
+            $status.Text = "Exporting $($redactions.Count) redaction(s)..."
+        }
         $form.Refresh()
 
         $metadataArgs = " -map_metadata -1 -map_metadata:s -1 -map_chapters -1"
@@ -7903,7 +15350,7 @@ $btnExport.Add_Click({
         if ($isImageMode) {
             if ($selectedFormat -eq "GIF") {
                 $paletteStage = "[$finalLabel]split[gpal1][gpal2];[gpal1]palettegen=stats_mode=single[gpal];[gpal2][gpal]paletteuse=dither=bayer[gout]"
-                $args = "-hide_banner -nostdin -y -autorotate -i " + (Quote-Arg $videoPath) + $maskInputArgsStr +
+                $args = "-hide_banner -nostdin -y -autorotate -i " + (Quote-Arg $videoPath) + $auxInputArgsStr +
                         " -filter_complex " + (Quote-Arg "$filterComplex;$paletteStage") +
                         " -map " + (Quote-Arg "[gout]") + $metadataArgs +
                         " -frames:v 1 -c:v gif " +
@@ -7919,7 +15366,7 @@ $btnExport.Add_Click({
                     "WEBP" { "-c:v libwebp -q:v 90" }
                     default { throw "Unsupported image output format." }
                 }
-                $args = "-hide_banner -nostdin -y -autorotate -i " + (Quote-Arg $videoPath) + $maskInputArgsStr +
+                $args = "-hide_banner -nostdin -y -autorotate -i " + (Quote-Arg $videoPath) + $auxInputArgsStr +
                         " -filter_complex " + (Quote-Arg $filterComplex) +
                         " -map " + (Quote-Arg "[$finalLabel]") + $metadataArgs +
                         " -frames:v 1 -update 1 $qualityArg " +
@@ -7956,7 +15403,7 @@ $btnExport.Add_Click({
             # FFmpeg's default auto fps mode is not acceptable here because a
             # muxer may otherwise select CFR and duplicate/drop source frames.
             $videoTimingArgs = "-fps_mode:v:0 passthrough -enc_time_base:v:0 filter"
-            $args = "-hide_banner -nostdin -y -autorotate -i " + (Quote-Arg $videoPath) + $maskInputArgsStr +
+            $args = "-hide_banner -nostdin -y -autorotate -i " + (Quote-Arg $videoPath) + $auxInputArgsStr +
                     " -filter_complex " + (Quote-Arg $filterComplex) +
                     " -map " + (Quote-Arg "[$finalLabel]") + $audioMapArg + $metadataArgs +
                     " $vcodecArgs $videoTimingArgs $audioCodecArg " +
@@ -7971,144 +15418,190 @@ $btnExport.Add_Click({
         $psi.UseShellExecute = $false
         $psi.CreateNoWindow = $true
 
-        $totalUs = if (-not $isImageMode -and $videoDuration -gt 0) { $videoDuration * 1000000.0 } else { 0.0 }
-        $script:ffmpegOutTimeUs = 0.0
-        $p = $null
-        $err = ""
-
-        $form.Enabled = $false
-        try {
-            $p = [System.Diagnostics.Process]::Start($psi)
-            $stdout = $p.StandardOutput
-            $stderrTask = $p.StandardError.ReadToEndAsync()
-            $lineTask = $stdout.ReadLineAsync()
-
-            while (-not $p.HasExited) {
-                [System.Windows.Forms.Application]::DoEvents()
-                Start-Sleep -Milliseconds 40
-
-                while ($lineTask.IsCompleted -and -not $p.HasExited) {
-                    $line = $lineTask.Result
-                    if ($null -eq $line) { break }
-                    if ($line -match '^out_time_us=(-?\d+)') {
-                        $script:ffmpegOutTimeUs = [double]$Matches[1]
-                    }
-                    $lineTask = $stdout.ReadLineAsync()
-                }
-
-                if ($totalUs -gt 0) {
-                    $pct = [Math]::Max(0, [Math]::Min(99, [int](($script:ffmpegOutTimeUs / $totalUs) * 100)))
-                    $progress.Value = $pct
-                    $status.Text = "Exporting $($redactions.Count) redaction(s)... $pct%"
-                }
-            }
-            $p.WaitForExit()
-            $lineTask.Wait(250) | Out-Null
-            while ($lineTask.IsCompleted -and $lineTask.Result -ne $null) {
-                if ($lineTask.Result -match '^out_time_us=(-?\d+)') {
-                    $script:ffmpegOutTimeUs = [double]$Matches[1]
-                }
-                $lineTask = $stdout.ReadLineAsync()
-                if (-not $lineTask.Wait(200)) { break }
-            }
-            $stderrTask.Wait(2000) | Out-Null
-            $err = if ($stderrTask.IsCompleted) { $stderrTask.Result } else { "" }
-            if ($progress.Style -eq "Continuous") { $progress.Value = 100 }
-        }
-        finally {
-            $form.Enabled = $true
-        }
-
-        if (-not $p -or $p.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $partial)) {
-            Remove-Item -LiteralPath $partial -Force -ErrorAction SilentlyContinue
-            $progress.Visible = $false
-            Update-RedactionButtons
-            $status.Text = "Export failed."
-            [System.Windows.Forms.MessageBox]::Show(
-                "FFmpeg failed to create a complete redacted export. No destination file was replaced.`r`n`r`n$(Get-SafeFFmpegError $err $videoPath)",
-                "Export failed",
-                "OK",
-                "Error"
-            ) | Out-Null
-            return
-        }
-
-        $status.Text = "Validating redacted export..."
-        $form.Refresh()
-        $expectAudio = (-not $isImageMode -and $chkAudio.Checked -and $sourceHasAudio)
-        $validation = Test-ExportSecurity $ffmpeg $ffprobe $partial $isImageMode $expectAudio $videoWidth $videoHeight $videoDuration $frameTimeline
-        if (-not $validation.Ok) {
-            Remove-Item -LiteralPath $partial -Force -ErrorAction SilentlyContinue
-            $progress.Visible = $false
-            Update-RedactionButtons
-            $status.Text = "Export validation failed."
-            [System.Windows.Forms.MessageBox]::Show(
-                "The redacted file failed post-export security validation and was not finalized.`r`n`r`n$($validation.Error)",
-                "Export validation failed",
-                "OK",
-                "Error"
-            ) | Out-Null
-            return
-        }
-
-        # Commit only after validation. Existing destination files remain
-        # untouched until this point; File.Replace is atomic on supported
-        # same-volume Windows filesystems.
-        try {
-            if (Test-Path -LiteralPath $out -PathType Leaf) {
-                [System.IO.File]::Replace($partial, $out, $null)
-            }
-            else {
-                [System.IO.File]::Move($partial, $out)
-            }
-        }
-        catch {
-            Remove-Item -LiteralPath $partial -Force -ErrorAction SilentlyContinue
-            $progress.Visible = $false
-            Update-RedactionButtons
-            $status.Text = "Could not finalize export."
-            [System.Windows.Forms.MessageBox]::Show(
-                "The redacted temporary file passed validation, but Windows could not atomically finalize it. Any existing destination file was left untouched.",
-                "Could not finalize export",
-                "OK",
-                "Error"
-            ) | Out-Null
-            return
-        }
-
-        $progress.Visible = $false
-        Update-RedactionButtons
-        $status.Text = "Done: $out"
-        [System.Windows.Forms.MessageBox]::Show(
-            "Finished and validated.`r`n`r`n$out",
-            "Redaction complete",
-            "OK",
-            "Information"
-        ) | Out-Null
-    }
-    catch {
-        # Fail closed for unexpected mask/filter/process/finalization exceptions.
-        # The selected destination is never touched before validation/commit.
-        if ($partial -and (Test-Path -LiteralPath $partial)) {
-            Remove-Item -LiteralPath $partial -Force -ErrorAction SilentlyContinue
-        }
-        $status.Text = "Export failed."
-        [System.Windows.Forms.MessageBox]::Show(
-            "The export stopped because an unexpected error occurred. No unvalidated destination file was finalized.",
-            "Export failed",
-            "OK",
-            "Error"
-        ) | Out-Null
-    }
-    finally {
-        foreach ($f in $maskTempFiles) { Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue }
-        if (Test-Path -LiteralPath $partial) { Remove-Item -LiteralPath $partial -Force -ErrorAction SilentlyContinue }
-        $form.Enabled = $true
-        $progress.Visible = $false
-        Update-RedactionButtons
+        $context=@{partial=$partial;out=$out;copyOperation=$copyOperation;deleteRequestedForExport=$deleteRequestedForExport;cropExport=$cropExport}
+        $parameters=@{Psi=$psi;Mpeg=$ffmpeg;Probe=$ffprobe;Path=$partial;Image=$isImageMode;Audio=(-not $isImageMode -and $chkAudio.Checked -and $sourceHasAudio);Width=$cropExport.Width;Height=$cropExport.Height;Duration=$videoDuration;Timeline=$frameTimeline}
+        Start-MediaWorker 'Export' $parameters ${function:Complete-AsyncExport} $context
+        $handedOff=$true
+    }catch{
+        if(-not $copyOperation -and $partial -and (Test-Path -LiteralPath $partial)){Remove-Item -LiteralPath $partial -Force -ErrorAction SilentlyContinue}
+        [Windows.Forms.MessageBox]::Show('The export could not be started. No destination was finalized.','Export failed','OK','Error')|Out-Null
+    }finally{
+        if(-not $handedOff){Remove-UnusedCaptureFiles;Set-ExportWindowBusy $false;$progress.Visible=$false;Update-RedactionButtons}
     }
 })
  
+$form.Add_SizeChanged({if($right.Visible -and $lblDeleteCapability){Update-InspectorSectionLayout}})
+Initialize-TRTTrayCapture
+Add-Type -TypeDefinition @'
+using System;
+using System.Text;
+using System.Runtime.InteropServices;
+public static class TRTSessionWindows {
+    private delegate bool Callback(IntPtr h,IntPtr p);
+    [DllImport("user32.dll")]private static extern bool EnumWindows(Callback c,IntPtr p);
+    [DllImport("user32.dll",CharSet=CharSet.Unicode)]private static extern int GetWindowText(IntPtr h,StringBuilder s,int n);
+    [DllImport("user32.dll")]private static extern uint GetWindowThreadProcessId(IntPtr h,out uint id);
+    public static bool HasOtherTRTWindow(int own){bool found=false;EnumWindows(delegate(IntPtr h,IntPtr p){var text=new StringBuilder(256);GetWindowText(h,text,256);uint id;GetWindowThreadProcessId(h,out id);if(id!=(uint)own && text.ToString()=="TinyRedactionTool"){found=true;return false;}return true;},IntPtr.Zero);return found;}
+}
+'@
+function Set-ExportWindowBusy([bool]$busy) {
+    if($busy){
+        if($script:ExportBusy){return}
+        $script:ExportBusy=$true
+        $script:ExportControlStates=@()
+        $queue=New-Object 'Collections.Generic.Queue[Windows.Forms.Control]'
+        foreach($control in $form.Controls){$queue.Enqueue($control)}
+        while($queue.Count){
+            $control=$queue.Dequeue()
+            # Leave panels/window activation enabled. Lock only input controls.
+            if($control -is [Windows.Forms.ButtonBase] -or $control -is [Windows.Forms.TextBoxBase] -or
+               $control -is [Windows.Forms.ComboBox] -or $control -is [Windows.Forms.UpDownBase] -or
+               $control -is [Windows.Forms.TrackBar] -or $control -is [Windows.Forms.ListView] -or
+               $control -is [Windows.Forms.PictureBox]){
+                $script:ExportControlStates+=,[pscustomobject]@{Control=$control;Enabled=$control.Enabled}
+                $control.Enabled=$false
+            }else{foreach($child in $control.Controls){$queue.Enqueue($child)}}
+        }
+        $form.Enabled=$true
+    }else{
+        foreach($entry in $script:ExportControlStates){if(-not $entry.Control.IsDisposed){$entry.Control.Enabled=$entry.Enabled}}
+        $script:ExportControlStates=@();$script:ExportBusy=$false;$form.Enabled=$true
+        Update-SourceDeletionUi;Update-OutlineControlsAvailability
+    }
+}
+function Invoke-ResponsiveExportValidation($mpeg,$probe,$path,$imageMode,$expectAudio,$width,$height,$duration,$timeline) {
+    # Execute the original validator and its original helpers on a worker;
+    # only the main UI thread pumps messages. Trusted tool locks remain held.
+    $definitions=New-Object Text.StringBuilder
+    foreach($name in @('Quote-Arg','Get-SafeFFmpegError','Get-FrameTimingMap','Get-OutputInspection','Test-ExportSecurity')){
+        $definition=(Get-Command $name -CommandType Function).Definition
+        [void]$definitions.AppendLine(('function '+$name+' {'+"`n"+$definition+"`n"+'}'))
+    }
+    $worker=[PowerShell]::Create()
+    try{
+        [void]$worker.AddScript('$ErrorActionPreference="Stop"'+"`n"+$definitions.ToString()).AddStatement().AddCommand('Test-ExportSecurity')
+        foreach($arg in @($mpeg,$probe,$path,$imageMode,$expectAudio,$width,$height,$duration,$timeline)){[void]$worker.AddArgument($arg)}
+        $task=$worker.BeginInvoke()
+        while(-not $task.IsCompleted){[Windows.Forms.Application]::DoEvents();[Threading.Thread]::Sleep(30)}
+        $result=$worker.EndInvoke($task)
+        if($worker.Streams.Error.Count -or $result.Count -ne 1){return @{Ok=$false;Error='The export validation worker did not complete safely.'}}
+        return $result[0].PSObject.BaseObject
+    }catch{return @{Ok=$false;Error='The export validation worker failed; no output was finalized.'}}
+    finally{$worker.Dispose()}
+}
+function Get-CaptureTempBase {return [IO.Path]::GetFullPath([IO.Path]::GetTempPath())}
+function Recover-AbandonedCaptureFiles {
+    $temp=Get-CaptureTempBase
+    $legacyLive=[TRTSessionWindows]::HasOtherTRTWindow($PID)
+    foreach($dir in @(Get-ChildItem -LiteralPath $temp -Directory -Filter 'TinyRedactionTool-Capture-*' -ErrorAction SilentlyContinue)){
+        if($dir.Name -notmatch '^TinyRedactionTool-Capture-[a-f0-9]{32}$' -or ($dir.Attributes -band [IO.FileAttributes]::ReparsePoint)){continue}
+        $leasePath=Join-Path $dir.FullName '.session.lock';$lease=$null
+        if(-not (Test-Path -LiteralPath $leasePath) -and $legacyLive){continue}
+        try{
+            if(Test-Path -LiteralPath $leasePath){$lease=[IO.File]::Open($leasePath,[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)}
+        }catch{continue} # Another live instance/session owns this folder.
+        try{
+            foreach($file in @(Get-ChildItem -LiteralPath $dir.FullName -File)){
+                if($file.Name -match '^capture-[a-f0-9]{32}\.(png|mp4)$'){
+                    [TRT250.CaptureCleanup]::OverwriteAndDelete($file.FullName,$dir.FullName)
+                }
+            }
+            if($lease){$lease.Dispose();$lease=$null}
+            if(Test-Path -LiteralPath $leasePath){Remove-Item -LiteralPath $leasePath -Force -ErrorAction Stop}
+            # Nonrecursive: unknown files/subfolders are never deleted.
+            [IO.Directory]::Delete($dir.FullName,$false)
+        }catch{
+            [System.Windows.Forms.MessageBox]::Show(('TRT temporary capture cleanup could not finish: '+$dir.FullName+"`r`n"+$_.Exception.GetBaseException().Message),'Capture cleanup','OK','Warning')|Out-Null
+        }finally{if($lease){$lease.Dispose()}}
+    }
+    if(-not $legacyLive){
+        # Old test launchers had no ownership marker. Only known three-file
+        # test directories with cryptographically pinned binaries qualify.
+        foreach($dir in @(Get-ChildItem -LiteralPath $temp -Directory -Filter 'TinyRedactionTool-C*-Test-*' -ErrorAction SilentlyContinue)){
+            if($dir.Name -notmatch '^TinyRedactionTool-C[1-5]-Test-[a-f0-9]{32}$' -or ($dir.Attributes -band [IO.FileAttributes]::ReparsePoint)){continue}
+            try{
+                $files=@(Get-ChildItem -LiteralPath $dir.FullName -Force)
+                if($files.Count -ne 3 -or @($files|Where-Object{($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -or $_.PSIsContainer}).Count){continue}
+                $code=@($files|Where-Object Name -match '^TinyRedactionTool-v2\.5\.0-C[1-5]-TEST\.ps1$')
+                if($code.Count -ne 1 -or -not [IO.File]::ReadAllText($code[0].FullName).StartsWith('# TinyRedactionTool ')){continue}
+                $mpeg=Join-Path $dir.FullName 'ffmpeg.exe';$probe=Join-Path $dir.FullName 'ffprobe.exe'
+                if((Get-FileHash $mpeg).Hash -ne $script:ExpectedFFmpegSha256 -or (Get-FileHash $probe).Hash -ne $script:ExpectedFFprobeSha256){continue}
+                foreach($file in $files){Remove-Item -LiteralPath $file.FullName -Force -ErrorAction Stop}
+                [IO.Directory]::Delete($dir.FullName,$false)
+            }catch{[Windows.Forms.MessageBox]::Show(('Old TRT test tools could not be removed: '+$dir.FullName),'Temporary cleanup','OK','Warning')|Out-Null}
+        }
+        $embeddedBase=Join-Path $temp 'TinyRedactionTool'
+        if((Test-Path -LiteralPath $embeddedBase) -and -not ((Get-Item -LiteralPath $embeddedBase).Attributes -band [IO.FileAttributes]::ReparsePoint)){
+            foreach($dir in @(Get-ChildItem -LiteralPath $embeddedBase -Directory -Filter 'run-*')){
+                if($dir.Name -notmatch '^run-[a-f0-9]{32}$' -or ($dir.Attributes -band [IO.FileAttributes]::ReparsePoint) -or $dir.FullName -eq $script:EmbeddedMediaRuntimeDir){continue}
+                try{
+                    $files=@(Get-ChildItem -LiteralPath $dir.FullName -Force)
+                    if(@($files|Where-Object{$_.Name -notin @('ffmpeg.exe','ffprobe.exe') -or $_.PSIsContainer -or ($_.Attributes -band [IO.FileAttributes]::ReparsePoint)}).Count){continue}
+                    foreach($file in $files){Remove-Item -LiteralPath $file.FullName -Force -ErrorAction Stop}
+                    [IO.Directory]::Delete($dir.FullName,$false)
+                }catch{[Windows.Forms.MessageBox]::Show(('Abandoned TRT media tools could not be removed: '+$dir.FullName),'Temporary cleanup','OK','Warning')|Out-Null}
+            }
+        }
+    }
+}
+function Show-RedactionEditor([int]$index) {
+    if($index -lt 0 -or $index -ge $redactions.Count -or $pendingRedaction -or $script:pendingAnnotation){return}
+    Stop-Playback;Close-FloatingTextEditor $false;Reset-DrawingState
+    if($lvAnnotations.SelectedItems.Count){$lvAnnotations.SelectedItems[0].Selected=$false}
+    $script:selectedAnnotationIndex=-1
+    $lvRedactions.Items[$index].Selected=$true;$script:selectedRedactionIndex=$index
+    $r=$redactions[$index];$script:RedactionEditorSync=$true
+    try{
+        $redactionEditorTitle.Text=if($r.Shape -eq 'Polygon'){'Freeform redaction'}else{$r.Shape+' redaction'}
+        $redactionEditorColor.BackColor=$r.Color;$redactionEditorColor.Visible=$r.Mode -eq 'Black box'
+        $redactionEditorStrength.Visible=$r.Mode -ne 'Black box'
+        $redactionEditorStrength.Enabled=-not (Get-RedactionEnhanced $r)
+        $redactionEditorStrength.Value=[Math]::Max(1,[Math]::Min(10,[int]$r.Strength))
+        $redactionEditor.Location=New-Object Drawing.Point(12,12)
+        $redactionEditor.BackColor=$floatingTextEditor.BackColor;$redactionEditor.ForeColor=$floatingTextEditor.ForeColor
+        foreach($ctl in @($redactionEditorTitle,$redactionEditorHint)){$ctl.BackColor=$redactionEditor.BackColor;$ctl.ForeColor=$redactionEditor.ForeColor}
+        $redactionEditor.Visible=$true;$redactionEditor.BringToFront()
+    }finally{$script:RedactionEditorSync=$false}
+    $lblPending.Text='Redaction editing: drag inside to move; drag handles to resize or reshape. Click outside to confirm.'
+    $picture.Invalidate()
+}
+function Close-RedactionEditor {
+    if($redactionEditor){$redactionEditor.Visible=$false}
+}
+
+$redactionEditor=New-Object Windows.Forms.Panel
+$redactionEditor.Size=New-Object Drawing.Size(405,65);$redactionEditor.Visible=$false
+$redactionEditor.BorderStyle='FixedSingle';$redactionEditor.BackColor=[Drawing.Color]::FromArgb(255,244,170);$redactionEditor.ForeColor=[Drawing.Color]::Black
+$picture.Controls.Add($redactionEditor)
+$redactionEditorTitle=New-Object Windows.Forms.Label;$redactionEditorTitle.SetBounds(8,7,175,22);$redactionEditor.Controls.Add($redactionEditorTitle)
+$redactionEditorColor=New-Object Windows.Forms.Button;$redactionEditorColor.SetBounds(190,5,40,24);$redactionEditor.Controls.Add($redactionEditorColor)
+$script:appToolTip.SetToolTip($redactionEditorColor,'Redaction colour')
+$redactionEditorColor.Add_Click({
+    $r=Get-SelectedCommittedRedaction;if(-not $r -or $r.Mode -ne 'Black box'){return}
+    $script:RedactionColorDialog=$true;$dlg=New-Object Windows.Forms.ColorDialog;$dlg.Color=$r.Color
+    try{if($dlg.ShowDialog($form) -eq 'OK'){$r.Color=$dlg.Color;$redactionEditorColor.BackColor=$dlg.Color;Update-ColorSwatch;$picture.Invalidate()}}finally{$dlg.Dispose();$script:RedactionColorDialog=$false}
+})
+$redactionEditorStrength=New-Object Windows.Forms.NumericUpDown;$redactionEditorStrength.Minimum=1;$redactionEditorStrength.Maximum=10;$redactionEditorStrength.SetBounds(190,5,55,24);$redactionEditor.Controls.Add($redactionEditorStrength)
+$script:appToolTip.SetToolTip($redactionEditorStrength,'Redaction strength')
+$redactionEditorStrength.Add_ValueChanged({if(-not $script:RedactionEditorSync){$r=Get-SelectedCommittedRedaction;if($r -and $r.Mode -ne 'Black box'){$r.Strength=[int]$redactionEditorStrength.Value;$picture.Invalidate()}}})
+$redactionEditorDone=New-Object Windows.Forms.Button;$redactionEditorDone.Text='Done';$redactionEditorDone.SetBounds(330,4,65,26);$redactionEditor.Controls.Add($redactionEditorDone)
+$redactionEditorDone.Add_Click({Close-RedactionEditor})
+$redactionEditorHint=New-Object Windows.Forms.Label;$redactionEditorHint.Text='Drag handles to adjust. Double-click to reopen. Click outside to close.';$redactionEditorHint.SetBounds(8,36,390,22);$redactionEditor.Controls.Add($redactionEditorHint)
+$script:RedactionOutsideFilter=New-Object TRTAnnotationOutsideClickFilter;$script:RedactionOutsideFilter.Editor=$redactionEditor
+$script:RedactionOutsideFilter.Add_OutsideClick({if(-not $script:RedactionColorDialog){Close-RedactionEditor}})
+[Windows.Forms.Application]::AddMessageFilter($script:RedactionOutsideFilter)
+$form.Add_Deactivate({if(-not $script:RedactionColorDialog){Close-RedactionEditor}})
+$form.Add_FormClosing({param($sender,$e) if($script:ExportBusy){$e.Cancel=$true;Hide-TRTToTray}})
+$script:InstancePoll=New-Object Windows.Forms.Timer;$script:InstancePoll.Interval=150
+$script:InstancePoll.Add_Tick({if($script:InstanceSignal.WaitOne(0)){Restore-TRTFromTray}})
+$script:InstancePoll.Start()
+$form.Add_FormClosed({
+    $script:InstancePoll.Stop();$script:InstancePoll.Dispose()
+    [Windows.Forms.Application]::RemoveMessageFilter($script:RedactionOutsideFilter)
+    $script:InstanceSignal.Dispose();if($script:InstanceOwned){$script:InstanceMutex.ReleaseMutex();$script:InstanceOwned=$false};$script:InstanceMutex.Dispose()
+})
+Recover-AbandonedCaptureFiles
+
 $form.Add_FormClosed({
     $playTimer.Stop()
     $previewTimer.Stop()
@@ -8126,4 +15619,4 @@ $form.Add_FormClosed({
  
 Update-RedactionButtons
  
-[void]$form.ShowDialog()
+[System.Windows.Forms.Application]::Run($form)

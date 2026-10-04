@@ -1,3 +1,5 @@
+> **v2.5.0 scope notice:** The report below is the historical architecture/regression record and has not been reissued as an independent v2.5.0 audit. Read [SECURITY-v2.5.0.md](SECURITY-v2.5.0.md) for capture/clipboard, optional source deletion, managed-policy and runtime ownership changes. Historical statements about source immutability, absence of sensitive temporary media and old build/hash records do not describe every v2.5.0 workflow. Retain the dated evidence below as history, not as certification of this release.
+
 # TinyRedactionTool v2.2.0 — Security Audit
 
 Release date: **2026-09-23**  

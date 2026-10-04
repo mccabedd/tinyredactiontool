@@ -10,6 +10,21 @@ You’re welcome to fork and adapt this project for your own use. If you do, ple
 
 <img src="images/screenshot.png" width="800">
 
+## v2.5.0 additions and features
+
+- Native selected-region screenshot: Ctrl+Print Screen. Selected-region video capture: Ctrl+Shift+Print Screen. Yellow Stop Recording control, blinking red region border and readable yellow selection guidance.
+- About includes mutually exclusive minimize/exit-to-tray settings; exit-to-tray is default. One tray click restores, right-click > Quit exits. A second launch restores the existing instance.
+- Image-only crop tool below Zoom, eight adjustment handles and Confirm Crop. Video crop is unavailable.
+- Text, Line and Polyline floating controls: outside-click closes/confirms the editor without final commitment; double-click reopens; Create Annotation commits. Double-click Rectangle/Oval/Freeform redactions to reopen editing on images/videos.
+- Clear Screen; simplified expanded pane with Redaction Area, Redactions and Annotations. Floating controls provide annotation appearance edits.
+- Asynchronous video loading with themed notice and Cancel, and responsive minimize/restore/maximize during video loading/export.
+- Image Copy uses the validated redacted/cropped export result and shows a themed confirmation. Clipboard transfer is a deliberate disclosure to Windows/other applications.
+- Supplied icon appears in the EXE shell/taskbar, title bar, tray and header. Startup stays maximized.
+- Managed policy independently restricts UNC/mapped opening/saving, original-source deletion, audio retention and Blur/Pixelate. Read the deployment guide for override/discovery limitations.
+- Compressed approved tools remain assembly resources; only the owning instance extracts tools into a leased unique runtime folder. Quit removes owned temporary files; next launch recovers abandoned owned files after forced termination. Active tray sessions can retain files they still need. No promise of instantaneous cleanup after a crash or erasure of OS/backups/clipboard copies is made.
+
+The technical sections below retain the established rendering/timing architecture. Historical profile/regression references describe their original provenance; current release hashes are in SHA256SUMS.txt.
+
 ## Full feature list
 
 ### Selection and redaction
@@ -128,14 +143,14 @@ You’re welcome to fork and adapt this project for your own use. If you do, ple
 ### User interface and workflow
 
 - Compact Windows PowerShell/WinForms desktop UI.
-- Day and Dark modes with themed toolbar icons; the v2.2 Dark Mode base uses the lighter `#3C3F47` family.
+- Day and Dark modes with themed toolbar icons; the Dark Mode base uses the lighter `#3C3F47` family.
 - Compact left toolbar for Rectangle, Oval, Freeform, Zoom, Coloured Box, Blur and Pixelate.
 - Collapsible **Redaction Area** side panel; preview expands when the panel is collapsed.
 - Selection X/Y/Width/Height readout.
 - Security-mode guidance distinguishing opaque redaction from visual obscuration.
 - Status/progress feedback during media analysis and export.
 - Compact warning dialogs for Blur/Pixelate, audio and network/cloud paths.
-- About dialog identifies **TinyRedactionTool v2.2.0**, GPL-2.0-or-later licensing and local-processing/no-telemetry posture.
+- About dialog identifies **TinyRedactionTool v2.5.0**, GPL-2.0-or-later licensing and local-processing/no-telemetry posture.
 - GitHub repository URL in About is non-clickable and has a dedicated copy-to-clipboard icon.
 - Custom application/taskbar icon in the packaged EXE.
 
@@ -144,35 +159,18 @@ You’re welcome to fork and adapt this project for your own use. If you do, ple
 - Runs as a single **64-bit Windows EXE** after packaging.
 - No separate FFmpeg installation or PATH configuration required for the standalone build.
 - Release builder targets Windows PowerShell 5.1 and uses pinned PS2EXE 1.0.18.
-- Builder performs functional FFmpeg/FFprobe smoke tests before packaging, including exact-frame selection and VFR timestamp round trips.
+- The v2.5.0 packaging builder checks accepted media-tool hashes; the matching historic FFmpeg toolchain and its functional regression record remain separate inputs.
 - The release builder is expected to refuse to package a source file or approved media-tool binary whose SHA-256 does not match the frozen release values.
 
 > **Important:** Black/Coloured Box is the security-oriented opaque redaction method. **Blur and Pixelate are visual obscuration only** and must not be treated as irreversible redaction.
 
 ## Current release
 
-**Version:** v2.2.0 final release  
-**License:** GPL-2.0-or-later  
+**Version:** v2.5.0
+**Licence:** GPL-2.0-or-later
 **Repository:** https://github.com/mccabedd/tinyredactiontool/
 
-### Frozen v2.2.0 source
-
-The v2.2.0 RC1 completed the packaged regression and final promotion then changed only the About-dialog identity from `TinyRedactionTool v2.2.0 RC1` to `TinyRedactionTool v2.2.0`; no redaction, export, timing, rotation, geometry, masking, preview or security logic changed during final promotion.
-
-| Artifact | SHA-256 |
-|---|---|
-| frozen v2.2.0 release source | `E8845C6791E340F1D8002997B0E50622317500C7ACACF3B981AD61B8F9CFE7D0` |
-| frozen v2.2.0 RC1 source | `FEA81D64DADD5DF6B7CBD389ADE0E373D9CD58C2B300726E9919364A11AD76E4` |
-| approved embedded `ffmpeg.exe` | `643D9CFE006D0F72763B7A46B66AC23067B6A8BF4C113044781C11E862C34AFC` |
-| approved embedded `ffprobe.exe` | `84F5DEDA1C8D648A588AEE7BAD7148EE0DA02569C39A7C1B41048729BE9763F2` |
-| final `TinyRedactionTool.exe` | `D4181637596CD99B3599CCDCF19E1C1073E21AD4D07BD06D8E36059EE7F94F79` |
-| `TinyRedactionTool-Secure-Builder-v2.2.0.zip` | `2486E659AB31C6D8727C1989DDC76057C69C3AD9EEAFDC9C182AA4719B2E01E5` |
-
-The final Windows secure-builder run verified the frozen source and approved media-tool hashes, passed the FFmpeg/FFprobe feature, network-disable, exact-frame and VFR timestamp round-trip smoke tests, produced a single-file EXE with no `.config` sidecar, and the resulting EXE was independently hash-checked.
-
-v2.2.0 adds controlled pre-redaction quarter-turn rotation, optional Aggressive Blur/Pixelate, right-button drag panning, the lighter Dark Mode palette, and a Default Pixelate preview/export parity correction while preserving the established CFR/VFR timing, source-immutability, metadata/audio and transactional export architecture.
-
-For reference, the previous verified v2.1.0 release used source hash `2BC392FD52587343AB4CEA95B19C295286E44E4D3543634D9D3D1E383567BDC7` and EXE hash `1770318460DA5FCE5E7E5957F9937674D2ABF57C409189DAF915268D4A55BCB2`.
+The accepted C9 source is the behavioural baseline. Icon and resource bootstrap changes are documented in the separate source/build bundle. Parser, protected-code comparison, exact embedded tool/icon checks, compiled startup, second-instance handoff, crash recovery, normal shutdown and compiled synthetic clipboard/theme tests passed. Representative company media, live capture/clipboard and governance deployment remain final acceptance checks.
 
 ## Supported media
 
@@ -201,7 +199,7 @@ This is the mode intended for information that must not remain visible in the ex
 - Video redactions receive a **2-frame temporal safety buffer on each side** of the user-selected range.
 - Export activation is based on exact logical frame indexes, not `frame / fps` arithmetic.
 
-The application replaces pixels in the exported media. It does not delete or modify the original source file.
+The application replaces pixels in the exported media. Original-source deletion is a separate explicit opt-in workflow, off by default and subject to eligibility, warnings and managed policy.
 
 ### Blur and Pixelate
 
@@ -377,42 +375,9 @@ This reduces accidental disclosure in dialogs/log capture but is not a promise t
 
 ## Building from source
 
-The secure builder targets **Windows PowerShell 5.1** and uses a cached MSYS2/MinGW environment under `_CustomFFmpegBuild`.
+Use the separate TinyRedactionTool-v2.5.0-SOURCE-BUILD.zip bundle and its BUILD-v2.5.0.cmd with Windows PowerShell 5.1. It validates pinned source/icon/compiler and exact approved compressed/decompressed media tools, then writes output/TinyRedactionTool.exe. It needs no downloads or administrator rights. Read BUILD-AND-AUDIT.md for the one-assignment compiler adaptation and supplied audit evidence.
 
-Major pinned inputs for the v2.2.0 release builder:
-
-- FFmpeg source commit: `fd7c73d01e976d2e332e85862ab63ab608710834`
-- MSYS2 base release: `2026-06-11`
-- MSYS2 base release asset ID: `444454852`
-- MSYS2 archive: `msys2-base-x86_64-20260611.tar.xz`
-- MSYS2 archive size: `53555380` bytes
-- MSYS2 archive SHA-256: `A2D047E8EE213C3C6A49A8DE427EB1069DF12207C0422FF1B3CBB5C905C34221`
-- PS2EXE: `1.0.18`
-
-Build with:
-
-```powershell
-.\BUILD-TinyRedactionTool-CUSTOM.cmd
-```
-
-Do not run the builder as Administrator unless there is a separate, unavoidable system reason to do so.
-
-The builder validates the custom media tools on normal Windows before packaging, including functional tests for:
-
-- required FFmpeg encoders/muxers/filters/protocols, including the v2.2 `transpose`, `avgblur` and `lutyuv` filters;
-- networking being disabled;
-- `null` + `wrapped_avframe`;
-- `image2pipe` + PNG;
-- exact logical-frame and exact-PTS preview selection;
-- FFprobe per-frame timing enumeration;
-- frame-index filter activation; and
-- VFR timestamp-preserving round trips through MP4/H.264 and WebM/VP9.
-
-Keep `_CustomFFmpegBuild` unless you intentionally want to discard the cached toolchain/source build.
-
-### Reproducibility limitation
-
-The builder pins the major inputs above, but MSYS2 packages are still obtained from signed rolling MSYS2 repositories. The complete compiler/library environment is therefore not immutable, and **bit-for-bit reproducibility is not claimed**.
+The bundle repackages accepted media binaries and does not rebuild the historical FFmpeg/MSYS2 toolchain. Keep any existing _CustomFFmpegBuild cache. Complete media-tool rebuild inputs must be retained/reviewed separately. Pinned inputs do not imply bit-for-bit reproducible compiled EXE output.
 
 ## Known limitations and non-guarantees
 
@@ -433,4 +398,4 @@ TinyRedactionTool is designed to reduce accidental disclosure, not to control th
 - Long-path behaviour beyond ordinary Windows path limits is not claimed for the standalone build.
 - OS-level forensic artefacts cannot be absolutely eliminated by an ordinary desktop application.
 
-For the hardened packaging threat model, v2.2 security addendum and historical security-test record, see [`SECURITY-AUDIT.md`](SECURITY-AUDIT.md). For v2.2.0 release details, see `RELEASE-NOTES-v2.2.0.txt`.
+For the hardened packaging threat model, v2.2 security addendum and historical security-test record, see the repository's historical `SECURITY-AUDIT.md`. For this release, see RELEASE-NOTES.md and MANAGED-POLICY-DEPLOYMENT.md.
