@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "policyId": "company-normal",
+  "policyVersion": "1.0",
+  "controls": {
+    "blockNetworkSource": false,
+    "blockNetworkDestination": false,
+    "disableSourceDeletion": false,
+    "disableAudioRetention": false,
+    "disableVisualObscuration": false
+  }
+}

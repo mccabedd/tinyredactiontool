@@ -1,0 +1,65 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+  <metadata>
+    <id>ps2exe</id>
+    <version>1.0.18</version>
+    <authors>Markus Scholtes</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <licenseUrl>https://github.com/MScholtes/PS2EXE/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/MScholtes/PS2EXE</projectUrl>
+    <description>Compiles Powershell scripts to executables. Overworking of the great script of Ingo Karstein with GUI support.
+'Invoke-ps2exe script.ps1' (or 'ps2exe script.ps1') compiles to script.exe. Several control parameters available.
+Or use Win-PS2EXE as a graphical front end to the compiler.</description>
+    <releaseNotes># 1.0.18 / 2026-06-06
+- predefined variable $ScriptRoot as replacement for $PSScriptRoot
+- new version of Win-PS2EXE
+# 1.0.17 / 2025-08-21
+- new parameter -embedFiles to embed files in compiled executable
+# 1.0.16 / 2025-07-20
+- new parameter -conHost for force starting compiled executables in Conhost instead of Windows Terminal
+# 1.0.15 / 2025-01-05
+- if used only in Powershell Core the module has not to be installed in Powershell 5.1 too
+# 1.0.14 / 2024-09-15
+- new parameter -? for compiled executables to show the help of the original Powershell script
+- in GUI mode window titles are the application title (when set compiling with parameter -title)
+# 1.0.13 / 2023-09-26
+- now [ and ] are supported in directory name of script
+- source file might be larger than 16 MB (for whoever that needs)
+- new addtional parameter text field in Win-PS2EXE
+# 1.0.12 / 2022-11-22
+- new parameter -winFormsDPIAware to support scaling for WinForms in noConsole mode (only Windows 10 or up)
+# 1.0.11 / 2021-11-21
+- fixed password longer than 24 characters error
+- new parameter -DPIAware to support scaling in noConsole mode
+- new parameter -exitOnCancel to stop program execution on cancel in input boxes (only in noConsole mode)
+# 1.0.10 / 2021-04-10
+- parameter outputFile now accepts a target folder (without filename)
+# 1.0.9 / 2021-02-28
+- new parameter UNICODEEncoding to output as UNICODE
+- changed parameter debug to prepareDebug
+- finally dared to use advanced parameters
+# 1.0.8 / 2020-10-24
+- refactored
+# 1.0.7 / 2020-08-21
+- bug fix for simultanous progress bars in one pipeline
+# 1.0.6 / 2020-08-10
+- prompt for choice behaves like Powershell now (only for console mode)
+- (limited) support for Powershell Core (starts Windows Powershell in the background)
+- fixed processing of negative parameter values
+- support for animated progress bars (noConsole mode only)
+# 1.0.5 / 2020-07-11
+- support for nested progress bars (noConsole mode only)
+# 1.0.4 / 2020-04-19
+- Application.EnableVisualStyles() as default for GUI applications, new parameter -noVisualStyles to prevent this
+# 1.0.3 / 2020-02-15
+- Ignore control keys in secure string request in console mode
+# 1.0.1 / 2019-12-16
+- Fixed "unlimited window width for GUI windows" issue in ps2exe.ps1 and Win-PS2EXE
+# 1.0.0 / 2019-11-08
+- First stable release
+# 0.0.0 / 2019-09-15
+- Experimental</releaseNotes>
+    <copyright>(c) Markus Scholtes 2026</copyright>
+    <tags>Compiler ps2exe Executable Win-PS2EXE PSModule PSIncludes_Function PSFunction_Invoke-PS2EXE PSCommand_Invoke-PS2EXE PSCommand_ps2exe PSCommand_ps2exe.ps1 PSCommand_Win-PS2EXE PSCommand_Win-PS2EXE.exe</tags>
+  </metadata>
+</package>

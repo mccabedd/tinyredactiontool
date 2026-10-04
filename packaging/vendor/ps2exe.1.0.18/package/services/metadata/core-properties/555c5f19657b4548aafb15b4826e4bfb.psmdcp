@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<coreProperties xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://schemas.openxmlformats.org/package/2006/metadata/core-properties">
+  <dc:creator>Markus Scholtes</dc:creator>
+  <dc:description>Compiles Powershell scripts to executables. Overworking of the great script of Ingo Karstein with GUI support.
+'Invoke-ps2exe script.ps1' (or 'ps2exe script.ps1') compiles to script.exe. Several control parameters available.
+Or use Win-PS2EXE as a graphical front end to the compiler.</dc:description>
+  <dc:identifier>ps2exe</dc:identifier>
+  <version>1.0.18</version>
+  <keywords>Compiler ps2exe Executable Win-PS2EXE PSModule PSIncludes_Function PSFunction_Invoke-PS2EXE PSCommand_Invoke-PS2EXE PSCommand_ps2exe PSCommand_ps2exe.ps1 PSCommand_Win-PS2EXE PSCommand_Win-PS2EXE.exe</keywords>
+  <lastModifiedBy>NuGet, Version=6.14.0.116, Culture=neutral, PublicKeyToken=31bf3856ad364e35;Microsoft Windows NT 10.0.26200.0;.NET Framework 4.7.2</lastModifiedBy>
+</coreProperties>

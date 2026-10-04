@@ -1,0 +1,13 @@
+diff --git a/TRT-v2.5.0-Release-Build/vendor/ps2exe.1.0.18/ps2exe.ps1 b/TRT-v2.5.0-Release-Build/vendor/ps2exe-resource-only.ps1
+index 2f793ab..483f276 100644
+--- a/TRT-v2.5.0-Release-Build/vendor/ps2exe.1.0.18/ps2exe.ps1
++++ b/TRT-v2.5.0-Release-Build/vendor/ps2exe-resource-only.ps1
+@@ -457,7 +457,7 @@ function Invoke-ps2exe
+ 
+ 			$embedFiles.Keys | % {
+ 				[VOID]$cp.EmbeddedResources.Add($embedFiles["$_"])
+-				$EMBEDSECTION += "tgtFile = Environment.ExpandEnvironmentVariables(@`"$_`");`r`nif (string.Compare(`".\\`", 0, tgtFile, 0, 2) == 0) { tgtFile = System.AppDomain.CurrentDomain.BaseDirectory + tgtFile.Substring(2); }`r`ntry { tgtDir = System.IO.Path.GetDirectoryName(tgtFile);`r`nif (tgtDir != string.Empty) { System.IO.Directory.CreateDirectory(tgtDir); }`r`nusing (System.IO.Stream tgtStream = new System.IO.FileStream(tgtFile, System.IO.FileMode.Create)) { executingAssembly.GetManifestResourceStream(`"$([System.IO.Path]::GetFileName($embedFiles["$_"]))`").CopyTo(tgtStream); }`r`n}`r`ncatch { throw new System.IO.IOException(`"Error creating '`" + tgtFile + `"'\r\n`"); }`r`n"
++				$EMBEDSECTION += ""
+ 			}
+ 		}
+ 	}

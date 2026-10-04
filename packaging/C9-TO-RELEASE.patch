@@ -1,0 +1,225 @@
+diff --git a/TRT-v2.5.0-C9-Package/TinyRedactionTool-Hardened-Embedded-v2.5.0-C9.ps1 b/TRT-v2.5.0-Release-Build/release/TinyRedactionTool-Hardened-Embedded.ps1
+index 592609f..dc8d137 100644
+--- a/TRT-v2.5.0-C9-Package/TinyRedactionTool-Hardened-Embedded-v2.5.0-C9.ps1
++++ b/TRT-v2.5.0-Release-Build/release/TinyRedactionTool-Hardened-Embedded.ps1
+@@ -1,4 +1,4 @@
+-﻿# TinyRedactionTool v2.5.0 C9 CANDIDATE
++﻿# TinyRedactionTool v2.5.0 RELEASE CANDIDATE r1
+ # Consolidated from user-tested B1-r4 source SHA-256
+ # 594488A98BAFC465F90ECEB7CA43CC4E4C50879869CC5619A14BCC07F6AE1D0D
+ # Frozen v2.1.0 ancestry SHA-256
+@@ -1177,7 +1177,7 @@ public static class SourceDeletionDestructiveV1
+ # ----------------------------
+ # Packaged media-tool bootstrap
+ # ----------------------------
+-# PS2EXE writes the two GZip payloads below before this script starts. For the
++# GZip tools remain assembly resources until the owning instance expands them. For the
+ # packaged EXE only, expand them into a unique per-run directory under TEMP,
+ # verify their SHA-256 pins before execution, and remove the runtime directory
+ # when the GUI closes. The distributed application remains one EXE.
+@@ -1190,66 +1190,82 @@ $script:EmbeddedFFprobeRuntimePath = $null
+ # executable before every frame-preview invocation.
+ $script:ApprovedFFmpegLock = $null
+ $script:ApprovedFFprobeLock = $null
+-$script:EmbeddedFFmpegPayloadGzip = Join-Path $env:TEMP "TinyRedactionTool\payload\ffmpeg.exe.gz"
+-$script:EmbeddedFFprobePayloadGzip = Join-Path $env:TEMP "TinyRedactionTool\payload\ffprobe.exe.gz"
+-
+-function Expand-EmbeddedGzipTool([string]$gzipPath, [string]$destinationPath) {
+-    $input = $null
+-    $gzip = $null
+-    $output = $null
+-    try {
+-        $input = [System.IO.File]::OpenRead($gzipPath)
+-        $gzip = New-Object System.IO.Compression.GZipStream($input, [System.IO.Compression.CompressionMode]::Decompress)
+-        $output = [System.IO.File]::Create($destinationPath)
+-        $gzip.CopyTo($output)
+-        $output.Flush()
+-    }
+-    finally {
+-        if ($output) { $output.Dispose() }
+-        if ($gzip) { $gzip.Dispose() }
+-        if ($input) { $input.Dispose() }
+-    }
+-
+-    if (-not (Test-Path -LiteralPath $destinationPath -PathType Leaf) -or (Get-Item -LiteralPath $destinationPath).Length -lt 256KB) {
+-        throw "Embedded media-tool payload could not be expanded."
++$script:EmbeddedFFmpegPayloadGzip = "ffmpeg.exe.gz"
++$script:EmbeddedFFprobePayloadGzip = "ffprobe.exe.gz"
++
++function Get-TRTRuntimeRoot {
++    $temp=[IO.Path]::GetFullPath([IO.Path]::GetTempPath())
++    if(Get-NetworkPathReason $temp){throw 'Packaged media tools require local temporary storage.'}
++    $parent=Join-Path $temp 'TinyRedactionTool'
++    if(Test-Path -LiteralPath $parent){if((Get-Item -LiteralPath $parent).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'Redirected runtime folder rejected.'}}
++    else{[void][IO.Directory]::CreateDirectory($parent)}
++    return $parent
++}
++function Remove-TRTRuntimeFolder([string]$target) {
++    $parent=Get-TRTRuntimeRoot;$target=[IO.Path]::GetFullPath($target)
++    if([IO.Path]::GetDirectoryName($target) -ne $parent -or [IO.Path]::GetFileName($target) -notmatch '^run-[a-f0-9]{32}$'){throw 'Runtime cleanup path rejected.'}
++    if(-not (Test-Path -LiteralPath $target)){return}
++    if((Get-Item -LiteralPath $target).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'Redirected runtime folder rejected.'}
++    $items=@(Get-ChildItem -LiteralPath $target -Force)
++    if(@($items|Where-Object{$_.PSIsContainer -or $_.Name -notin @('ffmpeg.exe','ffprobe.exe','.runtime.lock') -or ($_.Attributes -band [IO.FileAttributes]::ReparsePoint)}).Count){throw 'Unexpected runtime folder entry; cleanup stopped.'}
++    foreach($item in $items){Remove-Item -LiteralPath $item.FullName -Force -ErrorAction Stop}
++    [IO.Directory]::Delete($target,$false)
++}
++function Recover-OwnedRuntimeFolders {
++    $parent=Get-TRTRuntimeRoot
++    foreach($folder in @(Get-ChildItem -LiteralPath $parent -Directory -Filter 'run-*')){
++        if($folder.Name -notmatch '^run-[a-f0-9]{32}$' -or ($folder.Attributes -band [IO.FileAttributes]::ReparsePoint)){continue}
++        $marker=Join-Path $folder.FullName '.runtime.lock';$lease=$null
++        if(-not (Test-Path -LiteralPath $marker)){
++            # Only empty interrupted pre-lease folders qualify without a marker.
++            if(@(Get-ChildItem -LiteralPath $folder.FullName -Force).Count -eq 0){[IO.Directory]::Delete($folder.FullName,$false)}
++            continue
++        }
++        if((Get-Item -LiteralPath $marker).Attributes -band [IO.FileAttributes]::ReparsePoint){continue}
++        try{$lease=[IO.File]::Open($marker,[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)}catch{continue}
++        try{
++            $reader=[IO.StreamReader]::new($lease,[Text.Encoding]::ASCII,$false,1024,$true)
++            try{$tag=$reader.ReadToEnd()}finally{$reader.Dispose()}
++            # A crash can interrupt the initial marker write. Only a prefix of
++            # this version's marker qualifies; folder contents remain checked.
++            if(-not 'TRT-RUNTIME-v250-1'.StartsWith($tag,[StringComparison]::Ordinal)){continue}
++            $lease.Dispose();$lease=$null
++            Remove-TRTRuntimeFolder $folder.FullName
++        }finally{if($lease){$lease.Dispose()}}
+     }
+ }
+ 
+-function Initialize-EmbeddedMediaTools {
+-    # Plain .ps1 development mode deliberately skips this bootstrap and uses
+-    # application-local binaries beside the script instead.
+-    if (-not (Test-IsPackagedHost)) { return }
+ 
+-    if (-not (Test-Path -LiteralPath $script:EmbeddedFFmpegPayloadGzip -PathType Leaf) -or
+-        -not (Test-Path -LiteralPath $script:EmbeddedFFprobePayloadGzip -PathType Leaf)) {
+-        throw "The packaged FFmpeg/FFprobe payload is missing."
+-    }
+ 
+-    $runDir = Join-Path $env:TEMP ("TinyRedactionTool\run-" + [guid]::NewGuid().ToString("N"))
+-    New-Item -ItemType Directory -Path $runDir -Force | Out-Null
+ 
+-    try {
+-        $runtimeFFmpeg = Join-Path $runDir "ffmpeg.exe"
+-        $runtimeFFprobe = Join-Path $runDir "ffprobe.exe"
+-        Expand-EmbeddedGzipTool $script:EmbeddedFFmpegPayloadGzip $runtimeFFmpeg
+-        Expand-EmbeddedGzipTool $script:EmbeddedFFprobePayloadGzip $runtimeFFprobe
++function Expand-EmbeddedGzipTool([string]$gzipPath,[string]$destinationPath) {
++    $payload=[Reflection.Assembly]::GetEntryAssembly().GetManifestResourceStream($gzipPath)
++    if(-not $payload){throw 'The packaged media resource is missing.'}
++    $gzip=$null;$output=$null
++    try{
++        $gzip=[IO.Compression.GZipStream]::new($payload,[IO.Compression.CompressionMode]::Decompress)
++        $output=[IO.File]::Open($destinationPath,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
++        $gzip.CopyTo($output);$output.Flush($true)
++    }finally{if($output){$output.Dispose()};if($gzip){$gzip.Dispose()};$payload.Dispose()}
++    if((Get-Item -LiteralPath $destinationPath).Length -lt 256KB){throw 'Embedded media resource did not expand safely.'}
++}
+ 
+-        $script:EmbeddedMediaRuntimeDir = $runDir
+-        $script:EmbeddedFFmpegRuntimePath = $runtimeFFmpeg
+-        $script:EmbeddedFFprobeRuntimePath = $runtimeFFprobe
+-    }
+-    catch {
+-        Remove-Item -LiteralPath $runDir -Recurse -Force -ErrorAction SilentlyContinue
+-        throw
+-    }
+-    finally {
+-        # The staging payload contains only program binaries, not user media.
+-        # Remove it once the unique per-run copies have been created.
+-        Remove-Item -LiteralPath $script:EmbeddedFFmpegPayloadGzip -Force -ErrorAction SilentlyContinue
+-        Remove-Item -LiteralPath $script:EmbeddedFFprobePayloadGzip -Force -ErrorAction SilentlyContinue
+-        $payloadDir = Split-Path -Parent $script:EmbeddedFFmpegPayloadGzip
+-        if ($payloadDir) { Remove-Item -LiteralPath $payloadDir -Force -ErrorAction SilentlyContinue }
+-    }
++function Initialize-EmbeddedMediaTools {
++    if(-not (Test-IsPackagedHost)){return}
++    Recover-OwnedRuntimeFolders
++    $parent=Get-TRTRuntimeRoot
++    $runDir=Join-Path $parent ('run-'+[guid]::NewGuid().ToString('N'))
++    [void][IO.Directory]::CreateDirectory($runDir)
++    $script:EmbeddedMediaRuntimeDir=$runDir
++    try{
++        $script:RuntimeToolLease=[IO.File]::Open((Join-Path $runDir '.runtime.lock'),[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
++        $tag=[Text.Encoding]::ASCII.GetBytes('TRT-RUNTIME-v250-1')
++        $script:RuntimeToolLease.Write($tag,0,$tag.Length);$script:RuntimeToolLease.Flush($true)
++        $runtimeFFmpeg=Join-Path $runDir 'ffmpeg.exe';$runtimeFFprobe=Join-Path $runDir 'ffprobe.exe'
++        Expand-EmbeddedGzipTool 'ffmpeg.exe.gz' $runtimeFFmpeg
++        Expand-EmbeddedGzipTool 'ffprobe.exe.gz' $runtimeFFprobe
++        $script:EmbeddedFFmpegRuntimePath=$runtimeFFmpeg;$script:EmbeddedFFprobeRuntimePath=$runtimeFFprobe
++    }catch{Remove-EmbeddedMediaTools;throw}
+ }
+ 
+ function Close-ApprovedMediaToolLocks {
+@@ -1264,21 +1280,13 @@ function Close-ApprovedMediaToolLocks {
+ 
+ function Remove-EmbeddedMediaTools {
+     Close-ApprovedMediaToolLocks
++    if($script:RuntimeToolLease){$script:RuntimeToolLease.Dispose();$script:RuntimeToolLease=$null}
+     if(-not $script:EmbeddedMediaRuntimeDir){return}
+     try{
+-        $target=[IO.Path]::GetFullPath($script:EmbeddedMediaRuntimeDir)
+-        $parent=[IO.Path]::GetFullPath((Join-Path $env:TEMP 'TinyRedactionTool'))
+-        if([IO.Path]::GetDirectoryName($target) -ne $parent -or [IO.Path]::GetFileName($target) -notmatch '^run-[a-f0-9]{32}$'){throw 'Runtime cleanup path rejected.'}
+-        if(Test-Path -LiteralPath $target){
+-            if(((Get-Item $target).Attributes -band [IO.FileAttributes]::ReparsePoint) -or ((Get-Item $parent).Attributes -band [IO.FileAttributes]::ReparsePoint)){throw 'Redirected runtime cleanup path rejected.'}
+-            $files=@(Get-ChildItem -LiteralPath $target -Force)
+-            if(@($files|Where-Object{$_.Name -notin @('ffmpeg.exe','ffprobe.exe') -or $_.PSIsContainer -or ($_.Attributes -band [IO.FileAttributes]::ReparsePoint)}).Count){throw 'Unexpected runtime cleanup entry.'}
+-            foreach($file in $files){Remove-Item -LiteralPath $file.FullName -Force -ErrorAction Stop}
+-            [IO.Directory]::Delete($target,$false)
+-        }
++        Remove-TRTRuntimeFolder $script:EmbeddedMediaRuntimeDir
+         $script:EmbeddedMediaRuntimeDir=$null;$script:EmbeddedFFmpegRuntimePath=$null;$script:EmbeddedFFprobeRuntimePath=$null
+     }catch{
+-        [Windows.Forms.MessageBox]::Show(('TRT runtime-tool cleanup failed; retry will occur on the next launch. '+$_.Exception.GetBaseException().Message),'Temporary cleanup','OK','Warning')|Out-Null
++        [Windows.Forms.MessageBox]::Show(('TRT runtime-tool cleanup failed; recovery will be retried on the next launch. '+$_.Exception.GetBaseException().Message),'Temporary cleanup','OK','Warning')|Out-Null
+     }
+ }
+  
+@@ -3997,27 +4005,14 @@ $form.Font = New-UIFont 9.0
+ $form.AutoScaleMode = "Dpi"
+ $form.BackColor = [System.Drawing.Color]::FromArgb(223,238,245)
+ 
+-# WinForms does not automatically adopt the PS2EXE assembly icon for a Form
+-# created dynamically from PowerShell. In packaged mode, explicitly assign the
+-# icon embedded in TinyRedactionTool.exe so the window/taskbar uses the same
+-# custom application icon as Explorer. This is presentation-only state.
+-if (Test-IsPackagedHost) {
+-    if(-not (Test-IsPackagedHost) -and $ApprovedMediaToolDirectory){
+-        $toolRoot=[IO.Path]::GetFullPath($ApprovedMediaToolDirectory)
+-        if(Get-NetworkPathReason $toolRoot){throw 'Approved media tools must be local.'}
+-        foreach($name in @($fileName.Replace('.exe','-custom.exe'),$fileName)){
+-            $toolPath=Join-Path $toolRoot $name
+-            if((Test-Path -LiteralPath $toolPath -PathType Leaf) -and (Get-FileHash -LiteralPath $toolPath).Hash -eq $expectedHash){[void]$candidates.Add($toolPath)}
+-        }
+-        if(-not $candidates.Count){throw 'The explicit media-tool directory has no approved matching tool.'}
+-    }
+-    try {
+-        $hostExe = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+-        $script:mainFormIcon = [System.Drawing.Icon]::ExtractAssociatedIcon($hostExe)
+-        if ($script:mainFormIcon) { $form.Icon = $script:mainFormIcon }
+-    } catch {}
+-}
+-
++# Supplied TRT icon: identical embedded asset for script and compiled host.
++$script:TRTIconBase64='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'
++$iconStream=[IO.MemoryStream]::new([Convert]::FromBase64String($script:TRTIconBase64))
++try{
++    $assetIcon=[Drawing.Icon]::new($iconStream)
++    try{$script:mainFormIcon=[Drawing.Icon]$assetIcon.Clone()}finally{$assetIcon.Dispose()}
++}finally{$iconStream.Dispose()}
++$form.Icon=$script:mainFormIcon;$form.ShowIcon=$true
+ # Shared tooltip component for the icon-only toolbar/playback buttons, which
+ # have no visible text of their own to explain what they do.
+ $script:appToolTip = New-Object System.Windows.Forms.ToolTip
+@@ -4040,7 +4035,7 @@ $form.Controls.Add($top)
+ # single script file with no extra image asset to ship alongside it.
+ # Decoded once at startup into an Image and shown in a PictureBox, in
+ # place of the plain Unicode glyph the tile used before.
+-$script:AppIconBase64 = "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"
++$script:AppIconBase64 = "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"
+ 
+ function Get-AppIconImage {
+     $bytes = [Convert]::FromBase64String($script:AppIconBase64)

@@ -1,0 +1,4 @@
+User-authorised v2.5.0 final promotion. Only the source identity comment changed; every subsequent source byte is unchanged. Runtime application version was already 2.5.0.
+Previous source SHA-256: 93E2A5B94A6C10F87B1B7AD47BA07B4FD11CEEFEFCCAF166E4FCBEA76A8F24E2
+Final source SHA-256: EA3AB99E84C36196469238A531885553A51B59EF08EE9BA9E0249391FA085770
+Historical validation evidence is retained with its original filenames/identities.

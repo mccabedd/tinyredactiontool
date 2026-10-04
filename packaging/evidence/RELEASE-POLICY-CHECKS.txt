@@ -1,0 +1,4 @@
+PASS: all five restricted/permissive sample controls parsed correctly
+PASS: accepted explicit override precedence demonstrated
+PASS: machine policy fallback and absent-policy public behaviour demonstrated
+PASS: empty, malformed, unsupported schema, non-Boolean control and unknown field/control rejected

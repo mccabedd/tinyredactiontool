@@ -1,0 +1,6 @@
+PASS: compiled EXE startup
+PASS: exact approved embedded FFmpeg/FFprobe hashes
+PASS: no compressed tool payload written to TEMP
+PASS: second launch reuses first instance without extra files
+PASS: forced termination tool recovery on next launch
+PASS: process-local session-end normal lifecycle cleanup

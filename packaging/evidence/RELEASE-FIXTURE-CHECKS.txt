@@ -1,0 +1,1 @@
+PASS: compiled fixture window/tray icon identity, exact ICO hash, normal Quit cleanup

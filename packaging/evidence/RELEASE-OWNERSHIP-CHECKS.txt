@@ -1,0 +1,5 @@
+PASS: interrupted empty/partial/complete ownership markers and partial tools recovered
+PASS: active exclusive lease untouched
+PASS: foreign ownership marker untouched
+PASS: unexpected files stop cleanup without deleting them
+PASS: outside-root cleanup rejected

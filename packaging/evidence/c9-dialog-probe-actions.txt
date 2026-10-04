@@ -1,0 +1,69 @@
+﻿Add-Type -ReferencedAssemblies System.Drawing -TypeDefinition @'
+public static class C9ClipboardFixture {
+ public static System.Drawing.Bitmap Image;
+ public static void SetImage(System.Drawing.Image image){if(Image!=null)Image.Dispose();Image=new System.Drawing.Bitmap(image);}
+}
+'@
+$script:C9Phase=0;$script:C9Dark=$false;$script:C9Messages=0
+$script:C9Deadline=[DateTime]::UtcNow.AddSeconds(25)
+$script:C9Timer=New-Object Windows.Forms.Timer;$script:C9Timer.Interval=100
+$script:C9Timer.Add_Tick({
+ try{
+    if([DateTime]::UtcNow -gt $script:C9Deadline){throw 'Dialog fixture timeout'}
+    if($script:C9Phase -eq 0){
+        foreach($dark in @($false,$true)){
+            $script:isDarkMode=$dark;Apply-Theme;Show-VideoLoadingNotice
+            $notice=$script:LoadingNotice
+            if($notice.BackColor -ne $form.BackColor -or $notice.ForeColor -ne $script:cTextCurrent){throw 'Loading theme mismatch'}
+            foreach($label in @($notice.Controls|Where-Object{$_ -is [Windows.Forms.Label]})){
+                $expected=if($label -eq $script:LoadingTitle){$script:cTextCurrent}else{$script:cMutedCurrent}
+                if($label.ForeColor -ne $expected){throw 'Loading label contrast mismatch'}
+            }
+            $cancel=$script:LoadingCancel
+            if($cancel.Tag -ne $btnOpen.Tag -or -not $cancel.Region -or $cancel.BackColor -ne $btnOpen.BackColor -or $cancel.ForeColor -ne $btnOpen.ForeColor -or $cancel.FlatAppearance.BorderColor -ne $btnOpen.FlatAppearance.BorderColor){throw 'Cancel button differs from ordinary TRT button'}
+            $b=[Drawing.Bitmap]::new($notice.Width,$notice.Height);$notice.DrawToBitmap($b,[Drawing.Rectangle]::new(0,0,$notice.Width,$notice.Height))
+            $b.Save((Join-Path $PSScriptRoot ('../TRT-v2.5.0-C9-Package/C9-LOADING-'+$dark+'.png')));$b.Dispose()
+            Close-VideoLoadingNotice
+        }
+        $script:C9Image=New-CaptureFile '.png'
+        $b=[Drawing.Bitmap]::new(160,120);$g=[Drawing.Graphics]::FromImage($b);$g.Clear([Drawing.Color]::CornflowerBlue)
+        $b.Save($script:C9Image,[Drawing.Imaging.ImageFormat]::Png);$g.Dispose();$b.Dispose()
+        Open-TRTMediaPath $script:C9Image
+        $script:ImageCrop=[Drawing.Rectangle]::new(20,10,101,81)
+        $r=[pscustomobject]@{Shape='Rectangle';X=30;Y=20;W=30;H=30;Mode='Black box';Strength=5;Enhanced=$false;Color=[Drawing.Color]::Black;OutlineEnabled=$false;CommitOrder=1}
+        [void]$redactions.Add($r);Refresh-RedactionList;Update-RedactionButtons
+        $script:C9Phase=1
+    }elseif($script:C9Phase -eq 1){
+        $script:isDarkMode=$script:C9Dark;Apply-Theme
+        $script:C9Phase=2;$btnCopyImage.PerformClick()
+        if(-not $script:MediaWorker){throw 'Copy worker did not start'}
+    }elseif($script:C9Phase -eq 2){
+        $dialog=@([Windows.Forms.Application]::OpenForms|Where-Object{$_.Text -eq 'Clipboard'})
+        if(-not $dialog.Count){return};$dialog=$dialog[0]
+        $heading=@($dialog.Controls|Where-Object{$_.Text -eq 'Image Copied to Clipboard'})
+        $ok=@($dialog.Controls|Where-Object{$_ -is [Windows.Forms.Button] -and $_.Text -eq 'OK'})
+        if($heading.Count -ne 1 -or $ok.Count -ne 1 -or $heading[0].ForeColor -ne $script:cTextCurrent){throw 'Clipboard popup wording/contrast mismatch'}
+        if(-not $ok[0].Region -or $ok[0].Tag -ne 'primary' -or $ok[0].BackColor -ne $script:cAccentCurrent -or $ok[0].ForeColor -ne [Drawing.Color]::White -or $ok[0].FlatAppearance.BorderColor -ne $script:cAccentCurrent){throw 'Clipboard OK style/theme mismatch'}
+        if(-not [C9ClipboardFixture]::Image -or [C9ClipboardFixture]::Image.Width -ne 101 -or [C9ClipboardFixture]::Image.GetPixel(15,15).ToArgb() -ne [Drawing.Color]::Black.ToArgb()){throw 'Confirmation shown without copied redacted image'}
+        $b=[Drawing.Bitmap]::new($dialog.Width,$dialog.Height);$dialog.DrawToBitmap($b,[Drawing.Rectangle]::new(0,0,$dialog.Width,$dialog.Height))
+        $b.Save((Join-Path $PSScriptRoot ('../TRT-v2.5.0-C9-Package/C9-CLIPBOARD-'+$script:C9Dark+'.png')));$b.Dispose()
+        $script:C9Messages++;$script:C9Phase=3;$ok[0].PerformClick()
+    }else{
+        if($script:ExportBusy){return}
+        if($CaptureState.Files.Count -ne 1 -or $videoPath -ne $script:C9Image){throw 'Copy cleanup/state changed'}
+        if(-not $script:C9Dark){$script:C9Dark=$true;$script:C9Phase=1;return}
+        if($script:C9Messages -ne 2){throw 'Popup count mismatch'}
+        $script:C9Timer.Stop();$script:C9Timer.Dispose();$btnClearScreen.PerformClick();[C9ClipboardFixture]::Image.Dispose()
+        $mode=if($script:ManagedPolicy){'MANAGED-'}else{''}
+        [IO.File]::WriteAllText((Join-Path $PSScriptRoot ('../TRT-v2.5.0-C9-Package/C9-'+$mode+'DIALOG-VALIDATION.txt')),'PASS: Full application light/dark loading labels and Cancel palette/border/rounded region match TRT buttons. Actual Copy operation produces validated redacted/cropped pixels before exactly one confirmation per copy; exact heading and rounded themed OK checked in both themes; OK dismisses; operation unlocks and scratch cleanup completes. Bitmap sink preserves actual user clipboard. Synthetic dialog renders saved.')
+        Quit-TRTFromTray
+    }
+ }catch{
+    $_|Out-String|Set-Content (Join-Path $PSScriptRoot 'c9-dialog-error.txt')
+    $script:C9Timer.Stop();if($script:MediaWorker){$script:MediaWorker.Owner.Cancel()}
+    foreach($dlg in @([Windows.Forms.Application]::OpenForms)){if($dlg -ne $form){$dlg.Close()}}
+    $script:ExportBusy=$false;$script:CaptureState.Busy=$false;$script:TraySettings.AllowQuit=$true;$form.Close()
+ }
+})
+$form.Add_Shown({$script:C9Timer.Start()})
+[Windows.Forms.Application]::Run($form)

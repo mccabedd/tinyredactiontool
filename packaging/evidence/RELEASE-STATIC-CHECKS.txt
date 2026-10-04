@@ -1,0 +1,7 @@
+PASS: Windows PowerShell 5.1 source parser
+PASS: 301 accepted C9 functions byte-identical, including export/timing/security/governance and capture cleanup
+PASS: protected top-level handlers/statements and source parameters byte-identical after explicitly excluding icon/resource assignments
+PASS: only three existing media-resource bootstrap functions replaced; three scoped runtime ownership helpers added
+PASS: all seven EXE shell/taskbar icon resource frames exactly match supplied ICO bytes
+PASS: EXE version 2.5.0.0
+PASS: pinned PS2EXE original and exact one-assignment resource-only adaptation

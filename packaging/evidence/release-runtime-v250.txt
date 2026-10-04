@@ -1,0 +1,80 @@
+function Get-TRTRuntimeRoot {
+    $temp=[IO.Path]::GetFullPath([IO.Path]::GetTempPath())
+    if(Get-NetworkPathReason $temp){throw 'Packaged media tools require local temporary storage.'}
+    $parent=Join-Path $temp 'TinyRedactionTool'
+    if(Test-Path -LiteralPath $parent){if((Get-Item -LiteralPath $parent).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'Redirected runtime folder rejected.'}}
+    else{[void][IO.Directory]::CreateDirectory($parent)}
+    return $parent
+}
+function Remove-TRTRuntimeFolder([string]$target) {
+    $parent=Get-TRTRuntimeRoot;$target=[IO.Path]::GetFullPath($target)
+    if([IO.Path]::GetDirectoryName($target) -ne $parent -or [IO.Path]::GetFileName($target) -notmatch '^run-[a-f0-9]{32}$'){throw 'Runtime cleanup path rejected.'}
+    if(-not (Test-Path -LiteralPath $target)){return}
+    if((Get-Item -LiteralPath $target).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'Redirected runtime folder rejected.'}
+    $items=@(Get-ChildItem -LiteralPath $target -Force)
+    if(@($items|Where-Object{$_.PSIsContainer -or $_.Name -notin @('ffmpeg.exe','ffprobe.exe','.runtime.lock') -or ($_.Attributes -band [IO.FileAttributes]::ReparsePoint)}).Count){throw 'Unexpected runtime folder entry; cleanup stopped.'}
+    foreach($item in $items){Remove-Item -LiteralPath $item.FullName -Force -ErrorAction Stop}
+    [IO.Directory]::Delete($target,$false)
+}
+function Recover-OwnedRuntimeFolders {
+    $parent=Get-TRTRuntimeRoot
+    foreach($folder in @(Get-ChildItem -LiteralPath $parent -Directory -Filter 'run-*')){
+        if($folder.Name -notmatch '^run-[a-f0-9]{32}$' -or ($folder.Attributes -band [IO.FileAttributes]::ReparsePoint)){continue}
+        $marker=Join-Path $folder.FullName '.runtime.lock';$lease=$null
+        if(-not (Test-Path -LiteralPath $marker)){
+            # Only empty interrupted pre-lease folders qualify without a marker.
+            if(@(Get-ChildItem -LiteralPath $folder.FullName -Force).Count -eq 0){[IO.Directory]::Delete($folder.FullName,$false)}
+            continue
+        }
+        if((Get-Item -LiteralPath $marker).Attributes -band [IO.FileAttributes]::ReparsePoint){continue}
+        try{$lease=[IO.File]::Open($marker,[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)}catch{continue}
+        try{
+            $reader=[IO.StreamReader]::new($lease,[Text.Encoding]::ASCII,$false,1024,$true)
+            try{$tag=$reader.ReadToEnd()}finally{$reader.Dispose()}
+            # A crash can interrupt the initial marker write. Only a prefix of
+            # this version's marker qualifies; folder contents remain checked.
+            if(-not 'TRT-RUNTIME-v250-1'.StartsWith($tag,[StringComparison]::Ordinal)){continue}
+            $lease.Dispose();$lease=$null
+            Remove-TRTRuntimeFolder $folder.FullName
+        }finally{if($lease){$lease.Dispose()}}
+    }
+}
+function Expand-EmbeddedGzipTool([string]$gzipPath,[string]$destinationPath) {
+    $payload=[Reflection.Assembly]::GetEntryAssembly().GetManifestResourceStream($gzipPath)
+    if(-not $payload){throw 'The packaged media resource is missing.'}
+    $gzip=$null;$output=$null
+    try{
+        $gzip=[IO.Compression.GZipStream]::new($payload,[IO.Compression.CompressionMode]::Decompress)
+        $output=[IO.File]::Open($destinationPath,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+        $gzip.CopyTo($output);$output.Flush($true)
+    }finally{if($output){$output.Dispose()};if($gzip){$gzip.Dispose()};$payload.Dispose()}
+    if((Get-Item -LiteralPath $destinationPath).Length -lt 256KB){throw 'Embedded media resource did not expand safely.'}
+}
+function Initialize-EmbeddedMediaTools {
+    if(-not (Test-IsPackagedHost)){return}
+    Recover-OwnedRuntimeFolders
+    $parent=Get-TRTRuntimeRoot
+    $runDir=Join-Path $parent ('run-'+[guid]::NewGuid().ToString('N'))
+    [void][IO.Directory]::CreateDirectory($runDir)
+    $script:EmbeddedMediaRuntimeDir=$runDir
+    try{
+        $script:RuntimeToolLease=[IO.File]::Open((Join-Path $runDir '.runtime.lock'),[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
+        $tag=[Text.Encoding]::ASCII.GetBytes('TRT-RUNTIME-v250-1')
+        $script:RuntimeToolLease.Write($tag,0,$tag.Length);$script:RuntimeToolLease.Flush($true)
+        $runtimeFFmpeg=Join-Path $runDir 'ffmpeg.exe';$runtimeFFprobe=Join-Path $runDir 'ffprobe.exe'
+        Expand-EmbeddedGzipTool 'ffmpeg.exe.gz' $runtimeFFmpeg
+        Expand-EmbeddedGzipTool 'ffprobe.exe.gz' $runtimeFFprobe
+        $script:EmbeddedFFmpegRuntimePath=$runtimeFFmpeg;$script:EmbeddedFFprobeRuntimePath=$runtimeFFprobe
+    }catch{Remove-EmbeddedMediaTools;throw}
+}
+function Remove-EmbeddedMediaTools {
+    Close-ApprovedMediaToolLocks
+    if($script:RuntimeToolLease){$script:RuntimeToolLease.Dispose();$script:RuntimeToolLease=$null}
+    if(-not $script:EmbeddedMediaRuntimeDir){return}
+    try{
+        Remove-TRTRuntimeFolder $script:EmbeddedMediaRuntimeDir
+        $script:EmbeddedMediaRuntimeDir=$null;$script:EmbeddedFFmpegRuntimePath=$null;$script:EmbeddedFFprobeRuntimePath=$null
+    }catch{
+        [Windows.Forms.MessageBox]::Show(('TRT runtime-tool cleanup failed; recovery will be retried on the next launch. '+$_.Exception.GetBaseException().Message),'Temporary cleanup','OK','Warning')|Out-Null
+    }
+}
