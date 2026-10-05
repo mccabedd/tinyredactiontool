@@ -10,20 +10,20 @@ You’re welcome to fork and adapt this project for your own use. If you do, ple
 
 <img src="images/screenshot.png" width="800">
 
-## v2.5.0 additions and features
+## v2.5.1 additions and acceptance status
 
-- Native selected-region screenshot: Ctrl+Print Screen. Selected-region video capture: Ctrl+Shift+Print Screen. Yellow Stop Recording control, blinking red region border and readable yellow selection guidance.
-- About includes mutually exclusive minimize/exit-to-tray settings; exit-to-tray is default. One tray click restores, right-click > Quit exits. A second launch restores the existing instance.
-- Image-only crop tool below Zoom, eight adjustment handles and Confirm Crop. Video crop is unavailable.
-- Text, Line and Polyline floating controls: outside-click closes/confirms the editor without final commitment; double-click reopens; Create Annotation commits. Double-click Rectangle/Oval/Freeform redactions to reopen editing on images/videos.
-- Clear Screen; simplified expanded pane with Redaction Area, Redactions and Annotations. Floating controls provide annotation appearance edits.
-- Asynchronous video loading with themed notice and Cancel, and responsive minimize/restore/maximize during video loading/export.
-- Image Copy uses the validated redacted/cropped export result and shows a themed confirmation. Clipboard transfer is a deliberate disclosure to Windows/other applications.
-- Supplied icon appears in the EXE shell/taskbar, title bar, tray and header. Startup stays maximized.
-- Managed policy independently restricts UNC/mapped opening/saving, original-source deletion, audio retention and Blur/Pixelate. Read the deployment guide for override/discovery limitations.
-- Compressed approved tools remain assembly resources; only the owning instance extracts tools into a leased unique runtime folder. Quit removes owned temporary files; next launch recovers abandoned owned files after forced termination. Active tray sessions can retain files they still need. No promise of instantaneous cleanup after a crash or erasure of OS/backups/clipboard copies is made.
+This is the user-approved v2.5.1 source release, promoted from the tested v2.5.0-r8 candidate. Company governance review remains a separate deployment process. See [release notes](RELEASE-NOTES-v2.5.1.md), [security addendum](SECURITY-v2.5.1.md) and [managed-policy deployment guide](MANAGED-POLICY-DEPLOYMENT.md).
 
-The technical sections below retain the established rendering/timing architecture. Historical profile/regression references describe their original provenance; current release hashes are in SHA256SUMS.txt.
+- **Outline drawing annotations:** Rectangle, Oval and Freeform drawing tools create border-only annotations with adjustable colour, thickness, line style and applicable corner/join settings. They are annotations, not redactions, and never contain Blur/Pixelate/opaque fill semantics.
+- **Drawing editing parity:** the new outline shapes use the compact floating annotation editor, support double-click reopening/editing, Shift-constrained geometry and video Begin/End annotation timing.
+- **Exact annotation geometry:** outline annotations retain floating-point media coordinates rather than redaction/export normalisation, keeping resize handles aligned with the visible outline at different zoom levels.
+- **Screenshot workflow:** a current-session TRT screenshot can be copied or exported immediately with no redaction, annotation or crop. Plain screenshot exports use a `SCREENSHOT_yyyyMMdd_HHmmss` default filename while retaining the existing validated image-export path.
+- **Dark Mode default:** TRT now opens in Dark Mode by default; Day mode remains available. Floating annotation editor titles and controls follow the active theme.
+- **Startup behaviour:** the main window opens maximized and makes a one-shot foreground activation request after it is shown. TRT is not permanently TopMost and does not regain focus merely because the pointer moves over it.
+- **Copy/Export visual state:** screenshot Copy and Export Image buttons advertise their availability independently of the ordinary committed-edit requirement.
+- Existing v2.5.0 native screenshot/video capture, tray operation, crop, text/line/polyline annotations, managed policy, cleanup ownership model and asynchronous video workflow remain present.
+
+The technical sections below retain the established rendering/timing architecture. Historical profile/regression references describe their original provenance; current release hashes are in `SHA256SUMS-v2.5.1.txt`.
 
 ## Full feature list
 
@@ -55,6 +55,11 @@ The technical sections below retain the established rendering/timing architectur
 - Remove selected redactions or clear all redactions.
 - Timeline markers show committed video redaction ranges.
 - Draft and committed redaction geometry is stored in canonical displayed-media coordinates rather than screen/control coordinates.
+- Rectangle, Oval and Freeform **Drawing** tools create outline-only annotations with no interior fill or visual-obscuration effect.
+- Drawing annotations have adjustable border colour, thickness and line style; Rectangle/Freeform expose the applicable corner/join option.
+- Hold **Shift** while drawing/resizing Rectangle or Oval annotations to constrain to square/circle; Freeform retains horizontal/vertical/45-degree snapping.
+- Drawing annotations can be reopened by double-click and, on video, use exact Begin/End annotation logical-frame ranges without the redaction safety buffer.
+- Annotation geometry remains distinct from redaction geometry and is not passed through secure-redaction even-pixel normalisation.
 
 ### Zoom, pan and preview navigation
 
@@ -108,6 +113,8 @@ The technical sections below retain the established rendering/timing architectur
 - Subtitle, data, attachment and unintended extra audio streams excluded.
 - Neutral default output name: `REDACTED_yyyyMMdd_HHmmss.ext`.
 - Source media is read-only from TinyRedactionTool's perspective; export is always written separately.
+- A current-session TRT screenshot may be copied or exported immediately without edits. This exception does not apply to arbitrary images opened from disk.
+- Plain screenshot exports default to `SCREENSHOT_yyyyMMdd_HHmmss.ext`; edited/redacted output continues to use the established redacted naming path.
 
 ### Export validation and fail-closed behaviour
 
@@ -143,34 +150,35 @@ The technical sections below retain the established rendering/timing architectur
 ### User interface and workflow
 
 - Compact Windows PowerShell/WinForms desktop UI.
-- Day and Dark modes with themed toolbar icons; the Dark Mode base uses the lighter `#3C3F47` family.
-- Compact left toolbar for Rectangle, Oval, Freeform, Zoom, Coloured Box, Blur and Pixelate.
+- Day and Dark modes with themed toolbar icons; **Dark Mode is the startup default** and uses the lighter `#3C3F47` family.
+- Compact left toolbar for redaction selections, Zoom, Coloured Box, Blur/Pixelate and outline Drawing Rectangle/Oval/Freeform tools.
 - Collapsible **Redaction Area** side panel; preview expands when the panel is collapsed.
 - Selection X/Y/Width/Height readout.
 - Security-mode guidance distinguishing opaque redaction from visual obscuration.
 - Status/progress feedback during media analysis and export.
 - Compact warning dialogs for Blur/Pixelate, audio and network/cloud paths.
-- About dialog identifies **TinyRedactionTool v2.5.0**, GPL-2.0-or-later licensing and local-processing/no-telemetry posture.
+- About dialog identifies **TinyRedactionTool v2.5.1**, GPL-2.0-or-later licensing and local-processing/no-telemetry posture.
 - GitHub repository URL in About is non-clickable and has a dedicated copy-to-clipboard icon.
 - Custom application/taskbar icon in the packaged EXE.
+- Startup opens maximized and performs a one-shot foreground activation request; normal window stacking resumes immediately afterward and hover alone does not activate TRT.
 
 ### Standalone build
 
 - Runs as a single **64-bit Windows EXE** after packaging.
 - No separate FFmpeg installation or PATH configuration required for the standalone build.
 - Release builder targets Windows PowerShell 5.1 and uses pinned PS2EXE 1.0.18.
-- The v2.5.0 packaging builder checks accepted media-tool hashes; the matching historic FFmpeg toolchain and its functional regression record remain separate inputs.
+- The v2.5.1 packaging builder checks accepted media-tool hashes; the matching historic FFmpeg toolchain and its functional regression record remain separate inputs.
 - The release builder is expected to refuse to package a source file or approved media-tool binary whose SHA-256 does not match the frozen release values.
 
 > **Important:** Black/Coloured Box is the security-oriented opaque redaction method. **Blur and Pixelate are visual obscuration only** and must not be treated as irreversible redaction.
 
 ## Current release
 
-**Version:** v2.5.0
+**Version:** v2.5.1
 **Licence:** GPL-2.0-or-later
 **Repository:** https://github.com/mccabedd/tinyredactiontool/
 
-The accepted C9 source is the behavioural baseline. Icon and resource bootstrap changes are documented in the separate source/build bundle. Parser, protected-code comparison, exact embedded tool/icon checks, compiled startup, second-instance handoff, crash recovery, normal shutdown and compiled synthetic clipboard/theme tests passed. Representative company media, live capture/clipboard and governance deployment remain final acceptance checks.
+v2.5.1 is a focused maintenance release built on the v2.5.0 release architecture and the user-tested r1-r8 candidate sequence. The approved embedded FFmpeg/FFprobe binaries and the established CFR/VFR timing, redaction rendering, export validation, managed-policy and runtime-ownership architecture are retained. The new source still requires a local Windows PowerShell 5.1 packaging build before an EXE-specific SHA-256 can be recorded.
 
 ## Supported media
 
@@ -363,9 +371,9 @@ Native Windows Open/Save dialogs are invoked with `OFN_DONTADDTORECENT` as a bes
 
 ## Source-file behaviour
 
-TinyRedactionTool reads the source and writes a separate export. It does not modify the original media.
+By default TinyRedactionTool reads the source and writes a separate export without modifying the original media. An optional original-source deletion workflow may run only after a successful validated export when the user has explicitly enabled it and managed policy permits it.
 
-Source immutability was runtime-tested by comparing SHA-256 before and after repeated processing.
+The normal processing path preserves the source; the deletion workflow is a separate post-export action with its own eligibility and warning checks.
 
 ## Error/path hygiene
 
@@ -375,7 +383,7 @@ This reduces accidental disclosure in dialogs/log capture but is not a promise t
 
 ## Building from source
 
-Use the separate TinyRedactionTool-v2.5.0-SOURCE-BUILD.zip bundle and its BUILD-v2.5.0.cmd with Windows PowerShell 5.1. It validates pinned source/icon/compiler and exact approved compressed/decompressed media tools, then writes output/TinyRedactionTool.exe. It needs no downloads or administrator rights. Read BUILD-AND-AUDIT.md for the one-assignment compiler adaptation and supplied audit evidence.
+Use the separate TinyRedactionTool-v2.5.1-SOURCE-BUILD.zip bundle and its BUILD-v2.5.1.cmd with Windows PowerShell 5.1. It validates pinned source/icon/compiler and exact approved compressed/decompressed media tools, then writes output/TinyRedactionTool.exe. It needs no downloads or administrator rights. Read `packaging/BUILD-AND-AUDIT.md` for the one-assignment compiler adaptation, unchanged media-tool provenance and v2.5.1 promotion notes.
 
 The bundle repackages accepted media binaries and does not rebuild the historical FFmpeg/MSYS2 toolchain. Keep any existing _CustomFFmpegBuild cache. Complete media-tool rebuild inputs must be retained/reviewed separately. Pinned inputs do not imply bit-for-bit reproducible compiled EXE output.
 
@@ -398,4 +406,4 @@ TinyRedactionTool is designed to reduce accidental disclosure, not to control th
 - Long-path behaviour beyond ordinary Windows path limits is not claimed for the standalone build.
 - OS-level forensic artefacts cannot be absolutely eliminated by an ordinary desktop application.
 
-For the hardened packaging threat model, v2.2 security addendum and historical security-test record, see the repository's historical `SECURITY-AUDIT.md`. For this release, see RELEASE-NOTES.md and MANAGED-POLICY-DEPLOYMENT.md.
+For the hardened packaging threat model, v2.2 security addendum and historical security-test record, see the repository's historical `SECURITY-AUDIT.md`. For this release, see `RELEASE-NOTES-v2.5.1.md`, `SECURITY-v2.5.1.md` and `MANAGED-POLICY-DEPLOYMENT.md`.

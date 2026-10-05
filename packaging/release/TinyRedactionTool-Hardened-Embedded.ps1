@@ -1,4 +1,4 @@
-﻿# TinyRedactionTool v2.5.0 FINAL
+﻿# TinyRedactionTool v2.5.1 FINAL
 # Consolidated from user-tested B1-r4 source SHA-256
 # 594488A98BAFC465F90ECEB7CA43CC4E4C50879869CC5619A14BCC07F6AE1D0D
 # Frozen v2.1.0 ancestry SHA-256
@@ -3689,9 +3689,19 @@ $script:textBold = $false
 $script:textItalic = $false
 $script:textAlignment = "Left"
 $script:textColor = [System.Drawing.Color]::Red
+$script:shapeDrawingMode = $false
+$script:sourceIsScreenshot = $false
+
+function Test-IsDirectDrawTool {
+    return [bool]($script:toolMode -eq "Line" -or $script:toolMode -eq "Polyline" -or $script:toolMode -eq "Text")
+}
+
+function Test-IsShapeDrawTool {
+    return [bool]($script:shapeDrawingMode -and $script:toolMode -in @("Rectangle","Oval","Polygon"))
+}
 
 function Test-IsStandaloneDrawTool {
-    return [bool]($script:toolMode -eq "Line" -or $script:toolMode -eq "Polyline" -or $script:toolMode -eq "Text")
+    return [bool]((Test-IsDirectDrawTool) -or (Test-IsShapeDrawTool))
 }
 
 # Whether the eyedropper is currently armed, waiting for the user's next
@@ -4000,6 +4010,35 @@ $form.MinimumSize = New-Object System.Drawing.Size(1320,820)
 # D5c-r2: open maximized by default while retaining the normal Windows title bar
 # and Restore/Minimize/Close behaviour. This is not borderless/kiosk fullscreen.
 $form.WindowState = [System.Windows.Forms.FormWindowState]::Maximized
+# v2.5.0-r7: re-assert maximized state when the native window is first shown and
+# make one deliberate foreground-activation request after all Shown handlers have
+# completed. Maximizing alone does not guarantee foreground activation when the
+# EXE is launched from another foreground process such as Explorer. This is a
+# one-shot startup action only; TRT is not made permanently TopMost.
+if (-not ("TRTStartupForegroundNativeV1" -as [type])) {
+    Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public static class TRTStartupForegroundNativeV1
+{
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool SetForegroundWindow(IntPtr hWnd);
+}
+"@
+}
+$form.Add_Shown({
+    if (-not $script:InitialMaximizeApplied) {
+        $script:InitialMaximizeApplied = $true
+        $form.WindowState = [System.Windows.Forms.FormWindowState]::Maximized
+        [void]$form.BeginInvoke([System.Windows.Forms.MethodInvoker]{
+            $form.WindowState = [System.Windows.Forms.FormWindowState]::Maximized
+            $form.BringToFront()
+            [void]$form.Activate()
+            [void][TRTStartupForegroundNativeV1]::SetForegroundWindow($form.Handle)
+        })
+    }
+})
 $form.KeyPreview = $true
 $form.Font = New-UIFont 9.0
 $form.AutoScaleMode = "Dpi"
@@ -4581,15 +4620,19 @@ $toolbar.Controls.Add($lblDrawHeading)
 
 $drawRow = New-Object System.Windows.Forms.Panel
 $drawRow.Location = New-Object System.Drawing.Point(0,344)
-$drawRow.Size = New-Object System.Drawing.Size($script:ToolbarWidth,110)
+$drawRow.Size = New-Object System.Drawing.Size($script:ToolbarWidth,224)
 $toolbar.Controls.Add($drawRow)
 
 $rbText = New-ToolbarIconButton $drawRow "text_draw" $script:UiGap 0 "Text Box Annotation - drag a box, then type in the floating editor"
 $rbLine = New-ToolbarIconButton $drawRow "line_draw" $script:UiGap 38 "Line Annotation - drag start to end; Shift constrains angle"
 $rbPolyline = New-ToolbarIconButton $drawRow "polyline_draw" $script:UiGap 76 "Polyline Annotation - hold the left mouse button and draw; release to finish"
+$rbDrawRectangle = New-ToolbarIconButton $drawRow "rectangle" $script:UiGap 114 "Rectangle Drawing - outline-only annotation; Shift constrains to a square"
+$rbDrawOval = New-ToolbarIconButton $drawRow "oval" $script:UiGap 152 "Oval Drawing - outline-only annotation; Shift constrains to a circle"
+$rbDrawFreeform = New-ToolbarIconButton $drawRow "freeform" $script:UiGap 190 "Freeform Drawing - outline-only annotation; click points and close at the start point"
 $rbText.Enabled = $false
 $rbLine.Enabled = $false
 $rbPolyline.Enabled = $false
+$rbDrawRectangle.Enabled=$false;$rbDrawOval.Enabled=$false;$rbDrawFreeform.Enabled=$false
 foreach($control in $toolbar.Controls){if($control -ne $rbCrop -and $control.Top -ge 176){$control.Top+=38}}
 
 # CENTER -------------------------------------------------------------
@@ -6753,10 +6796,13 @@ $script:appToolTip.SetToolTip($floatingJoin,'Polyline join')
 
 function Set-FloatingAnnotationToolbar([string]$kind) {
     $isText = $kind -eq 'Text'
-    $floatingTitle.Text=$kind
+    $isShape = $kind -in @('Rectangle','Oval','Polygon')
+    $floatingTitle.Text=if($kind -eq 'Polygon'){'Freeform'}else{$kind}
     $txtFloatingAnnotationText.Visible=$isText
     $floatingTextTools.Visible=$isText; $floatingDrawTools.Visible=-not $isText
-    $floatingJoin.Visible=$kind -eq 'Polyline'
+    $floatingEnds.Visible=(-not $isText -and -not $isShape)
+    $floatingJoin.Visible=$kind -in @('Polyline','Rectangle','Polygon')
+    if($isShape -and $floatingJoin.Visible){$floatingJoin.SetBounds(187,2,145,24)}else{$floatingJoin.SetBounds(340,2,125,24)}
     $floatingAnnotationColor.BackColor=if($isText) { $swatchTextColor.BackColor } else { $swatchOutlineColor.BackColor }
     $floatingTextEditor.Height=if($isText) {124} else {68}
     $lblFloatingTextEditor.Top=if($isText) {103} else {46}
@@ -6842,13 +6888,19 @@ function Get-FloatingTextEditorMediaRect {
         if ($toolMode -eq "Polyline" -and $script:polylineDraftActive) {
             return Get-AnnotationMediaBounds (New-PolylineDrawingAnnotation $script:polylinePoints $script:outlineColor $script:outlineWidth $script:outlineDashStyle $script:drawPolylineJoinStyle $script:drawEndpointStyle -1)
         }
+        if (Test-IsShapeDrawTool) {
+            $shapeData = Get-CurrentShapeVideoData
+            if ($shapeData) {
+                return Get-AnnotationMediaBounds (New-ShapeOutlineAnnotation $shapeData $script:outlineColor $script:outlineWidth $script:outlineDashStyle (Get-CurrentOutlineJoinStyle) -1 -1)
+            }
+        }
         return $null
     }
     if ($script:floatingTextEditorMode -eq "Committed") {
         $idx = [int]$script:floatingTextEditorTargetIndex
         if ($idx -ge 0 -and $idx -lt $annotations.Count) {
             $a = $annotations[$idx]
-            if ($a -and $a.Kind -in @("Text","Line","Polyline")) { return Get-AnnotationMediaBounds $a }
+            if ($a -and $a.Kind -in @("Text","Line","Polyline","ShapeOutline")) { return Get-AnnotationMediaBounds $a }
         }
     }
     return $null
@@ -6887,17 +6939,18 @@ function Show-FloatingTextEditor([string]$mode = "Draft") {
     $targetIndex = -1
     if ($mode -eq "Committed") {
         $a = Get-SelectedAppearanceAnnotation
-        if (-not $a -or $a.Kind -notin @("Text","Line","Polyline")) { return $false }
+        if (-not $a -or $a.Kind -notin @("Text","Line","Polyline","ShapeOutline")) { return $false }
         $targetIndex = [int]$script:selectedAnnotationIndex
         $value = [string]$a.Text
     }
     else {
-        if (-not (($toolMode -eq "Text" -and $script:textDraftActive) -or ($toolMode -eq "Line" -and $script:lineDraftActive) -or ($toolMode -eq "Polyline" -and $script:polylineDraftActive))) { return $false }
+        $shapeDraftReady = [bool]((Test-IsShapeDrawTool) -and (Get-CurrentShapeVideoData))
+        if (-not (($toolMode -eq "Text" -and $script:textDraftActive) -or ($toolMode -eq "Line" -and $script:lineDraftActive) -or ($toolMode -eq "Polyline" -and $script:polylineDraftActive) -or $shapeDraftReady)) { return $false }
         $mode = "Draft"
         $value = [string]$txtAnnotationText.Text
     }
 
-    $kind = if ($mode -eq "Committed") { [string]$a.Kind } else { [string]$toolMode }
+    $kind = if ($mode -eq "Committed") { if($a.Kind -eq 'ShapeOutline'){[string]$a.Shape}else{[string]$a.Kind} } else { [string]$toolMode }
     Set-FloatingAnnotationToolbar $kind
     $script:floatingTextEditorMode = $mode
     $script:floatingTextEditorTargetIndex = $targetIndex
@@ -7164,6 +7217,7 @@ function Update-OutlineControlsAvailability {
     $selectedKind = if ($selectedA) { [string]$selectedA.Kind } else { "" }
     $textContext = [bool](($editingCommitted -and $selectedKind -eq "Text") -or (-not $editingCommitted -and $toolMode -eq "Text"))
     $drawTool = [bool]((-not $editingCommitted) -and (Test-IsStandaloneDrawTool))
+    $directDrawTool = [bool]((-not $editingCommitted) -and (Test-IsDirectDrawTool))
     $nonTextAnnotationEdit = [bool]($editingCommitted -and $selectedKind -ne "Text")
     $drawContext = [bool]($drawTool -or $nonTextAnnotationEdit)
 
@@ -7252,12 +7306,12 @@ function Update-OutlineControlsAvailability {
     $cmbDrawEnds.Enabled = $endsApply
 
     if ($btnAddDraw) {
-        $btnAddDraw.Visible = [bool]($drawTool -or ($selectedA -and $selectedA.Kind -in @("Line","Polyline")))
+        $btnAddDraw.Visible = [bool]($directDrawTool -or ($selectedA -and $selectedA.Kind -in @("Line","Polyline")))
         $btnAddDraw.Text = "Create Annotation"
         $btnAddDraw.Enabled = [bool]($supported -and (($selectedA -and $selectedA.Kind -in @("Line","Polyline")) -or ($toolMode -eq "Line" -and $script:lineDraftActive) -or ($toolMode -eq "Polyline" -and $script:polylineDraftActive)))
     }
     if ($btnCancelDraw) {
-        $btnCancelDraw.Visible = [bool]($drawTool -and $isImageMode)
+        $btnCancelDraw.Visible = [bool]($directDrawTool -and $isImageMode)
         $btnCancelDraw.Enabled = [bool]($isImageMode -and $supported -and (($toolMode -eq "Line" -and ($script:lineDrawing -or $script:lineDraftActive)) -or ($toolMode -eq "Polyline" -and ($script:polylineActive -or $script:polylineDraftActive))))
     }
 
@@ -7648,7 +7702,7 @@ $lvAnnotations.Add_SelectedIndexChanged({
 
 $lvAnnotations.Add_DoubleClick({
     $a = Get-SelectedAppearanceAnnotation
-    if ($a -and $a.Kind -in @("Text","Line","Polyline")) { [void](Show-FloatingTextEditor "Committed") }
+    if ($a -and $a.Kind -in @("Text","Line","Polyline","ShapeOutline")) { [void](Show-FloatingTextEditor "Committed") }
 })
 
 $btnRemoveAnnotation = New-Object System.Windows.Forms.Button
@@ -7817,7 +7871,21 @@ $btnCopyImage.AccessibleName='Copy redacted image'
 $btnCopyImage.Image=Get-ThemedIconImage 'copy' ([Drawing.Color]::White)
 $script:appToolTip.SetToolTip($btnCopyImage,'Copy redacted image')
 $bottom.Controls.Add($btnCopyImage)
-$btnCopyImage.Add_Click({if($isImageMode -and -not $script:ExportBusy){$script:CopyRequested=$true;$btnExport.PerformClick()}})
+$btnCopyImage.Add_Click({
+    if(-not $isImageMode -or $script:ExportBusy){return}
+    # v2.5.1: a freshly captured screenshot is already a safe, session-owned PNG.
+    # With no edits to render, copy the decoded source immediately instead of
+    # forcing the user to create a redaction/annotation just to unlock Copy.
+    if((Test-IsCurrentSourceSessionScreenshot) -and $redactions.Count -eq 0 -and $annotations.Count -eq 0 -and -not $script:ImageCrop -and $previewImage){
+        $clipboardBitmap=[Drawing.Bitmap]::new($previewImage)
+        try{[Windows.Forms.Clipboard]::SetImage($clipboardBitmap)}finally{$clipboardBitmap.Dispose()}
+        $status.Text='Screenshot copied to clipboard.'
+        Show-ClipboardConfirmation
+        return
+    }
+    $script:CopyRequested=$true
+    $btnExport.PerformClick()
+})
 $btnCopyImage.Add_EnabledChanged({if(Get-Command Update-CopyButton -ErrorAction SilentlyContinue){Update-CopyButton}})
 
 # D2 keeps the accepted inspector grouping. D5b-r2 deliberately keeps video
@@ -7860,7 +7928,7 @@ function Update-InspectorSectionLayout {
 Update-InspectorSectionLayout
 
 # ---------- theme engine ----------
-$script:isDarkMode = $false
+$script:isDarkMode = $true
 
 # Fixed status colors for the shared Begin/End temporal buttons. These signal
 # state (ready-to-begin / in-progress) rather than the neutral UI palette,
@@ -7995,7 +8063,7 @@ function Apply-Theme {
         $b.FlatAppearance.BorderColor = $cAccent
     }
 
-    foreach ($r in @($rbRectangle,$rbOval,$rbFreeform,$rbZoom,$rbCrop,$rbModeBlack,$rbModeBlur,$rbModePixelate,$rbText,$rbLine,$rbPolyline)) {
+    foreach ($r in @($rbRectangle,$rbOval,$rbFreeform,$rbZoom,$rbCrop,$rbModeBlack,$rbModeBlur,$rbModePixelate,$rbText,$rbLine,$rbPolyline,$rbDrawRectangle,$rbDrawOval,$rbDrawFreeform)) {
         if ($r.Checked) {
             $r.BackColor = if ($script:isDarkMode) { [System.Drawing.Color]::FromArgb(42,67,96) } else { $cAccent2 }
             $r.ForeColor = $cAccent
@@ -8054,6 +8122,12 @@ function Apply-Theme {
     # D5c-r2 floating Text editor uses the same Day/Dark palette as Appearance.
     if ($floatingTextEditor) {
         $floatingTextEditor.BackColor = $cPanel
+        $floatingTextTools.BackColor = $cPanel
+        $floatingDrawTools.BackColor = $cPanel
+        $floatingTitle.BackColor = [System.Drawing.Color]::Transparent
+        $floatingTitle.ForeColor = $cText
+        $floatingClose.BackColor = $cPanel
+        $floatingClose.ForeColor = $cText
         $lblFloatingTextEditor.BackColor = [System.Drawing.Color]::Transparent
         $lblFloatingTextEditor.ForeColor = $cMuted
         $txtFloatingAnnotationText.BackColor = $cInput
@@ -8581,7 +8655,7 @@ function Complete-RegionRecording {
     $errorText=[string]$state.Recorder.Error
     $frames=[int]$state.Recorder.FrameCount
     $state.Recorder.Dispose();$state.Recorder=$null
-    $state.StopItem.Visible=$false;$state.Tray.Text='TinyRedactionTool v2.5.0'
+    $state.StopItem.Visible=$false;$state.Tray.Text='TinyRedactionTool v2.5.1'
     $form.Enabled=$true
     $path=[string]$state.Output;$state.Output=''
     if($state.Quitting){return}
@@ -8641,7 +8715,12 @@ function Invoke-RegionCapture([bool]$video=$false) {
             $bitmap=[TRT250.ScreenCapture]::Grab($region)
             try {$bitmap.Save($path,[System.Drawing.Imaging.ImageFormat]::Png)}finally{$bitmap.Dispose()}
             Restore-TRTFromTray
-            Open-TRTMediaPath $path
+            Open-TRTMediaPath $path $true
+            # Still-image capture loading is synchronous. Reassert screenshot
+            # provenance and refresh Copy immediately after the load completes.
+            $script:sourceIsScreenshot = $true
+            # Refresh both Copy and Export immediately for an unedited capture.
+            Update-RedactionButtons
         }
     } catch {
         if($state.Border){$state.Border.Dispose();$state.Border=$null};if($state.StopWindow){$state.StopWindow.Dispose();$state.StopWindow=$null}
@@ -8680,7 +8759,7 @@ function Initialize-TRTTrayCapture {
     $quit.Add_Click({Quit-TRTFromTray});[void]$state.Menu.Items.Add($quit)
     $state.Tray=New-Object System.Windows.Forms.NotifyIcon
     $state.Tray.Icon=$form.Icon
-    $state.Tray.Text='TinyRedactionTool v2.5.0';$state.Tray.ContextMenuStrip=$state.Menu
+    $state.Tray.Text='TinyRedactionTool v2.5.1';$state.Tray.ContextMenuStrip=$state.Menu
     $state.Tray.Add_MouseClick({param($sender,$e) if($e.Button -eq [System.Windows.Forms.MouseButtons]::Left){Restore-TRTFromTray}})
     $state.Tray.Visible=$true
     $state.Poll=New-Object System.Windows.Forms.Timer
@@ -8759,7 +8838,7 @@ function Show-AboutDialog {
     $script:aboutY = 0
     $aboutEmphasis = if ($isDark) { $cText } else { [System.Drawing.Color]::Black }
 
-    Add-CenteredAboutLabel $panel "TinyRedactionTool v2.5.0" (New-UIFont 15.5 ([System.Drawing.FontStyle]::Bold)) $cText $contentWidth 0 6 | Out-Null
+    Add-CenteredAboutLabel $panel "TinyRedactionTool v2.5.1" (New-UIFont 15.5 ([System.Drawing.FontStyle]::Bold)) $cText $contentWidth 0 6 | Out-Null
     Add-CaptureAboutControls $panel $contentWidth $cText
     Add-CenteredAboutLabel $panel "Copyright (C) 2026 David McCabe" (New-UIFont 9.5 ([System.Drawing.FontStyle]::Bold)) $cText $contentWidth 0 5 | Out-Null
     Add-CenteredAboutLabel $panel "Local media processing. No telemetry or media uploads." (New-UIFont 8.5 ([System.Drawing.FontStyle]::Bold)) $aboutEmphasis $contentWidth 0 0 | Out-Null
@@ -8775,7 +8854,7 @@ function Show-AboutDialog {
         if ($script:ManagedPolicy.DisableVisualObscuration) { [void]$managedControls.Add("disable visual obscuration") }
         $managedControlText = if ($managedControls.Count -gt 0) { [string]::Join("; ", $managedControls) } else { "none (public behaviour remains active)" }
         Add-CenteredAboutLabel $panel ("Managed controls: " + $managedControlText) (New-UIFont 8.1) $cMuted $contentWidth -4 0 | Out-Null
-        Add-CenteredAboutLabel $panel "v2.5.0 adds tray controls and native region capture; accepted G2d restrictions remain unchanged." (New-UIFont 8.1) $cMuted $contentWidth -4 2 | Out-Null
+        Add-CenteredAboutLabel $panel "v2.5.1 adds outline drawing tools and improves screenshot, startup and dark-theme workflow." (New-UIFont 8.1) $cMuted $contentWidth -4 2 | Out-Null
     }
 
     $repoUrl = "https://github.com/mccabedd/tinyredactiontool/"
@@ -8942,7 +9021,7 @@ $rbModePixelate.Add_CheckedChanged({
     if ($rbModePixelate.Checked) { Show-VisualObscurationWarning }
 })
 
-foreach ($r in @($rbRectangle,$rbOval,$rbFreeform,$rbZoom,$rbCrop,$rbModeBlack,$rbModeBlur,$rbModePixelate,$rbLine,$rbPolyline)) {
+foreach ($r in @($rbRectangle,$rbOval,$rbFreeform,$rbZoom,$rbCrop,$rbModeBlack,$rbModeBlur,$rbModePixelate,$rbLine,$rbPolyline,$rbDrawRectangle,$rbDrawOval,$rbDrawFreeform)) {
     $r.Add_CheckedChanged({
         Apply-Theme
         # Apply-Theme paints the generic accent/neutral palette first.
@@ -9763,6 +9842,21 @@ function Selection-To-VideoRect {
     if (-not $selection -or $selection.Width -lt 0.01 -or $selection.Height -lt 0.01) { return $null }
     return Normalize-VideoRect ([double]$selection.X) ([double]$selection.Y) ([double]$selection.Width) ([double]$selection.Height)
 }
+
+# Drawing annotations are not codec/redaction rectangles. Preserve the exact
+# canonical media-space geometry the user drew so the rendered outline and its
+# resize handles share the same coordinates at every zoom level. In particular,
+# do NOT route these through Normalize-VideoRect: that function intentionally
+# floors/snaps redaction rectangles to even integer pixels for video processing.
+function Selection-To-AnnotationRect {
+    if (-not $selection -or $selection.Width -lt 0.01 -or $selection.Height -lt 0.01) { return $null }
+    return @{
+        X = [double]$selection.X
+        Y = [double]$selection.Y
+        W = [double]$selection.Width
+        H = [double]$selection.Height
+    }
+}
  
 # Legacy-named view helpers now delegate to the v2 viewport transform. Keeping
 # these wrappers avoids disturbing the proven committed-redaction model while
@@ -9969,6 +10063,10 @@ function Get-CurrentVideoAnnotationDraft {
     if ($toolMode -eq "Polyline" -and $script:polylineDraftActive -and $script:polylinePoints -and $script:polylinePoints.Count -ge 2) {
         return New-PolylineDrawingAnnotation $script:polylinePoints $script:outlineColor $script:outlineWidth $script:outlineDashStyle $script:drawPolylineJoinStyle $script:drawEndpointStyle -1
     }
+    if (Test-IsShapeDrawTool) {
+        $shapeData=Get-CurrentShapeVideoData
+        if($shapeData){return New-ShapeOutlineAnnotation $shapeData $script:outlineColor $script:outlineWidth $script:outlineDashStyle (Get-CurrentOutlineJoinStyle) -1 -1}
+    }
     return $null
 }
 
@@ -9982,6 +10080,9 @@ function Test-VideoAnnotationDraftPresent {
         "Text" { return [bool]($script:textDrawing -or $script:textDraftActive) }
         "Line" { return [bool]($script:lineDrawing -or $script:lineDraftActive) }
         "Polyline" { return [bool]($script:polylineActive -or $script:polylineDraftActive -or ($script:polylinePoints -and $script:polylinePoints.Count -gt 0)) }
+        "Rectangle" { if(Test-IsShapeDrawTool){return [bool]($selection -and $selection.Width -gt 0 -and $selection.Height -gt 0)} }
+        "Oval" { if(Test-IsShapeDrawTool){return [bool]($selection -and $selection.Width -gt 0 -and $selection.Height -gt 0)} }
+        "Polygon" { if(Test-IsShapeDrawTool){return [bool]($polygonActive -or ($polygonPoints -and $polygonPoints.Count -gt 0))} }
     }
     return $false
 }
@@ -9993,10 +10094,11 @@ function Begin-VideoAnnotationRange {
 
     $a = Get-CurrentVideoAnnotationDraft
     if (-not $a) {
-        Show-CompactInformationDialog "Annotation timing" "Nothing ready to begin" "Create and position a Text Box, Line, or Polyline first, then choose Begin Annotation."
+        Show-CompactInformationDialog "Annotation timing" "Nothing ready to begin" "Create and position an annotation first, then choose Begin Annotation."
         return $false
     }
 
+    $a.CommitOrder = Get-NextObjectCommitOrder
     $script:pendingAnnotation = [PSCustomObject]@{
         Annotation = $a
         StartFrame = [int]$currentFrame
@@ -10043,7 +10145,7 @@ function End-VideoAnnotationRange {
     $a.CommitOrder = Get-NextObjectCommitOrder
     Set-AnnotationFrameTiming $a $startFrame ([int]$currentFrame)
     [void]$script:annotations.Add($a)
-    $kindText = if ($a.Kind -eq "Text") { "Text annotation" } elseif ($a.Kind -eq "Line") { "Line annotation" } else { "Polyline annotation" }
+    $kindText = if ($a.Kind -eq "Text") { "Text annotation" } elseif ($a.Kind -eq "Line") { "Line annotation" } elseif ($a.Kind -eq "Polyline") { "Polyline annotation" } elseif ($a.Shape -eq "Polygon") { "Freeform drawing" } else { "$($a.Shape) drawing" }
     $endFrame = [int]$currentFrame
 
     $script:pendingAnnotation = $null
@@ -10547,7 +10649,11 @@ function Draw-AnnotationsToView($gfx) {
 }
 
 function Draw-DraftShapeOutlineToView($gfx, $shapeData) {
-    if (-not $isImageMode -or -not $script:outlineEnabled -or -not $shapeData) { return }
+    if (-not $shapeData) { return }
+    # Shape Drawing tools are annotation-only and must always render their draft
+    # outline, independent of the redaction Outline checkbox. Normal redaction
+    # outline previews retain the established image-mode + Outline-enabled gate.
+    if (-not (Test-IsShapeDrawTool) -and (-not $isImageMode -or -not $script:outlineEnabled)) { return }
     $annotation = New-ShapeOutlineAnnotation $shapeData $script:outlineColor $script:outlineWidth $script:outlineDashStyle (Get-CurrentOutlineJoinStyle)
     if (-not $annotation) { return }
     $transform = Get-ViewportTransform
@@ -11400,6 +11506,34 @@ function Polygon-To-VideoShape($mediaPoints) {
     $bbox = Normalize-VideoRect $minX $minY ([Math]::Max(2, $maxX - $minX)) ([Math]::Max(2, $maxY - $minY))
     return @{ Shape = "Polygon"; X = $bbox.X; Y = $bbox.Y; W = $bbox.W; H = $bbox.H; Points = $vpts }
 }
+
+# Freeform Drawing annotations likewise retain their exact PointF media
+# vertices. Redaction polygons still use Polygon-To-VideoShape above and keep
+# the established integer/even-pixel normalisation required by that pipeline.
+function Polygon-To-AnnotationShape($mediaPoints) {
+    if (-not $mediaPoints -or $mediaPoints.Count -lt 3) { return $null }
+
+    $vpts = @()
+    foreach ($p in $mediaPoints) {
+        $cx = [Math]::Max(0.0, [Math]::Min([double]$p.X, [double]$videoWidth - 1.0))
+        $cy = [Math]::Max(0.0, [Math]::Min([double]$p.Y, [double]$videoHeight - 1.0))
+        $vpts += [PSCustomObject]@{ X = [double]$cx; Y = [double]$cy }
+    }
+
+    $minX = ($vpts | ForEach-Object { $_.X } | Measure-Object -Minimum).Minimum
+    $maxX = ($vpts | ForEach-Object { $_.X } | Measure-Object -Maximum).Maximum
+    $minY = ($vpts | ForEach-Object { $_.Y } | Measure-Object -Minimum).Minimum
+    $maxY = ($vpts | ForEach-Object { $_.Y } | Measure-Object -Maximum).Maximum
+
+    return @{
+        Shape = "Polygon"
+        X = [double]$minX
+        Y = [double]$minY
+        W = [double][Math]::Max(0.01, ([double]$maxX - [double]$minX))
+        H = [double][Math]::Max(0.01, ([double]$maxY - [double]$minY))
+        Points = $vpts
+    }
+}
  
 # Returns the shape descriptor for whatever is currently drawn-but-not-yet-
 # committed (a finished drag for Rectangle/Oval, or a closed click-path for
@@ -11407,13 +11541,14 @@ function Polygon-To-VideoShape($mediaPoints) {
 function Get-CurrentShapeVideoData {
     # D3 Draw tools (Text/Line/Polyline) commit directly into the annotation
     # collection and are never candidates for the redaction Begin/Create workflow.
-    if (Test-IsStandaloneDrawTool) { return $null }
+    if (Test-IsDirectDrawTool) { return $null }
     if ($toolMode -eq "Polygon") {
         if ($polygonActive -or $polygonPoints.Count -lt 3) { return $null }
+        if (Test-IsShapeDrawTool) { return Polygon-To-AnnotationShape $polygonPoints }
         return Polygon-To-VideoShape $polygonPoints
     }
     else {
-        $vr = Selection-To-VideoRect
+        $vr = if (Test-IsShapeDrawTool) { Selection-To-AnnotationRect } else { Selection-To-VideoRect }
         if (-not $vr) { return $null }
         return @{ Shape = $toolMode; X = $vr.X; Y = $vr.Y; W = $vr.W; H = $vr.H }
     }
@@ -11644,7 +11779,7 @@ function Update-RedactionButtons {
         $btnAddRedaction.Visible = $true
         $hasAppearance = [bool]($script:fillEnabled -or $script:outlineEnabled)
         $btnAddRedaction.Text = if ($drawTool -or -not $script:fillEnabled) { "Create Annotation" } else { "Create Redaction" }
-        $draftReady = if ($toolMode -eq "Text") { $script:textDraftActive -and -not [string]::IsNullOrWhiteSpace($txtAnnotationText.Text) } elseif ($toolMode -eq "Line") { $script:lineDraftActive } elseif ($toolMode -eq "Polyline") { $script:polylineDraftActive } else { $false }
+        $draftReady = if ($toolMode -eq "Text") { $script:textDraftActive -and -not [string]::IsNullOrWhiteSpace($txtAnnotationText.Text) } elseif ($toolMode -eq "Line") { $script:lineDraftActive } elseif ($toolMode -eq "Polyline") { $script:polylineDraftActive } elseif (Test-IsShapeDrawTool) { $hasSelection } else { $false }
         $btnAddRedaction.Enabled = ($hasVideo -and (($drawTool -and $draftReady) -or (-not $drawTool -and $hasSelection -and $hasAppearance)))
         Set-RedactionButtonColor $btnAddRedaction $(if ($btnAddRedaction.Enabled) { "green" } else { "grey" })
         $rbRectangle.Enabled = $true
@@ -11653,6 +11788,7 @@ function Update-RedactionButtons {
         $rbText.Enabled = $true
         $rbLine.Enabled = $true
         $rbPolyline.Enabled = $true
+        $rbDrawRectangle.Enabled=$true;$rbDrawOval.Enabled=$true;$rbDrawFreeform.Enabled=$true
         $styleEnabled = [bool]($script:fillEnabled -and -not $drawTool)
         $rbModeBlack.Enabled = $styleEnabled
         $rbModeBlur.Enabled = [bool]($styleEnabled -and -not $managedBlocksVisualObscuration)
@@ -11667,7 +11803,7 @@ function Update-RedactionButtons {
         $btnCancelRedaction.Enabled = $true
         $rbModeBlack.Enabled = $false; $rbModeBlur.Enabled = $false; $rbModePixelate.Enabled = $false
         $rbRectangle.Enabled = $false; $rbOval.Enabled = $false; $rbFreeform.Enabled = $false
-        $rbText.Enabled = $false; $rbLine.Enabled = $false; $rbPolyline.Enabled = $false
+        $rbText.Enabled = $false; $rbLine.Enabled = $false; $rbPolyline.Enabled = $false; $rbDrawRectangle.Enabled=$false;$rbDrawOval.Enabled=$false;$rbDrawFreeform.Enabled=$false
         if ($lvRedactions) { $lvRedactions.Enabled = $false }
         if ($lvAnnotations) { $lvAnnotations.Enabled = $false }
     }
@@ -11682,7 +11818,7 @@ function Update-RedactionButtons {
         $btnCancelRedaction.Enabled = $draftPresent
         $rbModeBlack.Enabled = $false; $rbModeBlur.Enabled = $false; $rbModePixelate.Enabled = $false
         $rbRectangle.Enabled = $true; $rbOval.Enabled = $true; $rbFreeform.Enabled = $true
-        $rbText.Enabled = $true; $rbLine.Enabled = $true; $rbPolyline.Enabled = $true
+        $rbText.Enabled = $true; $rbLine.Enabled = $true; $rbPolyline.Enabled = $true; $rbDrawRectangle.Enabled=$true;$rbDrawOval.Enabled=$true;$rbDrawFreeform.Enabled=$true
         if ($lvRedactions) { $lvRedactions.Enabled = $true }
         if ($lvAnnotations) { $lvAnnotations.Enabled = $true }
     }
@@ -11724,7 +11860,12 @@ function Update-RedactionButtons {
     }
 
     $hasStandaloneAnnotations = [bool]($annotations -and $annotations.Count -gt 0)
-    $btnExport.Enabled = ($hasVideo -and -not $script:pendingAnnotation -and ($redactions.Count -gt 0 -or $hasStandaloneAnnotations -or ($isImageMode -and $script:ImageCrop)))
+    # r8: a session-owned screenshot is itself valid image output. Mirror the
+    # immediate Copy affordance: Export Image is available even when there are
+    # no committed redactions/annotations and no crop. Normal user-opened media
+    # retains the existing committed-content requirement.
+    $canExportPlainScreenshot = [bool]($isImageMode -and (Test-IsCurrentSourceSessionScreenshot) -and -not $script:pendingAnnotation)
+    $btnExport.Enabled = ($hasVideo -and -not $script:pendingAnnotation -and ($redactions.Count -gt 0 -or $hasStandaloneAnnotations -or ($isImageMode -and $script:ImageCrop) -or $canExportPlainScreenshot))
     if ($isImageMode) {
         $btnExport.Text = if($isImageMode -and $script:ImageCrop -and $redactions.Count -eq 0 -and -not $hasStandaloneAnnotations){"Export Cropped Image"} elseif ($redactions.Count -gt 0) { "Export Redacted Image" } elseif ($hasStandaloneAnnotations) { "Export Annotated Image" } else { "Export Image" }
     }
@@ -12255,18 +12396,49 @@ function Show-VideoLoadingNotice {
     $script:LoadingNotice=$notice;$script:LoadingCancel=$cancel;$script:LoadingTitle=$title
     $notice.Show($form)
 }
+function Test-IsCurrentSourceSessionScreenshot {
+    if (-not $isImageMode -or [string]::IsNullOrWhiteSpace([string]$videoPath)) { return $false }
+    if ($script:sourceIsScreenshot) { return $true }
+    $state = $script:CaptureState
+    if (-not $state -or -not $state.Files) { return $false }
+    try {
+        $full = [IO.Path]::GetFullPath([string]$videoPath)
+        foreach ($candidate in @($state.Files.ToArray())) {
+            if ([string]::IsNullOrWhiteSpace([string]$candidate)) { continue }
+            if ([string]::Equals([IO.Path]::GetFullPath([string]$candidate),$full,[StringComparison]::OrdinalIgnoreCase) -and
+                [IO.Path]::GetExtension([string]$candidate).Equals('.png',[StringComparison]::OrdinalIgnoreCase)) {
+                return $true
+            }
+        }
+    } catch {}
+    return $false
+}
+
 function Update-CopyButton {
     if(-not $btnCopyImage){return}
     $btnCopyImage.Visible=[bool]($videoPath -and $isImageMode)
-    $btnCopyImage.Enabled=[bool]($btnCopyImage.Visible -and $btnExport.Enabled -and -not $script:ExportBusy)
-    $ink=if($btnCopyImage.Enabled){[Drawing.Color]::White}else{[Drawing.Color]::Gray}
-    $btnCopyImage.Image=Get-ThemedIconImage 'copy' $ink
-    $btnCopyImage.BackColor=$btnExport.BackColor;$btnCopyImage.ForeColor=$btnExport.ForeColor
-    $btnCopyImage.FlatAppearance.BorderColor=$btnExport.FlatAppearance.BorderColor
-    $btnCopyImage.Cursor=$btnExport.Cursor;$btnCopyImage.Invalidate()
+    $btnCopyImage.Enabled=[bool]($btnCopyImage.Visible -and -not $script:ExportBusy -and ($btnExport.Enabled -or (Test-IsCurrentSourceSessionScreenshot)))
+
+    # Copy has its own actionable state. In particular, a fresh TRT screenshot can
+    # be copied before Export is available, so borrowing Export's BackColor made an
+    # enabled Copy button look disabled (white glyph on the pale disabled surface).
+    if($btnCopyImage.Enabled){
+        $btnCopyImage.Image=Get-ThemedIconImage 'copy' ([Drawing.Color]::White)
+        $btnCopyImage.BackColor=$script:cAccentCurrent
+        $btnCopyImage.ForeColor=[Drawing.Color]::White
+        $btnCopyImage.FlatAppearance.BorderColor=$script:cAccentCurrent
+        $btnCopyImage.Cursor=[System.Windows.Forms.Cursors]::Hand
+    } else {
+        $btnCopyImage.Image=Get-ThemedIconImage 'copy' ([Drawing.Color]::Gray)
+        $btnCopyImage.BackColor=$script:cButtonCurrent
+        $btnCopyImage.ForeColor=$script:cMutedCurrent
+        $btnCopyImage.FlatAppearance.BorderColor=$script:cBorderCurrent
+        $btnCopyImage.Cursor=[System.Windows.Forms.Cursors]::Default
+    }
+    $btnCopyImage.Invalidate()
 }
 
-function Open-TRTMediaPath([string]$selectedPath) {
+function Open-TRTMediaPath([string]$selectedPath, [bool]$capturedScreenshot = $false) {
     if($script:MediaWorker -or $script:ExportBusy){return}
     $networkReason=Get-NetworkPathReason $selectedPath
     if($networkReason){
@@ -12280,19 +12452,19 @@ function Open-TRTMediaPath([string]$selectedPath) {
                 $body=(Get-Command Get-VideoInfo -CommandType Function).Definition
         $body=$body.Replace('$bytes = $ms.ToArray()','$bytes = $ms.ToArray(); $info.FirstFrameBytes=$bytes').Replace('$copyTask.GetAwaiter().GetResult()','[void]$copyTask.GetAwaiter().GetResult()')
         $info=& ([scriptblock]::Create($body)) $ffmpeg $ffprobe $selectedPath $true
-        Complete-MediaLoad $info $null $false @{Path=$selectedPath;Image=$true};return
+        Complete-MediaLoad $info $null $false @{Path=$selectedPath;Image=$true;Screenshot=$capturedScreenshot};return
     }
     Stop-Playback;Set-ExportWindowBusy $true;$script:CaptureState.Busy=$true
     try{
         Show-VideoLoadingNotice
-        Start-MediaWorker 'Load' @{Mpeg=$ffmpeg;Probe=$ffprobe;Path=$selectedPath;Image=$false} ${function:Complete-MediaLoad} @{Path=$selectedPath;Image=$false}
+        Start-MediaWorker 'Load' @{Mpeg=$ffmpeg;Probe=$ffprobe;Path=$selectedPath;Image=$false} ${function:Complete-MediaLoad} @{Path=$selectedPath;Image=$false;Screenshot=$false}
     }catch{
         Close-VideoLoadingNotice;Set-ExportWindowBusy $false;$script:CaptureState.Busy=$false
         Remove-UnusedCaptureFiles;throw
     }
 }
 function Complete-MediaLoad($info,$failure,$cancelled,$context) {
-    $selectedPath=$context.Path;$newImageMode=$context.Image
+    $selectedPath=$context.Path;$newImageMode=$context.Image;$capturedScreenshot=[bool]$context.Screenshot
     Close-VideoLoadingNotice
     if(-not $newImageMode){Set-ExportWindowBusy $false;$script:CaptureState.Busy=$false}
     try{
@@ -12305,6 +12477,7 @@ function Complete-MediaLoad($info,$failure,$cancelled,$context) {
     $script:ImageCrop=$null;$script:CropDraft=$null;$script:CropGesture=$null
     $script:videoPath = $selectedPath
     $script:isImageMode = $newImageMode
+    $script:sourceIsScreenshot = [bool]($newImageMode -and $capturedScreenshot)
     # B1 reset boundary: every newly accepted media source starts with no
     # additional user rotation. The existing preflight dimensions already
     # represent source autorotation and are kept separately from UserRotation.
@@ -12667,6 +12840,14 @@ $toolbar.Add_MouseMove({param($sender,$e)
 
 function Update-ToolHintText {
     if (-not $lblToolHint) { return }
+    if (Test-IsShapeDrawTool) {
+        $lblToolHint.Text = switch ($script:toolMode) {
+            "Oval" { if($isImageMode){"Oval Drawing: drag an outline. Hold Shift for a circle, then Create Annotation."}else{"Oval Drawing: drag an outline. Hold Shift for a circle, then use Begin Annotation."} }
+            "Polygon" { if($isImageMode){"Freeform Drawing: click points and close at the yellow start point, then Create Annotation."}else{"Freeform Drawing: click points and close it, then use Begin Annotation."} }
+            default { if($isImageMode){"Rectangle Drawing: drag an outline. Hold Shift for a square, then Create Annotation."}else{"Rectangle Drawing: drag an outline. Hold Shift for a square, then use Begin Annotation."} }
+        }
+        return
+    }
     switch ($script:toolMode) {
         "Text"     { $lblToolHint.Text = if ($isImageMode) { "Text Box: drag a box, type in the floating editor, then reposition/resize and add." } else { "Text Box: drag a box, type in the floating editor, then use Begin Annotation." } }
         "Line"     { $lblToolHint.Text = if ($isImageMode) { "Line: drag start to end, reposition if needed, then choose Create Annotation." } else { "Line: drag start to end, reposition if needed, then use Begin Annotation." } }
@@ -12701,6 +12882,8 @@ function Set-ToolMode([string]$mode) {
 }
 $rbRectangle.Add_CheckedChanged({
     if ($rbRectangle.Checked) {
+        $script:shapeDrawingMode=$false
+        $rbDrawRectangle.Checked=$false;$rbDrawOval.Checked=$false;$rbDrawFreeform.Checked=$false
         $rbText.Checked = $false; $rbLine.Checked = $false; $rbPolyline.Checked = $false
         Reset-ZoomPanGesture
         $script:zoomToolActive = $false
@@ -12710,6 +12893,8 @@ $rbRectangle.Add_CheckedChanged({
 })
 $rbOval.Add_CheckedChanged({
     if ($rbOval.Checked) {
+        $script:shapeDrawingMode=$false
+        $rbDrawRectangle.Checked=$false;$rbDrawOval.Checked=$false;$rbDrawFreeform.Checked=$false
         $rbText.Checked = $false; $rbLine.Checked = $false; $rbPolyline.Checked = $false
         Reset-ZoomPanGesture
         $script:zoomToolActive = $false
@@ -12719,6 +12904,8 @@ $rbOval.Add_CheckedChanged({
 })
 $rbFreeform.Add_CheckedChanged({
     if ($rbFreeform.Checked) {
+        $script:shapeDrawingMode=$false
+        $rbDrawRectangle.Checked=$false;$rbDrawOval.Checked=$false;$rbDrawFreeform.Checked=$false
         $rbText.Checked = $false; $rbLine.Checked = $false; $rbPolyline.Checked = $false
         Reset-ZoomPanGesture
         $script:zoomToolActive = $false
@@ -12740,6 +12927,7 @@ $rbLine.Add_CheckedChanged({
     if ($rbLine.Checked) {
         $rbCrop.Checked=$false;$rbRectangle.Checked = $false; $rbOval.Checked = $false; $rbFreeform.Checked = $false; $rbZoom.Checked = $false
         $rbText.Checked = $false
+        $script:shapeDrawingMode=$false;$rbDrawRectangle.Checked=$false;$rbDrawOval.Checked=$false;$rbDrawFreeform.Checked=$false
         Reset-ZoomPanGesture
         $script:zoomToolActive = $false
         Set-ToolMode "Line"
@@ -12750,12 +12938,35 @@ $rbPolyline.Add_CheckedChanged({
     if ($rbPolyline.Checked) {
         $rbCrop.Checked=$false;$rbRectangle.Checked = $false; $rbOval.Checked = $false; $rbFreeform.Checked = $false; $rbZoom.Checked = $false
         $rbText.Checked = $false
+        $script:shapeDrawingMode=$false;$rbDrawRectangle.Checked=$false;$rbDrawOval.Checked=$false;$rbDrawFreeform.Checked=$false
         Reset-ZoomPanGesture
         $script:zoomToolActive = $false
         Set-ToolMode "Polyline"
         Update-PreviewCursor
     }
 })
+$rbDrawRectangle.Add_CheckedChanged({
+    if($rbDrawRectangle.Checked){
+        $rbCrop.Checked=$false;$rbRectangle.Checked=$false;$rbOval.Checked=$false;$rbFreeform.Checked=$false;$rbZoom.Checked=$false
+        $rbText.Checked=$false;$rbLine.Checked=$false;$rbPolyline.Checked=$false;$rbDrawOval.Checked=$false;$rbDrawFreeform.Checked=$false
+        $script:shapeDrawingMode=$true;Reset-DrawingState;Set-ToolMode "Rectangle";Sync-DraftAppearanceDefaultsToControls;Update-OutlineControlsAvailability;Update-ToolHintText;Update-RedactionButtons;Update-PreviewCursor
+    }
+})
+$rbDrawOval.Add_CheckedChanged({
+    if($rbDrawOval.Checked){
+        $rbCrop.Checked=$false;$rbRectangle.Checked=$false;$rbOval.Checked=$false;$rbFreeform.Checked=$false;$rbZoom.Checked=$false
+        $rbText.Checked=$false;$rbLine.Checked=$false;$rbPolyline.Checked=$false;$rbDrawRectangle.Checked=$false;$rbDrawFreeform.Checked=$false
+        $script:shapeDrawingMode=$true;Reset-DrawingState;Set-ToolMode "Oval";Sync-DraftAppearanceDefaultsToControls;Update-OutlineControlsAvailability;Update-ToolHintText;Update-RedactionButtons;Update-PreviewCursor
+    }
+})
+$rbDrawFreeform.Add_CheckedChanged({
+    if($rbDrawFreeform.Checked){
+        $rbCrop.Checked=$false;$rbRectangle.Checked=$false;$rbOval.Checked=$false;$rbFreeform.Checked=$false;$rbZoom.Checked=$false
+        $rbText.Checked=$false;$rbLine.Checked=$false;$rbPolyline.Checked=$false;$rbDrawRectangle.Checked=$false;$rbDrawOval.Checked=$false
+        $script:shapeDrawingMode=$true;Reset-DrawingState;Set-ToolMode "Polygon";Sync-DraftAppearanceDefaultsToControls;Update-OutlineControlsAvailability;Update-ToolHintText;Update-RedactionButtons;Update-PreviewCursor
+    }
+})
+
 $rbZoom.Add_CheckedChanged({
     if ($rbZoom.Checked) {
         $rbText.Checked = $false; $rbLine.Checked = $false; $rbPolyline.Checked = $false
@@ -12776,14 +12987,9 @@ $btnZoomIn.Add_Click({ Step-ZoomAtViewPoint 1 (Get-ViewportCenterPoint) })
 $btnZoomOut.Add_Click({ Step-ZoomAtViewPoint -1 (Get-ViewportCenterPoint) })
 
 $picture.Add_MouseEnter({
-    # v2.1: wheel zoom is always available while the pointer is over the loaded
-    # preview, regardless of which drawing/view tool is selected. MouseWheel is
-    # delivered to the focused WinForms control, so focus the preview on entry.
-    # Form.KeyPreview keeps the existing keyboard shortcuts available.
-    if ($previewImage) {
-        [void]$picture.Focus()
-    }
-
+    # Do not focus/activate TRT merely because the pointer moved over the preview.
+    # Hover-driven Focus() can raise the maximized main window above unrelated
+    # applications. Preview focus is instead taken on an actual mouse interaction.
     if ($script:zoomToolActive -or $script:spacePanActive -or $script:middlePanActive -or $script:rightPanActive) {
         Update-PreviewCursor
     }
@@ -12791,6 +12997,9 @@ $picture.Add_MouseEnter({
  
 $picture.Add_MouseDown({
     param($sender,$e)
+    # An explicit click is an appropriate point to focus the preview for wheel
+    # zoom and keyboard interaction; hover alone must never activate TRT.
+    if ($previewImage -and $picture.CanFocus) { [void]$picture.Focus() }
     if($isImageMode -and $script:ImageCrop -and $toolMode -ne 'Crop' -and -not (MediaRect-To-ViewRect $script:ImageCrop).Contains([Drawing.PointF]::new($e.X,$e.Y))){return}
     if($isImageMode -and $toolMode -eq 'Crop'){Start-CropGesture $e;;return}
     if (-not $previewImage) { return }
@@ -13240,6 +13449,7 @@ $picture.Add_MouseDown({
             if ($polygonPoints.Count -ge 3 -and $distToStart -le 10.0) {
                 $script:polygonActive = $false
                 Update-SelectionFields $null "Selection: freeform closed ($($polygonPoints.Count) points)."
+                if (Test-IsShapeDrawTool) { [void](Show-FloatingTextEditor "Draft") }
             }
             else {
                 $script:polygonPoints.Add($mediaPt)
@@ -13298,6 +13508,16 @@ $picture.Add_MouseDoubleClick({
         [void](Show-FloatingTextEditor "Draft")
         return
     }
+    if (Test-IsShapeDrawTool) {
+        $shapeData = Get-CurrentShapeVideoData
+        if ($shapeData) {
+            $draftShape = New-ShapeOutlineAnnotation $shapeData $script:outlineColor $script:outlineWidth $script:outlineDashStyle (Get-CurrentOutlineJoinStyle) -1 -1
+            if ($draftShape -and (Test-CommittedAnnotationHit $draftShape $viewPt)) {
+                [void](Show-FloatingTextEditor "Draft")
+                return
+            }
+        }
+    }
     $mediaPt=ViewPoint-To-MediaPoint $viewPt $false
     if($mediaPt -and -not $pendingRedaction -and -not $script:pendingAnnotation){
         for($idx=$redactions.Count-1;$idx -ge 0;$idx--){
@@ -13307,15 +13527,15 @@ $picture.Add_MouseDoubleClick({
         }
     }
     $a = Get-SelectedAppearanceAnnotation
-    if ($a -and $a.Kind -in @("Text","Line","Polyline") -and (Test-CommittedAnnotationHit $a $viewPt)) {
+    if ($a -and $a.Kind -in @("Text","Line","Polyline","ShapeOutline") -and (Test-CommittedAnnotationHit $a $viewPt)) {
         [void](Show-FloatingTextEditor "Committed")
         return
     }
-    # Reopen a visible committed annotation directly from the canvas, even
+    # Reopen/select a visible committed annotation directly from the canvas, even
     # when it was not already selected in the Annotations list.
     for ($idx = $annotations.Count - 1; $idx -ge 0; $idx--) {
         $candidate = $annotations[$idx]
-        if ($candidate.Kind -notin @("Text","Line","Polyline")) { continue }
+        if ($candidate.Kind -notin @("Text","Line","Polyline","ShapeOutline")) { continue }
         if (-not $isImageMode -and -not (Test-AnnotationFrameActive $candidate $currentFrame)) { continue }
         if (Test-CommittedAnnotationHit $candidate $viewPt) {
             Reset-DrawingState
@@ -14146,9 +14366,10 @@ $picture.Add_MouseUp({
         return
     }
  
-    $vr = Selection-To-VideoRect
+    $vr = if (Test-IsShapeDrawTool) { Selection-To-AnnotationRect } else { Selection-To-VideoRect }
     Update-SelectionFields $vr
     Update-RedactionButtons
+    if ((Test-IsShapeDrawTool) -and $vr) { [void](Show-FloatingTextEditor "Draft") }
     $picture.Invalidate()
 })
  
@@ -14493,7 +14714,20 @@ $picture.Add_Paint({
             # screen-pixel constants.
             $dpts = MediaPoints-To-ViewPoints $polygonPoints
             if ($dpts -and $dpts.Count -gt 0) {
-                $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::Red, 2)
+                # Shape Drawing freeform previews use the chosen annotation
+                # colour/thickness/dash immediately, including while the path is
+                # still being created. Redaction Freeform keeps its established
+                # red construction preview.
+                if (Test-IsShapeDrawTool) {
+                    $draftTransform = Get-ViewportTransform
+                    $draftScale = if($draftTransform){([Math]::Abs([double]$draftTransform.ScaleX)+[Math]::Abs([double]$draftTransform.ScaleY))/2.0}else{1.0}
+                    $draftStroke = [Math]::Max(1.0,([double]$script:outlineWidth*$draftScale))
+                    $pen = New-Object System.Drawing.Pen($script:outlineColor,[single]$draftStroke)
+                    $pen.DashStyle = Get-AnnotationDashStyle $script:outlineDashStyle
+                    $pen.LineJoin = Get-AnnotationLineJoin (Get-CurrentOutlineJoinStyle)
+                } else {
+                    $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::Red, 2)
+                }
 
                 for ($i = 0; $i -lt $dpts.Count - 1; $i++) {
                     $e.Graphics.DrawLine($pen, $dpts[$i], $dpts[$i+1])
@@ -14502,16 +14736,23 @@ $picture.Add_Paint({
                 if ($polygonActive -and $polygonMousePos) {
                     $mouseView = MediaPoint-To-ViewPoint $polygonMousePos
                     if ($mouseView) {
-                        $dashPen = New-Object System.Drawing.Pen([System.Drawing.Color]::Red, 1)
-                        $dashPen.DashStyle = [System.Drawing.Drawing2D.DashStyle]::Dash
-                        $e.Graphics.DrawLine($dashPen, $dpts[$dpts.Count - 1], $mouseView)
-                        $dashPen.Dispose()
+                        if (Test-IsShapeDrawTool) {
+                            $e.Graphics.DrawLine($pen, $dpts[$dpts.Count - 1], $mouseView)
+                        } else {
+                            $dashPen = New-Object System.Drawing.Pen([System.Drawing.Color]::Red, 1)
+                            $dashPen.DashStyle = [System.Drawing.Drawing2D.DashStyle]::Dash
+                            $e.Graphics.DrawLine($dashPen, $dpts[$dpts.Count - 1], $mouseView)
+                            $dashPen.Dispose()
+                        }
                     }
                 }
                 elseif (-not $polygonActive -and $polygonPoints.Count -ge 3) {
-                    # Closed but not yet committed via Begin/Create Redaction.
-                    if ($isImageMode) {
-                        $shapeData = Polygon-To-VideoShape $polygonPoints
+                    # Closed but not yet committed. Shape Drawing is always annotation-only.
+                    $shapeData = if (Test-IsShapeDrawTool) { Polygon-To-AnnotationShape $polygonPoints } else { Polygon-To-VideoShape $polygonPoints }
+                    if (Test-IsShapeDrawTool) {
+                        if($shapeData){Draw-DraftShapeOutlineToView $e.Graphics $shapeData}
+                    }
+                    elseif ($isImageMode) {
                         if ($shapeData) {
                             if ($script:fillEnabled) {
                                 $shapeData.Mode = Get-SelectedMode
@@ -14554,7 +14795,15 @@ $picture.Add_Paint({
     elseif ($selection.Width -gt 0.0 -and $selection.Height -gt 0.0) {
         $displaySelection = MediaRect-To-ViewRect $selection
         if ($displaySelection) {
-            if ($isImageMode) {
+            if (Test-IsShapeDrawTool) {
+                $vr=Selection-To-AnnotationRect
+                if($vr){
+                    $shapeData=@{Shape=if($toolMode -eq "Oval"){"Oval"}else{"Rectangle"};X=$vr.X;Y=$vr.Y;W=$vr.W;H=$vr.H}
+                    $shapeData.DraftDisplayRect=$displaySelection
+                    Draw-DraftShapeOutlineToView $e.Graphics $shapeData
+                }
+            }
+            elseif ($isImageMode) {
                 $vr = Selection-To-VideoRect
                 if ($vr) {
                     $shapeData = @{
@@ -14649,7 +14898,7 @@ $scrubberMarkers.Add_Paint({
     $annotationBrush = New-Object System.Drawing.SolidBrush($annotationColor)
 
     foreach ($a in $annotations) {
-        if ($a.Kind -notin @("Text","Line","Polyline")) { continue }
+        if ($a.Kind -notin @("Text","Line","Polyline","ShapeOutline")) { continue }
         $ar = Get-AnnotationFrameRange $a
         if ([int]$ar.End -lt [int]$ar.Start) { continue }
         $startTime = Get-FramePresentationTime ([int]$ar.Start)
@@ -14823,7 +15072,7 @@ $btnEndRedaction.Add_Click({
 $btnAddRedaction.Add_Click({
     if($isImageMode -and $toolMode -eq 'Crop'){Confirm-ImageCrop;return}
     if (-not $videoPath -or -not $isImageMode) { return }
-    if (Test-IsStandaloneDrawTool) {
+    if (Test-IsDirectDrawTool) {
         Close-FloatingTextEditor $false
         if ($toolMode -eq "Text") { Confirm-TextAnnotation } else { Confirm-DrawingAnnotation }
         return
@@ -14850,7 +15099,7 @@ $btnAddRedaction.Add_Click({
         return
     }
 
-    if (-not $script:fillEnabled) {
+    if ((Test-IsShapeDrawTool) -or -not $script:fillEnabled) {
         # Annotation-only objects are deliberately stored outside $redactions.
         # They never enter Build-RedactionFilterComplex or security-mask logic.
         $commitOrder = Get-NextObjectCommitOrder
@@ -14992,7 +15241,7 @@ function Complete-AsyncExport($result,$failure,$cancelled,$context) {
                 try{$clipboardBitmap=[Drawing.Bitmap]::new($image)}finally{$image.Dispose()}
             }finally{$stream.Dispose()}
             try{[Windows.Forms.Clipboard]::SetImage($clipboardBitmap)}finally{$clipboardBitmap.Dispose()}
-            $status.Text='Redacted image copied to clipboard.'
+            $status.Text=if($redactions.Count -gt 0){'Redacted image copied to clipboard.'}elseif($annotations.Count -gt 0){'Annotated image copied to clipboard.'}else{'Screenshot copied to clipboard.'}
             Show-ClipboardConfirmation
         }else{
         # Commit only after validation. Existing destination files remain
@@ -15066,7 +15315,8 @@ $btnExport.Add_Click({
     Stop-Playback
 
     $hasStandaloneAnnotations = [bool]($annotations.Count -gt 0)
-    if ($redactions.Count -eq 0 -and -not $hasStandaloneAnnotations -and -not ($isImageMode -and $script:ImageCrop)) {
+    $plainScreenshotExport = [bool]($isImageMode -and (Test-IsCurrentSourceSessionScreenshot) -and $redactions.Count -eq 0 -and -not $hasStandaloneAnnotations -and -not $script:ImageCrop)
+    if ($redactions.Count -eq 0 -and -not $hasStandaloneAnnotations -and -not ($isImageMode -and $script:ImageCrop) -and -not $plainScreenshotExport) {
         [System.Windows.Forms.MessageBox]::Show(
             "Create at least one redaction or annotation before exporting.",
             "Nothing to export",
@@ -15096,10 +15346,10 @@ $btnExport.Add_Click({
     $selectedFormat = if($copyOperation){"PNG"}else{[string]$cmbFormat.SelectedItem}
     if (-not $selectedFormat) { $selectedFormat = if ($isImageMode) { "PNG" } else { "MP4" } }
     $outExt = "." + $selectedFormat.ToLowerInvariant()
-    $outputPrefix = if($isImageMode -and $script:ImageCrop -and $redactions.Count -eq 0 -and -not $hasStandaloneAnnotations){"CROPPED_"} elseif ($redactions.Count -eq 0 -and $hasStandaloneAnnotations) { "ANNOTATED_" } else { "REDACTED_" }
+    $outputPrefix = if($plainScreenshotExport){"SCREENSHOT_"} elseif($isImageMode -and $script:ImageCrop -and $redactions.Count -eq 0 -and -not $hasStandaloneAnnotations){"CROPPED_"} elseif ($redactions.Count -eq 0 -and $hasStandaloneAnnotations) { "ANNOTATED_" } else { "REDACTED_" }
     $neutralName = $outputPrefix + (Get-Date -Format "yyyyMMdd_HHmmss") + $outExt
     $saveFilter = if ($isImageMode) { "$selectedFormat image|*$outExt|All files|*.*" } else { "$selectedFormat video|*$outExt|All files|*.*" }
-    $saveTitle = if($isImageMode -and $script:ImageCrop -and $redactions.Count -eq 0 -and -not $hasStandaloneAnnotations){"Save cropped image"} elseif ($redactions.Count -eq 0 -and $hasStandaloneAnnotations) { if ($isImageMode) { "Save annotated image" } else { "Save annotated video" } } elseif ($isImageMode) { "Save redacted image" } else { "Save redacted video" }
+    $saveTitle = if($plainScreenshotExport){"Save screenshot"} elseif($isImageMode -and $script:ImageCrop -and $redactions.Count -eq 0 -and -not $hasStandaloneAnnotations){"Save cropped image"} elseif ($redactions.Count -eq 0 -and $hasStandaloneAnnotations) { if ($isImageMode) { "Save annotated image" } else { "Save annotated video" } } elseif ($isImageMode) { "Save redacted image" } else { "Save redacted video" }
 
     try {
         $out = if($copyOperation){New-CaptureFile '.png'}else{[SecureFileDialogNativeV2]::ShowSave($form.Handle, $saveFilter, $saveTitle, $neutralName, $selectedFormat.ToLowerInvariant())}
@@ -15180,6 +15430,14 @@ $btnExport.Add_Click({
         $built = Build-RedactionFilterComplex $exportRedactions $maskPaths
         $filterComplex = $built.FilterComplex
         $finalLabel = $built.FinalLabel
+        # A no-edit screenshot has no redaction/annotation filter stages. FFmpeg
+        # still needs a named output pad because the established image export
+        # path maps [$finalLabel] from -filter_complex. Add a no-op named pad
+        # rather than special-casing the rest of the validated export pipeline.
+        if ($plainScreenshotExport -and [string]::IsNullOrWhiteSpace($filterComplex)) {
+            $filterComplex = "[0:v]null[shot0]"
+            $finalLabel = "shot0"
+        }
         $maskInputArgsStr = if ($built.MaskInputArgs.Count -gt 0) { " -i " + ([string]::Join(" -i ", $built.MaskInputArgs)) } else { "" }
         $annotationInputArgsStr = ""
 
@@ -15334,7 +15592,10 @@ $btnExport.Add_Click({
         $progress.Visible = $true
         $btnExport.Enabled = $false
         Update-ExportButtonAppearance
-        if ($redactions.Count -eq 0 -and $annotations.Count -gt 0) {
+        if ($plainScreenshotExport) {
+            $status.Text = "Exporting screenshot..."
+        }
+        elseif ($redactions.Count -eq 0 -and $annotations.Count -gt 0) {
             $status.Text = "Exporting $($annotations.Count) annotation(s)..."
         }
         elseif ($annotations.Count -gt 0) {

@@ -1,13 +1,13 @@
 TinyRedactionTool
-Version: 2.5.0
-Release tag: v2.5.0
-Prepared: 2026-10-04
-Status: Final; user-approved
+Version: 2.5.1
+Release tag: v2.5.1
+Prepared: 2026-10-05
+Status: Source final; promoted from user-tested v2.5.0-r8 candidate
 
-Company governance review is separate from final release status.
+Company governance review is separate from release status.
 
 Final source SHA-256:
-EA3AB99E84C36196469238A531885553A51B59EF08EE9BA9E0249391FA085770
+2BDA3D0E6ED8F6E12004B549B16E54998CC3A04AACFC7A8B8AD8D0221AA2F7A4
 
 Final EXE SHA-256:
-3FB744EB07B7AE786B6DC91C437E0E2F1AB628854A416E3D354DF9A9B42A99A3
+PENDING WINDOWS POWERSHELL 5.1 BUILD AND ACCEPTANCE CHECK

@@ -1,24 +1,31 @@
-# TinyRedactionTool v2.5.0 source/build handoff
+# TinyRedactionTool v2.5.1 source/build handoff
 
-Run `BUILD-v2.5.0.cmd` on Windows with Windows PowerShell 5.1. No administrator rights or downloads are required. The result is `output\TinyRedactionTool.exe`; the delivered release EXE is not overwritten. The builder pins source, supplied icon, original and adapted compiler, compressed payloads and the hashes of both decompressed approved media binaries. It parses the source before compiling. Inputs are pinned; byte-for-byte reproducible EXE hashes are not promised because compiler outputs may contain varying build metadata.
+Run `BUILD-v2.5.1.cmd` on Windows with Windows PowerShell 5.1. No administrator rights or downloads are required when the complete existing `packaging/` inputs are present. The result is `output\TinyRedactionTool.exe`. The builder pins the v2.5.1 source, supplied icon, original/adapted compiler, compressed payloads and both decompressed approved media-binary hashes, and parses the source before compilation.
 
-This bundle repackages the exact accepted media binaries. It does not contain/rebuild the complete historic MSYS2/FFmpeg source toolchain. Preserve `_CustomFFmpegBuild` if you already have it. The upstream README's original FFmpeg build information is retained for reference, but is not a claim that that historical toolchain is included here. A company requesting a complete media-tool rebuild must retain/review the matching source/toolchain separately.
+The v2.5.1 application source SHA-256 is `2BDA3D0E6ED8F6E12004B549B16E54998CC3A04AACFC7A8B8AD8D0221AA2F7A4`. The EXE file version is `2.5.1.0`.
 
-PS2EXE 1.0.18 was fetched from the official PowerShell Gallery package, whose original package SHA-256 is `692124163D0E71262D76E2F2B2588E1661DF28A8F0CF3B1725E47A957AFCE39F`. The original compiler script and its licence are supplied under vendor. See https://github.com/MScholtes/PS2EXE and https://www.powershellgallery.com/packages/ps2exe/1.0.18 .
+## Relationship to v2.5.0
 
-The adapted `vendor/ps2exe-resource-only.ps1` differs by exactly one AST assignment: the `$EMBEDSECTION` assignment containing `tgtFile = Environment.ExpandEnvironmentVariables` is replaced by `$EMBEDSECTION += ""`. This keeps resource embedding but removes the automatic pre-script filesystem extraction. `COMPILER-RESOURCE-ONLY.patch` makes the adaptation reviewable. The script reads named GZip resources from its own entry assembly after obtaining the instance guard and validating policy, then expands, verifies and locks the approved tools in its own leased runtime folder.
+v2.5.1 is a focused maintenance release promoted from the user-tested `v2.5.0-r8` candidate. `V2.5.0-TO-V2.5.1.patch` is the complete source diff against the published v2.5.0 source (`EA3AB99E84C36196469238A531885553A51B59EF08EE9BA9E0249391FA085770`).
 
-`C9-TO-RELEASE.patch` documents the application changes: icon/header assets, resource names, three resource-bootstrap functions and three runtime ownership helpers. All 301 other C9 functions, the source parameter block and protected top-level event handlers/statements remain byte-identical. Parser/static and runtime reports are supplied in evidence. C9 is the user-accepted behavioural baseline.
+The maintenance changes cover outline-only Rectangle/Oval/Freeform drawing annotations; screenshot copy/export eligibility and button state; exact annotation geometry; dark-theme floating-editor styling; Dark Mode startup; maximized/one-shot foreground startup; and removal of focus-on-mouse-enter activation.
 
-Approved decompressed tool hashes:
+The approved embedded FFmpeg/FFprobe binaries, decompressed media-tool identities, resource-only PS2EXE adaptation and runtime ownership model are unchanged. Historical v2.5.0 evidence therefore remains useful provenance for those unchanged components, but it must not be misrepresented as a complete automated validation record for the new v2.5.1 application source.
+
+## Approved decompressed media-tool hashes
 
 - FFmpeg: `643D9CFE006D0F72763B7A46B66AC23067B6A8BF4C113044781C11E862C34AFC`
 - FFprobe: `84F5DEDA1C8D648A588AEE7BAD7148EE0DA02569C39A7C1B41048729BE9763F2`
 
-The packaged source and licence are supplied; PS2EXE packaging does not hide or authenticate the source. The shipped EXE is unsigned. Any company signing changes its final EXE hash and needs a new signed-artifact manifest. The source/build bundle includes original compiler inputs and adaptation, rather than requiring reviewers to trust an opaque new compiler.
+Compressed payload hashes remain:
 
-Acceptance limits: synthetic fixture tests exercise the compiled resource bootstrap, approved media tools, actual image export validation, crop/redaction output, themed loading/clipboard dialogs and normal Quit. A bitmap sink substitutes only clipboard transfer to preserve the user's clipboard. Runtime tests separately launch the unmodified delivered EXE, test second-launch handoff, force termination/relaunch recovery, and send a session-end message only to that owned process to verify normal shutdown cleanup. No private screen recording is made. Representative long videos, live global capture shortcuts, actual clipboard paste, UNC/mapped shares, deployment ACLs and mandatory-policy decisions remain explicit final acceptance work in the policy guide.
+- `ffmpeg.exe.gz`: `E1A56476BC46685869D2C7B0B9AA101816D89A2907826DC2BA2B418D644268AC`
+- `ffprobe.exe.gz`: `A4657F326AD8AFB9999CB83C87D33D895F25729ECDF4207CBDC23AAECBDA82E7`
 
-## Final promotion
+## Compiler
 
-The user approved v2.5.0 final. Only the top source identity comment changed during promotion; all subsequent source bytes are identical to the tested release candidate. The EXE was rebuilt and its final runtime checks passed. Historical evidence retains its original labels. Use the new final source/EXE/ZIP hashes.
+PS2EXE 1.0.18 and `vendor/ps2exe-resource-only.ps1` are unchanged from v2.5.0. The adapted compiler suppresses automatic pre-script file extraction while retaining named resource embedding. `COMPILER-RESOURCE-ONLY.patch` remains the review artifact for that one-assignment adaptation.
+
+## Final promotion requirement
+
+Build the EXE on Windows, perform the v2.5.1 manual acceptance checks in `RELEASE-NOTES-v2.5.1.md`, then record the resulting EXE SHA-256 in `VERSION.txt`/release hashes before publishing binary release artifacts. Do not copy the v2.5.0 EXE hash forward. Any company signing step changes the final executable hash.
