@@ -178,7 +178,7 @@ The technical sections below retain the established rendering/timing architectur
 **Licence:** GPL-2.0-or-later
 **Repository:** https://github.com/mccabedd/tinyredactiontool/
 
-v2.5.1 is a focused maintenance release built on the v2.5.0 release architecture and the user-tested r1-r8 candidate sequence. The approved embedded FFmpeg/FFprobe binaries and the established CFR/VFR timing, redaction rendering, export validation, managed-policy and runtime-ownership architecture are retained. The new source still requires a local Windows PowerShell 5.1 packaging build before an EXE-specific SHA-256 can be recorded.
+v2.5.1 is a focused maintenance release built on the v2.5.0 release architecture and the user-tested r1-r8 candidate sequence. The approved embedded FFmpeg/FFprobe binaries and the established CFR/VFR timing, redaction rendering, export validation, managed-policy and runtime-ownership architecture are retained. A Windows PowerShell 5.1 packaging build has been completed for this source. The resulting EXE SHA-256 is `C50E88EFCA816C42175A0783A78AE9290A5217FFEEE8755738CBB2546ECA34DC`.
 
 ## Supported media
 

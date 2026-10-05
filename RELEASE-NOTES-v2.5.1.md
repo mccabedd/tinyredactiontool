@@ -32,7 +32,7 @@ The approved custom FFmpeg/FFprobe binaries are unchanged. Existing CFR/VFR timi
 
 The repository/source pack includes a Windows PowerShell 5.1 offline packaging builder pinned to the v2.5.1 source plus the unchanged approved media resources/compiler inputs already present in `packaging/`.
 
-An EXE-specific SHA-256 is **not** invented here: build the final Windows EXE first, test it, then record its hash in the release manifest. PS2EXE output can also vary because compiler metadata is not promised to be bit-for-bit reproducible. Company signing changes the final EXE hash again.
+The Windows PowerShell 5.1 build produced `TinyRedactionTool.exe` with SHA-256 `C50E88EFCA816C42175A0783A78AE9290A5217FFEEE8755738CBB2546ECA34DC`. PS2EXE output is not promised to be bit-for-bit reproducible across rebuilds because compiler metadata can vary. Company signing changes the final EXE hash again.
 
 ## Suggested final manual check
 
