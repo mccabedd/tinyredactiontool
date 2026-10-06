@@ -23,6 +23,14 @@ This release is promoted from the user-tested `v2.5.0-r8` candidate. Company sec
 - Drawing annotation handles and visible outlines now share the same exact media-space geometry instead of mixing annotation coordinates with redaction even-pixel normalisation.
 - Floating editor title/close text follows Dark/Day theme colours.
 - Copy and Export Image have independent enabled visual states for current-session screenshots.
+- Text annotation Bold, Italic and Left/Centre/Right alignment controls remain clearly visible in Dark Mode.
+- Still screenshots are cropped from the pre-selector desktop snapshot so transient UI such as dropdowns, menus and tooltips can be captured before focus changes close them.
+
+- Dark-mode Text Bold, Italic and justification controls remain clearly visible.
+- Still screenshots preserve transient UI such as dropdowns, menus and tooltips by using the pre-selector desktop snapshot.
+- Completed still-image redaction and annotation drafts can be committed by clicking outside the object as well as with the green Create button.
+- Floating redaction and annotation editors include direct trashcan delete/cancel controls.
+- Floating editor layouts are compact and tailored to each tool to avoid clipped controls and unnecessary empty space.
 
 ## Preserved
 
@@ -30,9 +38,13 @@ The approved custom FFmpeg/FFprobe binaries are unchanged. Existing CFR/VFR timi
 
 ## Build and hashes
 
-The repository/source pack includes a Windows PowerShell 5.1 offline packaging builder pinned to the v2.5.1 source plus the unchanged approved media resources/compiler inputs already present in `packaging/`.
+The frozen v2.5.1 application source SHA-256 is:
 
-The Windows PowerShell 5.1 build produced `TinyRedactionTool.exe` with SHA-256 `C50E88EFCA816C42175A0783A78AE9290A5217FFEEE8755738CBB2546ECA34DC`. PS2EXE output is not promised to be bit-for-bit reproducible across rebuilds because compiler metadata can vary. Company signing changes the final EXE hash again.
+`CA2CC6EBD3BDB48737B249A96F8953D2007DCB38780606AC2EEE74E5F40A2C3C`
+
+The repository/source pack includes a Windows PowerShell 5.1 offline packaging builder pinned to that exact source plus the approved media resources/compiler inputs.
+
+Current executable and archive hashes are published separately in `SHA256SUMS-v2.5.1.txt` with the release assets. Rebuilding or signing the executable can change its binary hash.
 
 ## Suggested final manual check
 

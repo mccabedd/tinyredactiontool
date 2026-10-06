@@ -24,6 +24,14 @@ Focused maintenance release promoted from the user-tested v2.5.0-r8 candidate.
 - Copy and Export Image buttons now have independent enabled visual states for current-session screenshots.
 - Startup reasserts maximized state after the form is shown and performs a one-shot foreground activation request so TRT opens in front of the launching Explorer window where Windows permits it.
 - Removed preview focus-on-mouse-enter behaviour that could cause windows above TRT to drop behind it merely when the pointer crossed the TRT surface.
+- Dark-mode Text formatting controls (Bold, Italic and Left/Centre/Right alignment) now use explicit themed foreground/background/border colours.
+- Still screenshot capture now crops from the desktop snapshot taken before the region selector appears, preserving transient UI such as open dropdowns, menus and tooltips.
+
+- Dark-mode Text formatting controls use explicit theme colours.
+- Still screenshots preserve transient UI such as dropdowns, menus and tooltips by cropping from the pre-selector desktop snapshot.
+- Completed still-image redaction/annotation drafts can also be committed by clicking outside the object; the green Create buttons remain available.
+- Floating redaction and annotation editors include direct trashcan delete/cancel controls.
+- Floating editor layouts were tightened per tool so controls are not clipped and unused space is reduced.
 
 ### Preserved
 

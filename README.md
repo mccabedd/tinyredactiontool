@@ -26,11 +26,7 @@ Release assets include:
 - `TinyRedactionTool-v2.5.1-SOURCE-BUILD.zip` — self-contained offline source/build package.
 - `SHA256SUMS-v2.5.1.txt` — release checksums.
 
-The current `TinyRedactionTool.exe` SHA-256 is:
-
-```text
-C50E88EFCA816C42175A0783A78AE9290A5217FFEEE8755738CBB2546ECA34DC
-```
+Current release hashes are published in `SHA256SUMS-v2.5.1.txt` alongside the release assets.
 
 The application is currently unsigned, so Windows may display a SmartScreen warning.
 
@@ -72,7 +68,9 @@ Draft geometry can be moved and edited before it is committed:
 - Oval: 4 cardinal resize handles.
 - Freeform: draggable vertex handles plus whole-shape movement.
 
-Committed Rectangle, Oval and Freeform redactions can be reopened for editing by double-clicking them.
+Committed Rectangle, Oval and Freeform redactions can be reopened for editing by double-clicking them. Their compact floating editor provides direct adjustment controls plus a trashcan for immediate deletion.
+
+For still images, a completed redaction can be committed either with the green **Create Redaction** button or by clicking outside the completed object. The outside click is consumed rather than being reused to begin a second object.
 
 ### Opaque redaction
 
@@ -126,6 +124,10 @@ Drawing annotations are shown live while they are being created.
 
 Double-click an annotation to reopen its editor.
 
+Each floating annotation editor includes a trashcan control for immediately cancelling a draft or deleting the committed annotation being edited.
+
+For still images, a completed draft can be committed either by pressing the green **Create Annotation** button or by clicking outside the completed object. The outside click is consumed so it does not immediately begin another object.
+
 For video, annotations can use exact **Begin Annotation** and **End Annotation** logical-frame ranges. Annotation timing is separate from redaction timing and does not use the redaction safety buffer.
 
 ## Screenshot and screen recording
@@ -141,6 +143,8 @@ Ctrl + Print Screen
 ```
 
 Select the required screen region.
+
+The still-image capture is cropped from the desktop snapshot taken when the capture shortcut is invoked. This allows transient interface elements such as open dropdowns, menus and tooltips to remain in the saved screenshot even if they close while the selection overlay is being used.
 
 A screenshot captured by the current TinyRedactionTool session can immediately be:
 
@@ -422,6 +426,8 @@ Exit to tray is the default.
 A tray-icon click restores the application. Right-click the tray icon and choose **Quit** to fully exit.
 
 TinyRedactionTool starts in **Dark Mode**, opens maximized and makes a one-shot foreground activation request when launched. It is not permanently TopMost.
+
+Floating redaction/annotation editors are compact, theme-aware and positioned next to the object being edited. Text formatting controls remain readable in both Day and Dark modes.
 
 ## Temporary-file cleanup
 

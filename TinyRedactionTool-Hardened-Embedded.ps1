@@ -1,4 +1,8 @@
 ﻿# TinyRedactionTool v2.5.1 FINAL
+# v2.5.1 same-version maintenance refresh 2:
+# - committed redaction editors now use explicit Day/Dark theme colours and anchor below/above the edited redaction like annotation editors;
+# - completed still-image redaction/annotation drafts may be committed by clicking outside the object, while the explicit green Create button remains available; outside clicks are consumed and video Begin/End timing remains explicit.
+#
 # Consolidated from user-tested B1-r4 source SHA-256
 # 594488A98BAFC465F90ECEB7CA43CC4E4C50879869CC5619A14BCC07F6AE1D0D
 # Frozen v2.1.0 ancestry SHA-256
@@ -5345,6 +5349,7 @@ function Set-RightPanelCollapsed([bool]$collapsed) {
     $seekBar.Invalidate()
     $scrubberMarkers.Invalidate()
     if ($script:floatingTextEditorVisible) { Update-FloatingTextEditorPosition }
+    if ($redactionEditor -and $redactionEditor.Visible) { Update-RedactionEditorPosition }
     $picture.Invalidate()
 }
 
@@ -6672,8 +6677,8 @@ $picture.Controls.Add($floatingTextEditor)
 
 $lblFloatingTextEditor = New-Object System.Windows.Forms.Label
 $lblFloatingTextEditor.Text = "Tips: Enter for multi-line text. Ctrl+Enter or click outside to close. Create Annotation to commit."
-$lblFloatingTextEditor.Location = New-Object System.Drawing.Point(2,103)
-$lblFloatingTextEditor.Size = New-Object System.Drawing.Size(540,18)
+$lblFloatingTextEditor.Location = New-Object System.Drawing.Point(8,104)
+$lblFloatingTextEditor.Size = New-Object System.Drawing.Size(532,16)
 $lblFloatingTextEditor.Font = New-UIFont 7.8
 $lblFloatingTextEditor.Tag = "muted"
 $floatingTextEditor.Controls.Add($lblFloatingTextEditor)
@@ -6682,21 +6687,21 @@ $txtFloatingAnnotationText = New-Object System.Windows.Forms.TextBox
 $txtFloatingAnnotationText.Multiline = $true
 $txtFloatingAnnotationText.AcceptsReturn = $true
 $txtFloatingAnnotationText.ScrollBars = "Vertical"
-$txtFloatingAnnotationText.Location = New-Object System.Drawing.Point(2,45)
-$txtFloatingAnnotationText.Size = New-Object System.Drawing.Size(540,58)
+$txtFloatingAnnotationText.Location = New-Object System.Drawing.Point(8,47)
+$txtFloatingAnnotationText.Size = New-Object System.Drawing.Size(532,54)
 $txtFloatingAnnotationText.Font = New-UIFont 9.0
 $txtFloatingAnnotationText.Tag = "input"
 $floatingTextEditor.Controls.Add($txtFloatingAnnotationText)
 
 # D5c-r2: viewport-only controls mirror the accepted Appearance controls.
 $floatingTextTools = New-Object System.Windows.Forms.Panel
-$floatingTextTools.SetBounds(2,18,510,26)
+$floatingTextTools.SetBounds(36,20,500,26)
 $floatingTextEditor.Controls.Add($floatingTextTools)
 $floatingDrawTools = New-Object System.Windows.Forms.Panel
-$floatingDrawTools.SetBounds(38,18,474,26)
+$floatingDrawTools.SetBounds(36,20,396,26)
 $floatingTextEditor.Controls.Add($floatingDrawTools)
 $floatingAnnotationColor = New-Object System.Windows.Forms.Button
-$floatingAnnotationColor.SetBounds(4,20,24,22)
+$floatingAnnotationColor.SetBounds(8,22,24,22)
 $floatingTextEditor.Controls.Add($floatingAnnotationColor)
 $floatingAnnotationColor.Add_Click({
     $script:floatingAnnotationColorDialog = $true
@@ -6710,14 +6715,23 @@ $floatingAnnotationColor.Add_Click({
 })
 $floatingClose = New-Object System.Windows.Forms.Button
 $floatingClose.Text = '×'
-$floatingClose.SetBounds(523,0,22,19)
+$floatingClose.SetBounds(522,4,18,18)
 $floatingClose.FlatStyle = 'Flat'
 $floatingClose.FlatAppearance.BorderSize = 0
 $floatingClose.Add_Click({ Close-FloatingTextEditor $false })
 $floatingTextEditor.Controls.Add($floatingClose)
+$floatingDelete = New-Object System.Windows.Forms.Button
+$floatingDelete.Text = [char]0xE74D
+$floatingDelete.Font = New-Object System.Drawing.Font('Segoe MDL2 Assets',9.5,[System.Drawing.FontStyle]::Regular)
+$floatingDelete.SetBounds(498,4,18,18)
+$floatingDelete.FlatStyle = 'Flat'
+$floatingDelete.FlatAppearance.BorderSize = 0
+$floatingDelete.TabStop = $false
+$script:appToolTip.SetToolTip($floatingDelete,'Delete / cancel this annotation')
+$floatingTextEditor.Controls.Add($floatingDelete)
 $floatingTitle = New-Object System.Windows.Forms.Label
 $floatingTitle.Text = 'Text'
-$floatingTitle.SetBounds(262,0,110,18)
+$floatingTitle.SetBounds(204,4,140,18)
 $floatingTextEditor.Controls.Add($floatingTitle)
 
 function New-FloatingCombo($hostPanel,$backing,$x,$width) {
@@ -6756,15 +6770,17 @@ function New-FloatingNumber($hostPanel,$backing,$x,$width) {
     }.GetNewClosure())
     return $mirror
 }
-$floatingFont = New-FloatingCombo $floatingTextTools $cmbTextFont 36 205
-$floatingSize = New-FloatingNumber $floatingTextTools $numTextSize 246 62
-foreach ($spec in @(@($chkTextBold,'B',316),@($chkTextItalic,'I',345))) {
+$floatingFont = New-FloatingCombo $floatingTextTools $cmbTextFont 0 180
+$floatingSize = New-FloatingNumber $floatingTextTools $numTextSize 184 56
+$script:floatingTextStyleButtons=@()
+foreach ($spec in @(@($chkTextBold,'B',244),@($chkTextItalic,'I',272))) {
     $backing=$spec[0]
     $mirror=New-Object System.Windows.Forms.CheckBox
-    $mirror.Appearance='Button'; $mirror.Text=$spec[1]; $mirror.TextAlign='MiddleCenter'
+    $mirror.Appearance='Button'; $mirror.FlatStyle='Flat'; $mirror.Text=$spec[1]; $mirror.TextAlign='MiddleCenter'
     $mirror.Font=$backing.Font
     $mirror.SetBounds($spec[2],2,26,24)
     $floatingTextTools.Controls.Add($mirror)
+    $script:floatingTextStyleButtons += $mirror
     $mirror.Add_CheckedChanged({ if (-not $script:syncingFloatingToolbar) { $backing.Checked=$mirror.Checked } }.GetNewClosure())
     $backing.Add_CheckedChanged({
         $script:syncingFloatingToolbar=$true
@@ -6772,10 +6788,10 @@ foreach ($spec in @(@($chkTextBold,'B',316),@($chkTextItalic,'I',345))) {
     }.GetNewClosure())
 }
 $script:floatingAlignButtons=@()
-foreach ($spec in @(@('≡',0,385),@('≡',1,414),@('≡',2,443))) {
+foreach ($spec in @(@('≡',0,300),@('≡',1,328),@('≡',2,356))) {
     $alignment=[int]$spec[1]
     $button=New-Object System.Windows.Forms.CheckBox
-    $button.Appearance='Button'; $button.Text=$spec[0]
+    $button.Appearance='Button'; $button.FlatStyle='Flat'; $button.Text=$spec[0]
     $button.TextAlign=@('MiddleLeft','MiddleCenter','MiddleRight')[$alignment]
     $button.SetBounds($spec[2],2,26,24)
     $floatingTextTools.Controls.Add($button)
@@ -6785,10 +6801,10 @@ foreach ($spec in @(@('≡',0,385),@('≡',1,414),@('≡',2,443))) {
 $cmbTextAlign.Add_SelectedIndexChanged({
     for($i=0;$i -lt 3;$i++) { $script:floatingAlignButtons[$i].Checked=($i -eq $cmbTextAlign.SelectedIndex) }
 })
-$floatingWidth = New-FloatingNumber $floatingDrawTools $numOutlineWidth 0 58
-$floatingDash = New-FloatingCombo $floatingDrawTools $cmbOutlineDash 66 113
-$floatingEnds = New-FloatingCombo $floatingDrawTools $cmbDrawEnds 187 145
-$floatingJoin = New-FloatingCombo $floatingDrawTools $cmbOutlineJoin 340 125
+$floatingWidth = New-FloatingNumber $floatingDrawTools $numOutlineWidth 0 50
+$floatingDash = New-FloatingCombo $floatingDrawTools $cmbOutlineDash 54 105
+$floatingEnds = New-FloatingCombo $floatingDrawTools $cmbDrawEnds 163 132
+$floatingJoin = New-FloatingCombo $floatingDrawTools $cmbOutlineJoin 299 78
 $script:appToolTip.SetToolTip($floatingWidth,'Line width')
 $script:appToolTip.SetToolTip($floatingDash,'Line dash')
 $script:appToolTip.SetToolTip($floatingEnds,'Arrow endpoints')
@@ -6797,17 +6813,98 @@ $script:appToolTip.SetToolTip($floatingJoin,'Polyline join')
 function Set-FloatingAnnotationToolbar([string]$kind) {
     $isText = $kind -eq 'Text'
     $isShape = $kind -in @('Rectangle','Oval','Polygon')
-    $floatingTitle.Text=if($kind -eq 'Polygon'){'Freeform'}else{$kind}
-    $txtFloatingAnnotationText.Visible=$isText
-    $floatingTextTools.Visible=$isText; $floatingDrawTools.Visible=-not $isText
-    $floatingEnds.Visible=(-not $isText -and -not $isShape)
-    $floatingJoin.Visible=$kind -in @('Polyline','Rectangle','Polygon')
-    if($isShape -and $floatingJoin.Visible){$floatingJoin.SetBounds(187,2,145,24)}else{$floatingJoin.SetBounds(340,2,125,24)}
-    $floatingAnnotationColor.BackColor=if($isText) { $swatchTextColor.BackColor } else { $swatchOutlineColor.BackColor }
-    $floatingTextEditor.Height=if($isText) {124} else {68}
-    $lblFloatingTextEditor.Top=if($isText) {103} else {46}
-    $lblFloatingTextEditor.Text=if($isText) {'Tips: Enter for multi-line text. Ctrl+Enter or click outside to close. Create Annotation to commit.'} else {'Click outside to close. Double-click to reopen. Create Annotation to commit.'}
-    for($i=0;$i -lt 3;$i++) { $script:floatingAlignButtons[$i].Checked=($i -eq $cmbTextAlign.SelectedIndex) }
+
+    $floatingTitle.Text = if($kind -eq 'Polygon'){'Freeform'}else{$kind}
+    $txtFloatingAnnotationText.Visible = $isText
+    $floatingTextTools.Visible = $isText
+    $floatingDrawTools.Visible = -not $isText
+
+    # Shared top strip: centred title and close button only.
+    # Trash belongs to the working control row, immediately after the final applicable control.
+    $editorWidth = switch ($kind) {
+        'Text'      { 470 }
+        'Line'      { 370 }
+        'Polyline'  { 452 }
+        'Rectangle' { 316 }
+        'Oval'      { 234 }
+        'Polygon'   { 316 }
+        default     { 370 }
+    }
+    $editorHeight = if($isText){124}else{72}
+
+    $floatingTextEditor.Size = New-Object System.Drawing.Size($editorWidth,$editorHeight)
+    $floatingClose.SetBounds($editorWidth-26,4,18,18)
+    $floatingTitle.SetBounds([int](($editorWidth-140)/2),4,140,18)
+    $floatingAnnotationColor.SetBounds(8,22,24,22)
+
+    if($isText){
+        $floatingTextTools.SetBounds(36,20,382,26)
+
+        $floatingFont.SetBounds(0,2,180,24)
+        $floatingSize.SetBounds(184,2,56,24)
+        $script:floatingTextStyleButtons[0].SetBounds(244,2,26,24)
+        $script:floatingTextStyleButtons[1].SetBounds(272,2,26,24)
+        $script:floatingAlignButtons[0].SetBounds(300,2,26,24)
+        $script:floatingAlignButtons[1].SetBounds(328,2,26,24)
+        $script:floatingAlignButtons[2].SetBounds(356,2,26,24)
+
+        # Immediately after the right-alignment control.
+        $floatingDelete.SetBounds(424,22,24,22)
+
+        $txtFloatingAnnotationText.SetBounds(8,47,$editorWidth-16,54)
+        $lblFloatingTextEditor.SetBounds(8,104,$editorWidth-16,16)
+        $lblFloatingTextEditor.Text='Tips: Enter for multi-line text. Ctrl+Enter or click outside to close. Create Annotation to commit.'
+    } else {
+        $floatingDrawTools.SetBounds(36,20,$editorWidth-80,26)
+
+        $floatingWidth.SetBounds(0,2,50,24)
+        $floatingDash.SetBounds(54,2,105,24)
+
+        switch ($kind) {
+            'Line' {
+                $floatingEnds.Visible=$true
+                $floatingJoin.Visible=$false
+                $floatingEnds.SetBounds(163,2,132,24)
+                $floatingDelete.SetBounds(335,22,24,22)
+            }
+            'Polyline' {
+                $floatingEnds.Visible=$true
+                $floatingJoin.Visible=$true
+                $floatingEnds.SetBounds(163,2,132,24)
+                $floatingJoin.SetBounds(299,2,78,24)
+                $floatingDelete.SetBounds(417,22,24,22)
+            }
+            'Rectangle' {
+                $floatingEnds.Visible=$false
+                $floatingJoin.Visible=$true
+                $floatingJoin.SetBounds(163,2,78,24)
+                $floatingDelete.SetBounds(281,22,24,22)
+            }
+            'Oval' {
+                $floatingEnds.Visible=$false
+                $floatingJoin.Visible=$false
+                $floatingDelete.SetBounds(199,22,24,22)
+            }
+            'Polygon' {
+                $floatingEnds.Visible=$false
+                $floatingJoin.Visible=$true
+                $floatingJoin.SetBounds(163,2,78,24)
+                $floatingDelete.SetBounds(281,22,24,22)
+            }
+            default {
+                $floatingEnds.Visible=$false
+                $floatingJoin.Visible=$false
+                $floatingDelete.SetBounds($editorWidth-58,22,24,22)
+            }
+        }
+
+        $lblFloatingTextEditor.SetBounds(8,52,$editorWidth-16,16)
+        $lblFloatingTextEditor.Text='Click outside to close. Double-click to reopen. Create Annotation to commit.'
+    }
+
+    for($i=0;$i -lt 3;$i++) {
+        $script:floatingAlignButtons[$i].Checked=($i -eq $cmbTextAlign.SelectedIndex)
+    }
 }
 
 # Observe mouse clicks throughout the application's message loop. Never swallow
@@ -6854,8 +6951,18 @@ $script:floatingOutsideFilter=New-Object TRTAnnotationOutsideClickFilter
 $script:floatingOutsideFilter.Editor=$floatingTextEditor
 $script:floatingOutsideFilter.Add_OutsideClick({
     if ($script:floatingAnnotationColorDialog) { return }
-    $script:suppressFloatingOutsidePreviewClick = $picture.RectangleToScreen($picture.ClientRectangle).Contains([System.Windows.Forms.Cursor]::Position)
+    $overPreview = $picture.RectangleToScreen($picture.ClientRectangle).Contains([System.Windows.Forms.Cursor]::Position)
+    $draftMode = [bool]($script:floatingTextEditorMode -eq "Draft")
+    $outsideDraft = $false
+    if ($overPreview -and $draftMode -and $isImageMode) {
+        $screenPt = [System.Windows.Forms.Cursor]::Position
+        $clientPt = $picture.PointToClient($screenPt)
+        $viewPt = New-Object System.Drawing.PointF([single]$clientPt.X,[single]$clientPt.Y)
+        $outsideDraft = -not (Test-CurrentDraftHitAtViewPoint $viewPt)
+    }
+    $script:suppressFloatingOutsidePreviewClick = $overPreview
     Close-FloatingTextEditor $false
+    if ($outsideDraft) { [void](Commit-CurrentImageDraft) }
 })
 [System.Windows.Forms.Application]::AddMessageFilter($script:floatingOutsideFilter)
 $form.Add_Deactivate({
@@ -6994,6 +7101,41 @@ function Close-FloatingTextEditor([bool]$cancel = $false) {
     $script:floatingTextEditorOriginalText = ""
     if ($picture) { $picture.Invalidate() }
 }
+
+function Remove-FloatingAnnotationEditorObject {
+    if (-not $script:floatingTextEditorVisible) { return }
+    $mode = [string]$script:floatingTextEditorMode
+    $idx = [int]$script:floatingTextEditorTargetIndex
+
+    # Hide/reset the viewport editor first so list/selection refresh cannot leave
+    # a stale target index behind.
+    $floatingTextEditor.Visible = $false
+    $script:floatingTextEditorVisible = $false
+    $script:floatingTextEditorMode = 'None'
+    $script:floatingTextEditorTargetIndex = -1
+    $script:floatingTextEditorOriginalText = ''
+
+    if ($mode -eq 'Committed') {
+        if ($idx -ge 0 -and $idx -lt $annotations.Count) {
+            $script:annotations.RemoveAt($idx)
+        }
+        $script:selectedAnnotationIndex = -1
+        if ($lvAnnotations.SelectedItems.Count -gt 0) { $lvAnnotations.SelectedItems[0].Selected = $false }
+        Refresh-AnnotationList
+        Sync-DraftAppearanceDefaultsToControls
+        Update-InspectorSectionLayout
+        $lblPending.Text = 'Annotation deleted.'
+    }
+    else {
+        Reset-DrawingState
+        Update-SelectionFields $null
+        Update-InspectorSectionLayout
+        $lblPending.Text = 'Annotation draft cancelled.'
+    }
+    Update-RedactionButtons
+    if ($picture) { $picture.Invalidate() }
+}
+$floatingDelete.Add_Click({ Remove-FloatingAnnotationEditorObject })
 
 function Get-SelectedDrawEndpointStyle {
     switch ([string]$cmbDrawEnds.SelectedItem) {
@@ -7593,6 +7735,49 @@ $btnCancelDraw.Add_Click({
     $picture.Invalidate()
 })
 
+# v2.5.1 same-version maintenance: completed still-image drafts may be
+# committed either with the explicit green button or by clicking outside the
+# draft object. The outside click is consumed; it never doubles as the first
+# gesture of a new object. Video remains explicit Begin/End timing only.
+function Test-CurrentDraftHitAtViewPoint([System.Drawing.PointF]$viewPt) {
+    if (-not $isImageMode -or -not $previewImage) { return $false }
+    $mediaPt = ViewPoint-To-MediaPoint $viewPt $false
+    if ($toolMode -eq "Text" -and $script:textDraftActive) {
+        return [bool]($mediaPt -and $script:textDraftRect.Contains($mediaPt))
+    }
+    if ($toolMode -eq "Line" -and $script:lineDraftActive) { return [bool](Test-LineDraftHit $viewPt) }
+    if ($toolMode -eq "Polyline" -and $script:polylineDraftActive) { return [bool](Test-PolylineDraftHit $viewPt) }
+    if ($toolMode -eq "Polygon" -and -not $polygonActive -and $polygonPoints.Count -ge 3) {
+        return [bool]($mediaPt -and (Test-PointInPolygon $mediaPt $polygonPoints))
+    }
+    if (($toolMode -eq "Rectangle" -or $toolMode -eq "Oval") -and $selection.Width -gt 0.01 -and $selection.Height -gt 0.01) {
+        # Keep the established bounding-box interaction for Oval drafts.
+        return [bool]($mediaPt -and $selection.Contains($mediaPt))
+    }
+    return $false
+}
+
+function Test-CurrentImageDraftPresent {
+    if (-not $isImageMode -or -not $videoPath) { return $false }
+    if ($toolMode -eq "Text") { return [bool]$script:textDraftActive }
+    if ($toolMode -eq "Line") { return [bool]($script:lineDraftActive -and $script:lineStart -and $script:lineEnd) }
+    if ($toolMode -eq "Polyline") { return [bool]$script:polylineDraftActive }
+    if ($toolMode -eq "Polygon") { return [bool](-not $polygonActive -and $polygonPoints.Count -ge 3) }
+    if ($toolMode -eq "Rectangle" -or $toolMode -eq "Oval") { return [bool]($selection.Width -gt 0.01 -and $selection.Height -gt 0.01) }
+    return $false
+}
+
+function Commit-CurrentImageDraft {
+    if (-not (Test-CurrentImageDraftPresent)) { return $false }
+    Close-FloatingTextEditor $false
+    if ($toolMode -eq "Text") { Confirm-TextAnnotation; return $true }
+    if ($toolMode -eq "Line" -or $toolMode -eq "Polyline") { Confirm-DrawingAnnotation; return $true }
+    # Rectangle/Oval/Freeform redactions and outline-only shape annotations
+    # already share the green Create button's proven commit path.
+    $btnAddRedaction.PerformClick()
+    return $true
+}
+
 Set-OutlineJoinChoices
 Update-OutlineControlsAvailability
 
@@ -8128,10 +8313,27 @@ function Apply-Theme {
         $floatingTitle.ForeColor = $cText
         $floatingClose.BackColor = $cPanel
         $floatingClose.ForeColor = $cText
+        $floatingDelete.BackColor = $cPanel
+        $floatingDelete.ForeColor = $cText
+        $floatingDelete.FlatAppearance.MouseOverBackColor = $cCard
+        $floatingDelete.FlatAppearance.MouseDownBackColor = $cButton
         $lblFloatingTextEditor.BackColor = [System.Drawing.Color]::Transparent
         $lblFloatingTextEditor.ForeColor = $cMuted
         $txtFloatingAnnotationText.BackColor = $cInput
         $txtFloatingAnnotationText.ForeColor = $cText
+        # v2.5.1 shadow refresh: the floating Bold/Italic/alignment buttons are
+        # independent mirror controls, so theme their glyphs/borders explicitly.
+        # Without this, WinForms leaves black glyphs on the Dark Mode buttons.
+        $floatingCheckedBack = if ($script:isDarkMode) { [System.Drawing.Color]::FromArgb(42,67,96) } else { $cAccent2 }
+        foreach ($b in @($script:floatingTextStyleButtons + $script:floatingAlignButtons)) {
+            if (-not $b) { continue }
+            $b.BackColor = $cButton
+            $b.ForeColor = $cText
+            $b.FlatAppearance.BorderColor = if ($b.Checked) { $cAccent } else { $cBorder }
+            $b.FlatAppearance.CheckedBackColor = $floatingCheckedBack
+            $b.FlatAppearance.MouseOverBackColor = $cCard
+            $b.Invalidate()
+        }
     }
     $swatchTextColor.BackColor = $script:textColor
     $swatchTextColor.Invalidate()
@@ -8222,8 +8424,11 @@ function Apply-Theme {
     $picture.Invalidate()
     $scrubberMarkers.Invalidate()
     if($redactionEditor){
-        $redactionEditor.BackColor=$floatingTextEditor.BackColor;$redactionEditor.ForeColor=$floatingTextEditor.ForeColor
-        foreach($ctl in @($redactionEditorTitle,$redactionEditorHint)){$ctl.BackColor=$redactionEditor.BackColor;$ctl.ForeColor=$redactionEditor.ForeColor}
+        $redactionEditor.BackColor=$cPanel;$redactionEditor.ForeColor=$cText
+        foreach($ctl in @($redactionEditorTitle,$redactionEditorHint)){$ctl.BackColor=[System.Drawing.Color]::Transparent;$ctl.ForeColor=$cText}
+        $redactionEditorStrength.BackColor=$cInput;$redactionEditorStrength.ForeColor=$cText
+        $redactionEditorDone.BackColor=$cButton;$redactionEditorDone.ForeColor=$cText;$redactionEditorDone.FlatAppearance.BorderColor=$cBorder
+        $redactionEditorColor.FlatAppearance.BorderColor=$cBorder
     }
 }
 
@@ -8401,6 +8606,24 @@ namespace TRT250 {
                 using (Bitmap bitmap = Grab(desktop))
                 using (RegionSelector selector = new RegionSelector(bitmap,desktop)) {
                     return selector.ShowDialog() == DialogResult.OK ? selector.SelectedRegion : Rectangle.Empty;
+                }
+            }
+        }
+        public static Bitmap SelectImageRegion() {
+            // Snapshot the desktop BEFORE the selector is shown, then crop the
+            // chosen region from that same bitmap. Transient UI such as menus,
+            // combo-box dropdowns and tooltips may close when the selector takes
+            // focus; using the pre-selector snapshot preserves what was visible
+            // when the capture hotkey was invoked and avoids a second live grab.
+            using (DpiScope dpi = new DpiScope()) {
+                Rectangle desktop = SystemInformation.VirtualScreen;
+                using (Bitmap bitmap = Grab(desktop))
+                using (RegionSelector selector = new RegionSelector(bitmap,desktop)) {
+                    if (selector.ShowDialog() != DialogResult.OK) return null;
+                    Rectangle selected = selector.SelectedRegion;
+                    Rectangle local = new Rectangle(selected.Left-desktop.Left,selected.Top-desktop.Top,selected.Width,selected.Height);
+                    if (local.Width < 2 || local.Height < 2 || local.Left < 0 || local.Top < 0 || local.Right > bitmap.Width || local.Bottom > bitmap.Height) return null;
+                    return bitmap.Clone(local,PixelFormat.Format24bppRgb);
                 }
             }
         }
@@ -8689,11 +8912,11 @@ function Invoke-RegionCapture([bool]$video=$false) {
         $form.Hide()
         [System.Windows.Forms.Application]::DoEvents()
         [Threading.Thread]::Sleep(120)
-        $region=[TRT250.ScreenCapture]::SelectRegion()
-        if($region.Width -lt 2 -or $region.Height -lt 2){if($wasVisible){Restore-TRTFromTray};return}
-        [System.Windows.Forms.Application]::DoEvents()
-        [Threading.Thread]::Sleep(80)
         if($video) {
+            $region=[TRT250.ScreenCapture]::SelectRegion()
+            if($region.Width -lt 2 -or $region.Height -lt 2){if($wasVisible){Restore-TRTFromTray};return}
+            [System.Windows.Forms.Application]::DoEvents()
+            [Threading.Thread]::Sleep(80)
             $region=[TRT250.ScreenCapture]::VideoRegion($region)
             $state.Output=New-CaptureFile '.mp4'
             $state.Border=New-Object TRT250.RecordingBorder($region)
@@ -8711,8 +8934,12 @@ function Invoke-RegionCapture([bool]$video=$false) {
             $state.Poll.Start()
             $state.Tray.ShowBalloonTip(3000,'Recording selected region','Click Stop Recording or press Ctrl+Shift+Print Screen to finish. Screen only; no audio.',[System.Windows.Forms.ToolTipIcon]::Info)
         } else {
+            # v2.5.1 shadow refresh: preserve transient UI (dropdowns/menus/tooltips)
+            # by saving from the desktop snapshot captured before the selector
+            # takes focus, rather than performing a second live grab afterwards.
+            $bitmap=[TRT250.ScreenCapture]::SelectImageRegion()
+            if(-not $bitmap){if($wasVisible){Restore-TRTFromTray};return}
             $path=New-CaptureFile '.png'
-            $bitmap=[TRT250.ScreenCapture]::Grab($region)
             try {$bitmap.Save($path,[System.Drawing.Imaging.ImageFormat]::Png)}finally{$bitmap.Dispose()}
             Restore-TRTFromTray
             Open-TRTMediaPath $path $true
@@ -12365,11 +12592,11 @@ function Show-ClipboardConfirmation {
     $dialog.Text='Clipboard';$dialog.StartPosition='CenterParent';$dialog.FormBorderStyle='FixedDialog'
     $dialog.MaximizeBox=$false;$dialog.MinimizeBox=$false;$dialog.ShowInTaskbar=$false
     $dialog.BackColor=$form.BackColor;$dialog.ForeColor=$script:cTextCurrent
-    $dialog.AutoScaleMode='Dpi';$dialog.ClientSize=[Drawing.Size]::new(360,116)
+    $dialog.AutoScaleMode='Dpi';$dialog.ClientSize=[Drawing.Size]::new(318,78)
     $label=New-Object Windows.Forms.Label;$label.Text='Image Copied to Clipboard'
-    $label.Font=New-UIFont 10.0 'Bold';$label.ForeColor=$script:cTextCurrent
-    $label.BackColor=[Drawing.Color]::Transparent;$label.TextAlign='MiddleCenter';$label.SetBounds(14,15,332,34)
-    $ok=New-Object Windows.Forms.Button;$ok.Text='OK';$ok.SetBounds(246,70,100,30)
+    $label.Font=New-UIFont 9.5 'Bold';$label.ForeColor=$script:cTextCurrent
+    $label.BackColor=[Drawing.Color]::Transparent;$label.TextAlign='MiddleLeft';$label.SetBounds(14,15,205,30)
+    $ok=New-Object Windows.Forms.Button;$ok.Text='OK';$ok.SetBounds(230,20,74,28)
     Style-FlatButton $ok $true
     $ok.BackColor=$script:cAccentCurrent;$ok.ForeColor=[Drawing.Color]::White
     $ok.FlatAppearance.BorderColor=$script:cAccentCurrent;$ok.DialogResult='OK'
@@ -13309,14 +13536,12 @@ $picture.Add_MouseDown({
         }
     }
 
-    # Resize Slice 3 r2: a first click outside a closed Freeform is a
-    # dismissal-only gesture. This also applies to preview letterbox space.
-    # Vertex handles were already given priority above, so an edge handle that
-    # straddles the media boundary is still editable rather than dismissed.
-    if ($script:resizeSlice3Enabled -and $toolMode -eq "Polygon" -and
-        -not $polygonActive -and $polygonPoints.Count -ge 3 -and
-        -not $viewRect.Contains($viewPt)) {
-        Clear-ClosedFreeformDraftForOutsideClick
+    # Completed still-image drafts follow normal desktop-editor muscle memory:
+    # after handle/vertex hit-testing has had first refusal, a click outside the
+    # current object commits it through the same path as the green Create button.
+    # Consume the click so it cannot also begin a new object.
+    if ($isImageMode -and (Test-CurrentImageDraftPresent) -and -not (Test-CurrentDraftHitAtViewPoint $viewPt)) {
+        [void](Commit-CurrentImageDraft)
         return
     }
 
@@ -13411,13 +13636,6 @@ $picture.Add_MouseDown({
                 return
             }
 
-            if ($script:resizeSlice3Enabled) {
-                # r2 behavior: the first outside click clears the closed draft
-                # and is consumed. Do NOT reuse this same click as point #1 of
-                # the next polygon; a second click starts the next Freeform.
-                Clear-ClosedFreeformDraftForOutsideClick
-                return
-            }
         }
         if (-not $polygonActive) {
             $script:polygonActive = $true
@@ -14566,6 +14784,7 @@ $picture.Add_Paint({
     $cropClipState=$null
     if($isImageMode -and $script:ImageCrop){$cropClipState=$e.Graphics.Save();$e.Graphics.SetClip((MediaRect-To-ViewRect $script:ImageCrop))}
     if ($script:floatingTextEditorVisible) { Update-FloatingTextEditorPosition }
+    if ($redactionEditor -and $redactionEditor.Visible) { Update-RedactionEditorPosition }
 
     # Slice 3: the PictureBox no longer renders its Image property. Draw the
     # current decoded/autorotated frame explicitly through the viewport
@@ -15805,6 +16024,26 @@ function Recover-AbandonedCaptureFiles {
         }
     }
 }
+function Update-RedactionEditorPosition {
+    if (-not $redactionEditor -or -not $redactionEditor.Visible) { return }
+    $r = Get-SelectedCommittedRedaction
+    if (-not $r) { return }
+    $mediaRect = Get-RedactionMediaBounds $r
+    if (-not $mediaRect) { return }
+    $viewRect = MediaRect-To-ViewRect $mediaRect
+    if (-not $viewRect) { return }
+    $margin = 8
+    $w = [int]$redactionEditor.Width
+    $h = [int]$redactionEditor.Height
+    $x = [int][Math]::Round([double]$viewRect.Left + (([double]$viewRect.Width - $w) / 2.0))
+    $yBelow = [int][Math]::Round([double]$viewRect.Bottom + $margin)
+    $yAbove = [int][Math]::Round([double]$viewRect.Top - $h - $margin)
+    $y = if (($yBelow + $h) -le ($picture.ClientSize.Height - $margin)) { $yBelow } else { $yAbove }
+    $x = [Math]::Max($margin,[Math]::Min($x,[Math]::Max($margin,$picture.ClientSize.Width - $w - $margin)))
+    $y = [Math]::Max($margin,[Math]::Min($y,[Math]::Max($margin,$picture.ClientSize.Height - $h - $margin)))
+    $redactionEditor.Location = New-Object System.Drawing.Point($x,$y)
+}
+
 function Show-RedactionEditor([int]$index) {
     if($index -lt 0 -or $index -ge $redactions.Count -or $pendingRedaction -or $script:pendingAnnotation){return}
     Stop-Playback;Close-FloatingTextEditor $false;Reset-DrawingState
@@ -15816,12 +16055,24 @@ function Show-RedactionEditor([int]$index) {
         $redactionEditorTitle.Text=if($r.Shape -eq 'Polygon'){'Freeform redaction'}else{$r.Shape+' redaction'}
         $redactionEditorColor.BackColor=$r.Color;$redactionEditorColor.Visible=$r.Mode -eq 'Black box'
         $redactionEditorStrength.Visible=$r.Mode -ne 'Black box'
+        if($r.Mode -eq 'Black box'){
+            # 20px outer margins with equal 63px gaps: 24px swatch, 60px Done, 26px trash.
+            $redactionEditorDone.SetBounds(107,21,60,24)
+        } else {
+            # 20px outer margins with balanced ~47/48px gaps: 55px strength, 60px Done, 26px trash.
+            $redactionEditorDone.SetBounds(122,21,60,24)
+        }
         $redactionEditorStrength.Enabled=-not (Get-RedactionEnhanced $r)
         $redactionEditorStrength.Value=[Math]::Max(1,[Math]::Min(10,[int]$r.Strength))
-        $redactionEditor.Location=New-Object Drawing.Point(12,12)
-        $redactionEditor.BackColor=$floatingTextEditor.BackColor;$redactionEditor.ForeColor=$floatingTextEditor.ForeColor
-        foreach($ctl in @($redactionEditorTitle,$redactionEditorHint)){$ctl.BackColor=$redactionEditor.BackColor;$ctl.ForeColor=$redactionEditor.ForeColor}
-        $redactionEditor.Visible=$true;$redactionEditor.BringToFront()
+        $redactionEditor.BackColor=$floatingTextEditor.BackColor;$redactionEditor.ForeColor=$script:cTextCurrent
+        foreach($ctl in @($redactionEditorTitle,$redactionEditorHint)){$ctl.BackColor=[System.Drawing.Color]::Transparent;$ctl.ForeColor=$script:cTextCurrent}
+        $redactionEditorStrength.BackColor=$floatingTextTools.BackColor;$redactionEditorStrength.ForeColor=$script:cTextCurrent
+        $redactionEditorDone.BackColor=$script:cButtonCurrent;$redactionEditorDone.ForeColor=$script:cTextCurrent;$redactionEditorDone.FlatAppearance.BorderColor=$script:cBorderCurrent
+        $redactionEditorDelete.BackColor=$redactionEditor.BackColor;$redactionEditorDelete.ForeColor=$script:cTextCurrent;$redactionEditorDelete.FlatAppearance.MouseOverBackColor=$script:cButtonCurrent;$redactionEditorDelete.FlatAppearance.MouseDownBackColor=$script:cButtonCurrent
+        $redactionEditorColor.FlatAppearance.BorderColor=$script:cBorderCurrent
+        $redactionEditor.Visible=$true
+        Update-RedactionEditorPosition
+        $redactionEditor.BringToFront()
     }finally{$script:RedactionEditorSync=$false}
     $lblPending.Text='Redaction editing: drag inside to move; drag handles to resize or reshape. Click outside to confirm.'
     $picture.Invalidate()
@@ -15829,25 +16080,42 @@ function Show-RedactionEditor([int]$index) {
 function Close-RedactionEditor {
     if($redactionEditor){$redactionEditor.Visible=$false}
 }
+function Remove-RedactionEditorObject {
+    $idx = [int]$script:selectedRedactionIndex
+    if ($idx -lt 0 -or $idx -ge $redactions.Count) { Close-RedactionEditor; return }
+    Close-RedactionEditor
+    $script:redactions.RemoveAt($idx)
+    $script:selectedRedactionIndex = -1
+    if ($lvRedactions.SelectedItems.Count -gt 0) { $lvRedactions.SelectedItems[0].Selected = $false }
+    Reset-DrawingState
+    Refresh-RedactionList
+    Update-SelectionFields $null
+    $lblPending.Text = 'Redaction deleted.'
+    Update-RedactionButtons
+    if ($picture) { $picture.Invalidate() }
+}
 
 $redactionEditor=New-Object Windows.Forms.Panel
-$redactionEditor.Size=New-Object Drawing.Size(405,65);$redactionEditor.Visible=$false
+$redactionEditor.Size=New-Object Drawing.Size(276,72);$redactionEditor.Visible=$false
 $redactionEditor.BorderStyle='FixedSingle';$redactionEditor.BackColor=[Drawing.Color]::FromArgb(255,244,170);$redactionEditor.ForeColor=[Drawing.Color]::Black
 $picture.Controls.Add($redactionEditor)
-$redactionEditorTitle=New-Object Windows.Forms.Label;$redactionEditorTitle.SetBounds(8,7,175,22);$redactionEditor.Controls.Add($redactionEditorTitle)
-$redactionEditorColor=New-Object Windows.Forms.Button;$redactionEditorColor.SetBounds(190,5,40,24);$redactionEditor.Controls.Add($redactionEditorColor)
+$redactionEditorTitle=New-Object Windows.Forms.Label;$redactionEditorTitle.TextAlign='MiddleCenter';$redactionEditorTitle.SetBounds(48,4,180,18);$redactionEditor.Controls.Add($redactionEditorTitle)
+$redactionEditorColor=New-Object Windows.Forms.Button;$redactionEditorColor.SetBounds(20,22,24,22);$redactionEditorColor.FlatStyle='Flat';$redactionEditor.Controls.Add($redactionEditorColor)
 $script:appToolTip.SetToolTip($redactionEditorColor,'Redaction colour')
 $redactionEditorColor.Add_Click({
     $r=Get-SelectedCommittedRedaction;if(-not $r -or $r.Mode -ne 'Black box'){return}
     $script:RedactionColorDialog=$true;$dlg=New-Object Windows.Forms.ColorDialog;$dlg.Color=$r.Color
     try{if($dlg.ShowDialog($form) -eq 'OK'){$r.Color=$dlg.Color;$redactionEditorColor.BackColor=$dlg.Color;Update-ColorSwatch;$picture.Invalidate()}}finally{$dlg.Dispose();$script:RedactionColorDialog=$false}
 })
-$redactionEditorStrength=New-Object Windows.Forms.NumericUpDown;$redactionEditorStrength.Minimum=1;$redactionEditorStrength.Maximum=10;$redactionEditorStrength.SetBounds(190,5,55,24);$redactionEditor.Controls.Add($redactionEditorStrength)
+$redactionEditorStrength=New-Object Windows.Forms.NumericUpDown;$redactionEditorStrength.Minimum=1;$redactionEditorStrength.Maximum=10;$redactionEditorStrength.SetBounds(20,22,55,24);$redactionEditor.Controls.Add($redactionEditorStrength)
 $script:appToolTip.SetToolTip($redactionEditorStrength,'Redaction strength')
 $redactionEditorStrength.Add_ValueChanged({if(-not $script:RedactionEditorSync){$r=Get-SelectedCommittedRedaction;if($r -and $r.Mode -ne 'Black box'){$r.Strength=[int]$redactionEditorStrength.Value;$picture.Invalidate()}}})
-$redactionEditorDone=New-Object Windows.Forms.Button;$redactionEditorDone.Text='Done';$redactionEditorDone.SetBounds(330,4,65,26);$redactionEditor.Controls.Add($redactionEditorDone)
+$redactionEditorDone=New-Object Windows.Forms.Button;$redactionEditorDone.Text='Done';$redactionEditorDone.SetBounds(78,21,60,24);Style-FlatButton $redactionEditorDone;$redactionEditor.Controls.Add($redactionEditorDone)
 $redactionEditorDone.Add_Click({Close-RedactionEditor})
-$redactionEditorHint=New-Object Windows.Forms.Label;$redactionEditorHint.Text='Drag handles to adjust. Double-click to reopen. Click outside to close.';$redactionEditorHint.SetBounds(8,36,390,22);$redactionEditor.Controls.Add($redactionEditorHint)
+$redactionEditorDelete=New-Object Windows.Forms.Button;$redactionEditorDelete.Text=[char]0xE74D;$redactionEditorDelete.Font=New-Object Drawing.Font('Segoe MDL2 Assets',10,[Drawing.FontStyle]::Regular);$redactionEditorDelete.TextAlign='MiddleCenter';$redactionEditorDelete.SetBounds(230,21,26,24);$redactionEditorDelete.FlatStyle='Flat';$redactionEditorDelete.FlatAppearance.BorderSize=0;$redactionEditorDelete.Padding=New-Object Windows.Forms.Padding(0);$redactionEditorDelete.TabStop=$false;$redactionEditor.Controls.Add($redactionEditorDelete)
+$script:appToolTip.SetToolTip($redactionEditorDelete,'Delete this redaction')
+$redactionEditorDelete.Add_Click({Remove-RedactionEditorObject})
+$redactionEditorHint=New-Object Windows.Forms.Label;$redactionEditorHint.Text='Drag handles to adjust. Click outside to close.';$redactionEditorHint.Font=New-UIFont 7.6;$redactionEditorHint.SetBounds(10,50,256,16);$redactionEditor.Controls.Add($redactionEditorHint)
 $script:RedactionOutsideFilter=New-Object TRTAnnotationOutsideClickFilter;$script:RedactionOutsideFilter.Editor=$redactionEditor
 $script:RedactionOutsideFilter.Add_OutsideClick({if(-not $script:RedactionColorDialog){Close-RedactionEditor}})
 [Windows.Forms.Application]::AddMessageFilter($script:RedactionOutsideFilter)

@@ -1,13 +1,13 @@
 TinyRedactionTool
 Version: 2.5.1
 Release tag: v2.5.1
-Prepared: 2026-10-05
-Status: Final source; Windows PowerShell 5.1 build completed
+Prepared: 2026-10-06
+Status: Final; user-approved and frozen
 
 Company governance review is separate from release status.
 
-Final source SHA-256:
-2BDA3D0E6ED8F6E12004B549B16E54998CC3A04AACFC7A8B8AD8D0221AA2F7A4
+Frozen source SHA-256:
+CA2CC6EBD3BDB48737B249A96F8953D2007DCB38780606AC2EEE74E5F40A2C3C
 
-Final EXE SHA-256:
-C50E88EFCA816C42175A0783A78AE9290A5217FFEEE8755738CBB2546ECA34DC
+Current release EXE/archive hashes:
+See SHA256SUMS-v2.5.1.txt on the Releases page.

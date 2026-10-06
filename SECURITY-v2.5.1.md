@@ -4,7 +4,7 @@ This addendum describes the focused v2.5.1 maintenance changes. It supplements `
 
 ## Scope
 
-v2.5.1 retains the v2.5.0 media binaries and established redaction/timing/export architecture. The maintenance changes are concentrated in annotation drawing, screenshot copy/export eligibility, theme/window behaviour and related UI state.
+v2.5.1 retains the v2.5.0 media binaries and established redaction/timing/export architecture. The maintenance changes are concentrated in annotation drawing, screenshot capture/copy/export behaviour, theme/window behaviour and related UI state.
 
 The approved decompressed media-tool identities remain:
 
@@ -23,9 +23,11 @@ A still screenshot created by the current TRT session is now eligible for Copy a
 
 Copy deliberately discloses screenshot pixels to the Windows clipboard. Clipboard history, destination applications and other OS-level consumers remain outside TRT's cleanup boundary. A no-edit screenshot export deliberately writes the captured pixels to the selected destination through the existing image-export/validation path.
 
+Still-region capture uses the full-desktop bitmap acquired before the region selector is shown, then crops the selected rectangle from that snapshot. This allows transient UI such as dropdowns, menus and tooltips to remain present in the captured pixels even if showing or interacting with the selector later changes focus. Video capture remains a live-region recording path and is unchanged by this behaviour.
+
 ## Window and theme behaviour
 
-Dark Mode is now the startup default. Floating annotation editors explicitly use themed foreground/background colours. These changes do not alter media processing.
+Dark Mode is now the startup default. Floating annotation editors explicitly use themed foreground/background colours, including the Text Bold, Italic and alignment controls. These changes do not alter media processing.
 
 Startup now reasserts maximized state and makes a one-shot foreground activation request after the form is shown. TRT is not made permanently TopMost. The previous focus-on-mouse-enter behaviour was removed so pointer movement alone should not activate TRT or reorder unrelated windows.
 
@@ -37,4 +39,15 @@ Blur and Pixelate remain visual obscuration only. For sensitive information use 
 
 ## Release evidence note
 
-The v2.5.1 source was promoted from the user's tested r1-r8 maintenance sequence. The repository pack includes an exact `V2.5.0-TO-V2.5.1.patch` for review. A final Windows EXE hash must be recorded after the local Windows PowerShell 5.1 packaging build and acceptance run; this document does not fabricate one.
+The v2.5.1 source was promoted from the user-tested maintenance sequence and subsequently rechecked after the Text-editor theme and pre-selector screenshot fixes. The approved media binaries remain unchanged. Repository build documentation records the current source identity and preserved media-tool identities. Binary/archive identities are published separately in `SHA256SUMS-v2.5.1.txt`.
+
+## Final v2.5.1 maintenance refinements
+
+The final accepted source additionally changes user-interface workflow only:
+
+- still-image screenshot output is cropped from the desktop snapshot captured before the region selector is displayed, preserving transient UI visible at invocation time;
+- completed still-image redaction/annotation drafts may be committed by an outside click using the same established commit paths as the green Create controls;
+- floating editors provide direct delete/cancel controls; and
+- floating editor layout/theme changes improve visibility and compactness without changing redaction/export semantics.
+
+These changes do not alter the approved FFmpeg/FFprobe binaries, video timing model, opaque-redaction safety margins, Blur/Pixelate semantics, export validation, managed-policy behaviour, metadata stripping or audio defaults.
