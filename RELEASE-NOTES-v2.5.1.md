@@ -69,3 +69,19 @@ The v2.5.1 downloads were refreshed without changing the advertised application 
 **Updated source SHA-256:** `5F2B4E58A9FA2D86EA8B8CB84F880364F2D4446CCDE4FDCC9A4ABABF0E0F35C5`
 
 Earlier v2.5.1 asset hashes are superseded by the checksum file provided with this shadow update. This is not an independent security certification.
+
+
+---
+
+## DPI compatibility shadow update — 2026-10-09
+
+The v2.5.1 downloads were refreshed without changing the advertised application version.
+
+- Improved layout scaling across Windows DPI and display-size combinations, including header controls, the playback/action row, inspector scrolling, and wrapped sidebar instructions.
+- Dark remains the default on first launch; the user's subsequent Dark/Light selection is remembered per Windows account.
+- Redaction/export algorithms, bundled approved media tools, and managed policy behavior were not intentionally modified.
+
+**Updated binary SHA-256:** `FEB8B3BC49823CCB3758EDD8E4DA06A14CFFAFA04B858AACC5453CD4CBEFA06A`  
+**Updated source SHA-256:** `5F2B4E58A9FA2D86EA8B8CB84F880364F2D4446CCDE4FDCC9A4ABABF0E0F35C5`
+
+Earlier v2.5.1 asset hashes are superseded by the checksum file provided with this shadow update. This is not an independent security certification.
