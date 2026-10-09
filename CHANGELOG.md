@@ -2,6 +2,12 @@
 
 All notable changes to TinyRedactionTool are documented in this file.
 
+## [2.5.1 DPI shadow update] - 2026-10-09
+
+- DPI layout and clipping fixes across header, transport controls, inspector scrolling and instruction labels.
+- Dark/Light theme preference now persists per Windows account; first launch remains Dark.
+- Accepted app source SHA-256: 5F2B4E58A9FA2D86EA8B8CB84F880364F2D4446CCDE4FDCC9A4ABABF0E0F35C5.
+
 ## [2.5.1] - 2026-10-05
 
 Focused maintenance release promoted from the user-tested v2.5.0-r8 candidate.

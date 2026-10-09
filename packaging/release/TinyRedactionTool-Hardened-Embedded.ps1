@@ -4010,7 +4010,7 @@ $form = New-Object System.Windows.Forms.Form
 $form.Text = "TinyRedactionTool"
 $form.StartPosition = "CenterScreen"
 $form.Size = New-Object System.Drawing.Size(1540,980)
-$form.MinimumSize = New-Object System.Drawing.Size(1320,820)
+$form.MinimumSize = New-Object System.Drawing.Size(840,700)
 # D5c-r2: open maximized by default while retaining the normal Windows title bar
 # and Restore/Minimize/Close behaviour. This is not borderless/kiosk fullscreen.
 $form.WindowState = [System.Windows.Forms.FormWindowState]::Maximized
@@ -4514,7 +4514,8 @@ function Fit-InspectorContents {
     $script:FittingInspector=$true
     try{
         $right.SuspendLayout()
-        $right.AutoScrollPosition=[Drawing.Point]::Empty
+        # DPI-r2: retain current vertical scroll position during relayout.
+        # Scrolling to the top belongs to explicit source/panel reset actions.
         $limit=[Math]::Max(240,$right.ClientSize.Width-$right.Padding.Right-[Windows.Forms.SystemInformation]::VerticalScrollBarWidth)
         foreach($ctl in $right.Controls){
             if(-not $script:InspectorWidths.ContainsKey($ctl)){$script:InspectorWidths[$ctl]=@($ctl.Left,$ctl.Width)}
@@ -4527,7 +4528,13 @@ function Fit-InspectorContents {
             if($isImageMode){$list.Columns[2].Width=$available-91;$list.Columns[3].Width=0}
             else{$list.Columns[2].Width=80;$list.Columns[3].Width=$available-171}
         }
-        $right.AutoScrollMinSize=[Drawing.Size]::Empty
+        # DPI-r2: scroll extent is based on the actual scaled bottoms of the
+        # visible inspector controls, including final output/deletion controls.
+        $contentBottom = 0
+        foreach($ctl in $right.Controls){
+            if($ctl.Visible){$contentBottom=[Math]::Max($contentBottom,$ctl.Bottom)}
+        }
+        $right.AutoScrollMinSize = [Drawing.Size]::new(0, $contentBottom + $right.Padding.Bottom + 12)
         Position-RightPanelToggle
     }finally{$right.ResumeLayout($true);$script:FittingInspector=$false}
 }
@@ -5359,8 +5366,26 @@ $btnRightPanelToggle.Add_Click({
 
 # Keep top-level geometry deterministic. WinForms Dock ordering can otherwise
 # let a Fill control occupy the header area depending on z-order.
+# TRT DPI r1 - update text-bearing button bounds using the actual font at runtime.
+function Ensure-TRTButtonTextFits($button,[int]$minimumWidth) {
+    if (-not $button -or [string]::IsNullOrEmpty($button.Text)) { return }
+    $flags = [System.Windows.Forms.TextFormatFlags]::SingleLine
+    $measured = [System.Windows.Forms.TextRenderer]::MeasureText($button.Text,$button.Font,([Drawing.Size]::new(32000,32000)),$flags)
+    $gfx = $button.CreateGraphics()
+    try { $gdiPlus = $gfx.MeasureString($button.Text,$button.Font) }
+    finally { $gfx.Dispose() }
+    $neededW = [int][Math]::Ceiling([Math]::Max($measured.Width,$gdiPlus.Width)) + 26
+    $neededH = [int][Math]::Ceiling([Math]::Max($measured.Height,$gdiPlus.Height)) + 12
+    if($button.Width -lt [Math]::Max($minimumWidth,$neededW)) { $button.Width = [Math]::Max($minimumWidth,$neededW) }
+    if($button.Height -lt $neededH) { $button.Height = $neededH }
+}
 function Update-PolishedLayout {
-    $topH = $script:HeaderHeight
+    # TRT DPI r1: size header to actual scaled action controls.
+    foreach($b in @($btnOpen,$btnClearScreen,$btnInfo,$btnTheme)) {
+        if($b -and $b.IsHandleCreated){Ensure-TRTButtonTextFits $b $b.Width}
+    }
+    $topH = [Math]::Max($script:HeaderHeight, [Math]::Max($btnOpen.Bottom,$btnTheme.Bottom)+8)
+    $topH = [Math]::Max($topH,$btnClearScreen.Bottom+8)
     $headerH = $topH
 
     $top.Location = New-Object System.Drawing.Point(0,0)
@@ -5376,8 +5401,13 @@ function Update-PolishedLayout {
     $clearX = [Math]::Max(0, $infoX - $script:UiGap - $btnClearScreen.Width)
     $btnClearScreen.Location = New-Object System.Drawing.Point($clearX,15)
 
+    # DPI-r2: Open/Change width can grow with scaling or caption changes.
+    # Recompute BOTH left edges (not just widths), avoiding file-title overlap.
+    $fileLeft = $btnOpen.Right + 14
+    $lblFile.Left = $fileLeft
+    $lblHint.Left = $fileLeft
     # File labels stretch only through the remaining header space.
-    $fileInfoW = [Math]::Max(60, $clearX - $lblFile.Left - 10)
+    $fileInfoW = [Math]::Max(0, $clearX - $fileLeft - 10)
     $lblFile.Size = New-Object System.Drawing.Size($fileInfoW,22)
     $lblHint.Size = New-Object System.Drawing.Size($fileInfoW,20)
 
@@ -5402,8 +5432,11 @@ function Update-PolishedLayout {
             $scrubberMarkers.Invalidate()
         }
 
+        foreach($b in @($btnStartRedaction,$btnAddRedaction,$btnEndRedaction,$btnCancelRedaction,$btnExport)) {
+            if($b -and $b.IsHandleCreated){Ensure-TRTButtonTextFits $b $b.Width}
+        }
         $gap = 10
-        $wBeginEnd = $script:CompactButtonWidth
+        $wBeginEnd = [Math]::Max($btnStartRedaction.Width,[Math]::Max($btnAddRedaction.Width,$btnEndRedaction.Width))
         $wRotate = 38
         $wPrevNext = 44
         $wPlay = 52
@@ -5411,8 +5444,8 @@ function Update-PolishedLayout {
 
         # The two compact action buttons live flush-right, Export immediately
         # to the right of Cancel, using the same UiGap edge spacing. Export is
-        $cancelW = $script:CompactButtonWidth
-        $exportW = $script:ExportButtonWidth
+        $cancelW = $btnCancelRedaction.Width
+        $exportW = $btnExport.Width
         $actionGap = $script:UiGap
         $copySpace=if($btnCopyImage -and $btnCopyImage.Visible){$script:CompactButtonHeight+$actionGap}else{0};$exportX = [Math]::Max(0, $rowW - $script:UiGap - $exportW-$copySpace)
         $cancelX = [Math]::Max(0, $exportX - $actionGap - $cancelW)
@@ -5421,15 +5454,23 @@ function Update-PolishedLayout {
         # Reserve enough room at the left for the colour picker or strength
         # slider, then center the transport cluster in the remaining middle.
         $clusterZoneLeft = if (($rbModeBlur.Checked -or $rbModePixelate.Checked) -and (-not $isImageMode -or $script:fillEnabled)) { 280 } else { 180 }
-        $clusterZoneRight = [Math]::Max($clusterZoneLeft, $cancelX - $gap)
+        # TRT DPI r1: expand the bottom panel only when one-row controls cannot fit.
+        # The colour/strength utilities remain at y=62..109; transport moves below.
+        $requiredOneRow = $clusterZoneLeft + $totalW + $gap + $cancelW + $actionGap + $exportW + $copySpace + $script:UiGap
+        $compact = ($rowW -lt $requiredOneRow)
+        $targetBottomHeight = if($compact){230}else{156}
+        if($bottom.Height -ne $targetBottomHeight){$bottom.Height=$targetBottomHeight}
+        $clusterZoneRight = if($compact){$rowW}else{[Math]::Max($clusterZoneLeft,$cancelX - $gap)}
         $clusterZoneW = [Math]::Max(0, $clusterZoneRight - $clusterZoneLeft)
-        $x = $clusterZoneLeft + [Math]::Max(0, [int](($clusterZoneW - $totalW) / 2))
+        $x = if($compact) { [Math]::Max(0,[int](($rowW-$totalW)/2)) }
+             else { $clusterZoneLeft + [Math]::Max(0,[int](($clusterZoneW-$totalW)/2)) }
 
-        $rowTop = 58
+        $rowTop = if($compact){116}else{58}
         $yPlay = $rowTop
         $yPrevNext = $rowTop + [int](($wPlay - $wPrevNext) / 2)
         $yCompact = $rowTop + [int](($wPlay - $script:CompactButtonHeight) / 2)
 
+        foreach($b in @($btnStartRedaction,$btnAddRedaction,$btnEndRedaction)){if($b.Width -ne $wBeginEnd){$b.Width=$wBeginEnd}}
         $btnStartRedaction.Location = New-Object System.Drawing.Point($x,$yCompact)
         $btnAddRedaction.Location = New-Object System.Drawing.Point($x,$yCompact)
         $x += $wBeginEnd + $gap
@@ -5451,9 +5492,15 @@ function Update-PolishedLayout {
 
         $btnEndRedaction.Location = New-Object System.Drawing.Point($x,$yCompact)
 
-        $btnCancelRedaction.Location = New-Object System.Drawing.Point($cancelX,$yCompact)
-        $btnExport.Location = New-Object System.Drawing.Point($exportX,$yCompact)
-        if($btnCopyImage){$btnCopyImage.Location=[Drawing.Point]::new($exportX+$exportW+$actionGap,$yCompact)}
+        if($compact){
+            $actionTotal=$cancelW+$actionGap+$exportW+$copySpace
+            $cancelX=[Math]::Max(0,[int](($rowW-$actionTotal)/2))
+            $exportX=$cancelX+$cancelW+$actionGap
+            $actionY=184
+        } else { $actionY=$yCompact }
+        $btnCancelRedaction.Location = New-Object System.Drawing.Point($cancelX,$actionY)
+        $btnExport.Location = New-Object System.Drawing.Point($exportX,$actionY)
+        if($btnCopyImage){$btnCopyImage.Location=[Drawing.Point]::new($exportX+$exportW+$actionGap,$actionY)}
     }
 }
 
@@ -8104,16 +8151,75 @@ function Update-InspectorSectionLayout {
     $chkDeleteOriginal.Top=if($isImageMode){730}else{760}
     $lblDeleteCapability.Top=if($isImageMode){758}else{788}
     $btnDeleteInfo.Top=$lblDeleteCapability.Top-2
+
+    # DPI-r3: measure each instruction using its actual font and available
+    # inspector width, then stack without overlap. Reflow all later sections
+    # as a unit rather than clipping or drawing over neighbouring labels.
+    $noteWidth = [Math]::Max(160,[Math]::Min(325, $right.ClientSize.Width -
+        $right.Padding.Left - $right.Padding.Right -
+        [Windows.Forms.SystemInformation]::VerticalScrollBarWidth - 8))
+    $noteY = 68
+    foreach($note in @($lblToolHint,$lblSecurityNote,$lblBufferNote)) {
+        $flags = [Windows.Forms.TextFormatFlags]::WordBreak -bor [Windows.Forms.TextFormatFlags]::NoPrefix
+        $measured = [Windows.Forms.TextRenderer]::MeasureText(
+            $note.Text,$note.Font,[Drawing.Size]::new($noteWidth,32767),$flags)
+        $note.Width = $noteWidth
+        $note.Height = [Math]::Max(24,$measured.Height + 8)
+        $note.Top = $noteY
+        $noteY = $note.Bottom + 7
+    }
+    $noteShift = [Math]::Max(0,$noteY - 184)
+    if($noteShift -gt 0) {
+        foreach($sectionControl in @(
+            $ruleRedactions,$lblRedactionsTitle,$lvRedactions,$btnRemoveRedaction,$btnClearRedactions,
+            $ruleAnnotations,$lblAnnotationsTitle,$lvAnnotations,$btnRemoveAnnotation,$btnClearAnnotations,
+            $ruleOutput,$lblFormat,$lblQuality,$cmbFormat,$cmbQuality,
+            $chkAudio,$chkDeleteOriginal,$lblDeleteCapability,$btnDeleteInfo
+        )) {
+            if($sectionControl -and $sectionControl.Parent -eq $right) {
+                $sectionControl.Top += $noteShift
+            }
+        }
+    }
     Fit-InspectorContents
     Update-OutlineControlsAvailability
 }
 
 
+# DPI-r3: annotation/tool/security hints vary at runtime. Reflow them when
+# their content changes; do not change source-media or export coordinates.
+$lblToolHint.Add_TextChanged({ Update-InspectorSectionLayout })
+$lblSecurityNote.Add_TextChanged({ Update-InspectorSectionLayout })
+$lblBufferNote.Add_TextChanged({ Update-InspectorSectionLayout })
 # Apply the requested section grouping before the form is first shown.
 Update-InspectorSectionLayout
 
 # ---------- theme engine ----------
-$script:isDarkMode = $true
+# DPI-r4: persistent per-Windows-user theme. Dark is the first-run/default theme.
+# UI setting only; never influences managed policy, redaction or export.
+$script:ThemeRegistryPath = 'Software\TinyRedactionTool'
+function Get-TRTStartupTheme {
+    try {
+        $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($script:ThemeRegistryPath,$false)
+        if($null -eq $key){return $true}
+        try { $saved = [string]$key.GetValue('Theme','dark') }
+        finally { $key.Close() }
+        return ($saved -cne 'light')
+    } catch { return $true }
+}
+function Save-TRTThemePreference {
+    param([bool]$dark)
+    try {
+        $key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($script:ThemeRegistryPath)
+        if($null -eq $key){return}
+        try { $key.SetValue('Theme',$(if($dark){'dark'}else{'light'}),[Microsoft.Win32.RegistryValueKind]::String) }
+        finally { $key.Close() }
+    } catch {
+        # If HKCU is read-only, continue using the selected theme for this session.
+        # Failure to persist a cosmetic preference must never prevent startup.
+    }
+}
+$script:isDarkMode = Get-TRTStartupTheme
 
 # Fixed status colors for the shared Begin/End temporal buttons. These signal
 # state (ready-to-begin / in-progress) rather than the neutral UI palette,
@@ -8435,6 +8541,8 @@ function Apply-Theme {
 $btnTheme.Add_Click({
     $script:isDarkMode = -not $script:isDarkMode
     Apply-Theme
+    # DPI-r4: persist only an explicit user theme switch, never incidental repaints.
+    Save-TRTThemePreference -dark $script:isDarkMode
     # Apply-Theme itself must not call Update-RedactionButtons (it's invoked
     # once, near the top of the script, before Update-RedactionButtons is
     # defined) -- so re-apply the green/red/grey redaction-button state here,

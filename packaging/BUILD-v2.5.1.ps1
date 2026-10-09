@@ -1,8 +1,8 @@
-﻿$ErrorActionPreference='Stop'
+$ErrorActionPreference='Stop'
 if($PSVersionTable.PSEdition -ne 'Desktop' -or $PSVersionTable.PSVersion.Major -ne 5){throw 'Use Windows PowerShell 5.1 for this pinned build.'}
 $root=$PSScriptRoot
 $pins=@{
- 'release/TinyRedactionTool-Hardened-Embedded.ps1'='CA2CC6EBD3BDB48737B249A96F8953D2007DCB38780606AC2EEE74E5F40A2C3C'
+ 'release/TinyRedactionTool-Hardened-Embedded.ps1'='5F2B4E58A9FA2D86EA8B8CB84F880364F2D4446CCDE4FDCC9A4ABABF0E0F35C5'
  'release/icon.ico'='11B392E79197689035BE9876B762AC99E62CE37BB02E7939CED078C2C0D89B7C'
  'ffmpeg.exe.gz'='E1A56476BC46685869D2C7B0B9AA101816D89A2907826DC2BA2B418D644268AC'
  'ffprobe.exe.gz'='A4657F326AD8AFB9999CB83C87D33D895F25729ECDF4207CBDC23AAECBDA82E7'
