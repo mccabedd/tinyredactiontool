@@ -1,0 +1,29 @@
+<Window x:Class="TinyRedaction.Desktop.KeepCaptureWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Icon="Assets/icon.ico" Title="Original Capture" Width="480" SizeToContent="Height" ResizeMode="NoResize" WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+ Background="{DynamicResource Surface}" Foreground="{DynamicResource Foreground}" FontFamily="Segoe UI" FontSize="12">
+ <!-- Original (0.12.0): save and/or copy a screenshot or recording exactly as captured, and
+      optionally wipe TRT's own copy. Wiping is off unless ticked, and unavailable under a policy
+      that disables source deletion. -->
+ <StackPanel Margin="16,12,16,14">
+  <TextBlock x:Name="Heading" Text="Save or Copy the Screenshot as Captured" Style="{StaticResource PanelHeading}" Margin="0,0,0,4"/>
+  <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource Warning}" Margin="0,0,0,10"
+   Text="Nothing you have added is included: no redactions, annotations or crop. To share a redacted copy, use Export instead."/>
+  <CheckBox x:Name="SaveBox" Content="Save a Copy As" IsChecked="True" Margin="0,2" Checked="ChoicesChanged" Unchecked="ChoicesChanged"/>
+  <Grid Margin="20,0,0,4">
+   <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+   <TextBox x:Name="DestinationBox" IsReadOnly="True" Margin="0,3,6,3"/>
+   <Button x:Name="BrowseButton" Grid.Column="1" Content="Browse…" Padding="8,2" Margin="0,3" Click="Browse"/>
+  </Grid>
+  <CheckBox x:Name="CopyBox" Content="Copy to the Clipboard" Margin="0,4,0,2" Checked="ChoicesChanged" Unchecked="ChoicesChanged"/>
+  <TextBlock x:Name="CopyNote" TextWrapping="Wrap" FontSize="11" Margin="20,0,0,4" Visibility="Collapsed"
+   Text="A recording is copied as the saved file, ready to paste."/>
+  <CheckBox x:Name="DeleteBox" Content="Delete TRT's Capture File Afterwards" Margin="0,8,0,2" Checked="ChoicesChanged" Unchecked="ChoicesChanged" ToolTipService.ShowOnDisabled="True"/>
+  <TextBlock x:Name="DeleteNote" TextWrapping="Wrap" FontSize="11" Margin="20,0,0,0"
+   Text="TRT wipes its capture when you close it or quit. Tick to wipe it now; if you saved a copy, the editor uses that."/>
+  <TextBlock x:Name="Message" TextWrapping="Wrap" FontSize="11" Margin="0,8,0,0" MinHeight="15" Foreground="{DynamicResource Warning}"/>
+  <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+   <Button x:Name="OkButton" Content="OK" MinWidth="80" Margin="0,0,8,0" Padding="8,3" IsDefault="True" Click="Accept"/>
+   <Button Content="Cancel" MinWidth="80" Padding="8,3" IsCancel="True"/>
+  </StackPanel>
+ </StackPanel>
+</Window>

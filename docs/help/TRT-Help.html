@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TinyRedactionTool Help</title>
+<link rel="icon" type="image/png" sizes="256x256" href="images/help-icon.png">
+<link rel="icon" type="image/png" sizes="48x48" href="images/help-icon-48.png">
+<link rel="icon" type="image/png" sizes="32x32" href="images/help-icon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="images/help-icon-16.png">
+<script>
+ // TRT opens the manual in its own theme: #theme=dark or #theme=light.
+ (function () { var m = /theme=(dark|light)/.exec(location.hash); if (m) document.documentElement.setAttribute("data-theme", m[1]); })();
+</script>
+<style>
+ :root {
+  --bg: #ffffff; --panel: #f3f4f6; --line: #d9dce1; --text: #1e1e1e; --soft: #5b6470; --accent: #1765a5; --accent-soft: #e5f1fb;
+  --tip: #eaf6ec; --tip-line: #2e7d32; --warn: #fff4e0; --warn-line: #c77700; --stop: #fdecea; --stop-line: #b3261e; --badge: #d32f2f;
+  --thumb: #b4b9c0; --thumb-hover: #8e949e; color-scheme: light;
+ }
+ @media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+   --bg: #2b2b2b; --panel: #353535; --line: #4a4a4a; --text: #f0f0f0; --soft: #b9bec6; --accent: #8fb8e6; --accent-soft: #2f3e4e;
+   --tip: #243528; --tip-line: #66bb6a; --warn: #3a3020; --warn-line: #f2c27a; --stop: #3c2524; --stop-line: #ef7b72;
+   --thumb: #5f5f5f; --thumb-hover: #7a7a7a; color-scheme: dark;
+  }
+ }
+ :root[data-theme="dark"] {
+  --bg: #2b2b2b; --panel: #353535; --line: #4a4a4a; --text: #f0f0f0; --soft: #b9bec6; --accent: #8fb8e6; --accent-soft: #2f3e4e;
+  --tip: #243528; --tip-line: #66bb6a; --warn: #3a3020; --warn-line: #f2c27a; --stop: #3c2524; --stop-line: #ef7b72;
+  --thumb: #5f5f5f; --thumb-hover: #7a7a7a; color-scheme: dark;
+ }
+ * { box-sizing: border-box; }
+ /* Scroll bars in the theme's colours (3.0.0, David: they were light in Dark). */
+ html, nav { scrollbar-color: var(--thumb) var(--bg); }
+ ::-webkit-scrollbar { width: 12px; height: 12px; background: var(--bg); }
+ ::-webkit-scrollbar-thumb { background: var(--thumb); border-radius: 6px; border: 3px solid var(--bg); }
+ ::-webkit-scrollbar-thumb:hover { background: var(--thumb-hover); }
+ ::-webkit-scrollbar-corner { background: var(--bg); }
+ html { scroll-behavior: smooth; }
+ body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 "Segoe UI", system-ui, sans-serif; }
+ header { padding: 22px 28px; border-bottom: 1px solid var(--line); background: var(--panel); display: flex; gap: 16px; align-items: center; }
+ header h1 { margin: 0; font-size: 24px; font-weight: 600; }
+ header p { margin: 2px 0 0; color: var(--soft); }
+ .layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); }
+ nav { position: sticky; top: 0; align-self: start; max-height: 100vh; overflow: auto; padding: 18px 14px 40px 22px; border-right: 1px solid var(--line); font-size: 14px; }
+ nav strong { display: block; margin: 14px 0 4px; color: var(--soft); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+ nav a { display: block; padding: 3px 8px; border-radius: 4px; color: var(--text); text-decoration: none; }
+ nav a:hover { background: var(--accent-soft); }
+ main { padding: 8px 40px 80px; max-width: 980px; }
+ h2 { margin: 44px 0 10px; padding-top: 6px; font-size: 22px; font-weight: 600; border-top: 1px solid var(--line); }
+ h2:first-of-type { border-top: 0; }
+ h3 { margin: 26px 0 6px; font-size: 17px; font-weight: 600; }
+ p, li { max-width: 76ch; }
+ ol li, ul li { margin: 4px 0; }
+ kbd { display: inline-block; padding: 0 6px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; background: var(--panel); font: 13px/1.6 "Segoe UI", sans-serif; }
+ .ui { font-weight: 600; }
+ figure { margin: 14px 0 20px; }
+ figure img { max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: 4px; display: block; }
+ figcaption { color: var(--soft); font-size: 13px; margin-top: 6px; }
+ img.icon { height: 30px; width: auto; vertical-align: middle; margin: 0 2px; border: 0; }
+ .box { border-left: 4px solid; border-radius: 4px; padding: 10px 14px; margin: 14px 0; max-width: 80ch; }
+ .tip { background: var(--tip); border-color: var(--tip-line); }
+ .warn { background: var(--warn); border-color: var(--warn-line); }
+ .stop { background: var(--stop); border-color: var(--stop-line); }
+ .box b:first-child { display: block; margin-bottom: 2px; }
+ table { border-collapse: collapse; margin: 10px 0 18px; width: 100%; max-width: 860px; }
+ th, td { text-align: left; vertical-align: top; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+ th { background: var(--panel); font-weight: 600; }
+ td:first-child { white-space: nowrap; }
+ .tools td:first-child { width: 150px; }
+ .callouts { position: relative; }
+ .callouts span { position: absolute; transform: translate(-50%, -50%); width: 28px; height: 28px; border-radius: 50%; background: var(--badge); color: #fff; font-weight: 700; display: grid; place-items: center; font-size: 15px; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+ .steps { counter-reset: step; list-style: none; padding-left: 0; }
+ .steps > li { counter-increment: step; position: relative; padding-left: 40px; margin: 10px 0; }
+ .steps > li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; display: grid; place-items: center; font-size: 14px; }
+ .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; align-items: start; }
+ .faq dt { font-weight: 600; margin-top: 14px; }
+ .faq dd { margin: 2px 0 0 0; }
+ a { color: var(--accent); }
+ @media (max-width: 820px) { .layout { grid-template-columns: 1fr; } nav { position: static; max-height: none; border-right: 0; border-bottom: 1px solid var(--line); } main { padding: 8px 16px 60px; } }
+</style>
+</head>
+<body>
+<header>
+ <img src="images/help-icon.png" alt="" style="height:48px;border:0">
+ <div><h1>TinyRedactionTool Help</h1><p>How to hide private details in pictures and videos, step by step. For TinyRedactionTool 3.0.</p></div>
+</header>
+<div class="layout">
+<nav aria-label="Contents">
+ <strong>Start here</strong>
+ <a href="#what">What TRT does</a>
+ <a href="#start">Starting TRT</a>
+ <a href="#quick">Your first redaction (in 6 steps)</a>
+ <strong>The editor</strong>
+ <a href="#editor">The editor at a glance</a>
+ <a href="#open">Opening pictures and videos</a>
+ <a href="#redact">Hiding things: redactions</a>
+ <a href="#select">Selecting, moving and changing shapes</a>
+ <a href="#notes">Adding notes: annotations</a>
+ <a href="#images">Adding images and new images</a>
+ <a href="#crop">Crop, resize, rotate and flip</a>
+ <a href="#view">Zoom, full screen and slideshow</a>
+ <a href="#gif">Animated GIFs</a>
+ <strong>Videos</strong>
+ <a href="#video">Redacting a video</a>
+ <a href="#trim">Trim, append and capture frame</a>
+ <strong>Saving</strong>
+ <a href="#export">Export: saving the result</a>
+ <a href="#other-saves">Copy, projects and other ways to save</a>
+ <a href="#fileinfo">File Info: what is hidden inside a file</a>
+ <strong>Capturing the screen</strong>
+ <a href="#capture">The capture bar</a>
+ <a href="#recorder">Recording the screen</a>
+ <a href="#ruler">The screen ruler</a>
+ <strong>More</strong>
+ <a href="#privacy">Privacy and Remove History</a>
+ <a href="#settings">Settings</a>
+ <a href="#keys">Keyboard shortcuts</a>
+ <a href="#faq">Questions and problems</a>
+</nav>
+<main>
+
+<h2 id="what">What TRT does</h2>
+<p>TinyRedactionTool (TRT for short) hides private details in pictures and videos before you share them. You draw a shape over a name, a face, a number plate or a card number, and TRT covers it with a <span class="ui">black box</span>, a <span class="ui">blur</span> or <span class="ui">pixels</span>. Then you save a new copy. Your original file is never changed.</p>
+<p>TRT can also take screenshots, record the screen, and add notes such as arrows and text.</p>
+<div class="box tip"><b>Everything stays on your computer.</b>TRT does not upload anything and does not send any information about you or your files anywhere.</div>
+
+<h2 id="start">Starting TRT</h2>
+<p>Double-click <span class="ui">TinyRedactionTool</span>. A small <span class="ui">capture bar</span> appears at the top of the screen, and the TRT icon appears in the notification area (the small icons by the clock).</p>
+<figure><img src="images/capture-bar.png" alt="The capture bar" style="max-width:560px"><figcaption>The capture bar. Its buttons take screenshots, record the screen, and open the editor.</figcaption></figure>
+<ul>
+ <li>To <b>open the editor</b>, click <img class="icon" src="images/icons/bar-open-the-editor.png" alt="Open the Editor"> on the capture bar, or double-click the TRT icon by the clock.</li>
+ <li>To <b>open a file straight away</b>, drag it onto the editor, or right-click it in File Explorer and choose <span class="ui">Open with TRT</span> (if you turned this on in Settings).</li>
+ <li>TRT keeps running by the clock until you quit. To quit, right-click the TRT icon by the clock and choose <span class="ui">Quit TinyRedactionTool</span>.</li>
+</ul>
+<div class="box warn"><b>If TRT says it needs ".NET Desktop Runtime"</b>TRT needs Microsoft's free .NET 10 Desktop Runtime. If it is missing, Windows shows a message instead of TRT and offers to open Microsoft's download page. Install it (or ask your IT team), then start TRT again.</div>
+
+<h2 id="quick">Your first redaction (in 6 steps)</h2>
+<ol class="steps">
+ <li>Open the editor and click <img class="icon" src="images/icons/openbutton.png" alt="Open"> <span class="ui">Open</span>. Choose a picture.</li>
+ <li>Check that <img class="icon" src="images/icons/rectangletool.png" alt="Rectangle"> <span class="ui">Rectangle</span> and <img class="icon" src="images/icons/opaquetool.png" alt="Box"> <span class="ui">Box</span> are pressed (they are when TRT starts).</li>
+ <li>Drag over the thing you want to hide. A black box appears over it.</li>
+ <li>A small window appears under the box. Click <span class="ui">Redact</span> (or just click somewhere else on the picture).</li>
+ <li>Do the same for everything else you want to hide.</li>
+ <li>Click <img class="icon" src="images/icons/exportbutton.png" alt="Export"> <span class="ui">Export</span> and choose a name for the new file. TRT saves it and checks it. That new file is the one to share.</li>
+</ol>
+<div class="box stop"><b>Before you share, look at the exported file.</b>Open the exported file and check that everything private is covered. TRT does exactly what you draw. It does not find private details for you.</div>
+
+<h2 id="editor">The editor at a glance</h2>
+<figure class="callouts">
+ <img src="images/editor.png" alt="The TRT editor with a letter open">
+ <span style="left:30%;top:1.7%">1</span>
+ <span style="left:33%;top:12.5%">2</span>
+ <span style="left:6.5%;top:55%">3</span>
+ <span style="left:62%;top:27%">4</span>
+ <figcaption>The editor with a letter open. The account number is covered by a black box and the signature is blurred.</figcaption>
+</figure>
+<table>
+ <tr><th>#</th><th>Part</th><th>What it is for</th></tr>
+ <tr><td>1</td><td>Menu bar</td><td>Every command, in words: File, Edit, Draw, Redact, View, Video, Capture and Help.</td></tr>
+ <tr><td>2</td><td>Toolbar</td><td>The buttons you use most. You can choose which buttons it shows in <a href="#settings">Settings</a>.</td></tr>
+ <tr><td>3</td><td>Workspace</td><td>The grey area around your picture.</td></tr>
+ <tr><td>4</td><td>Your picture</td><td>Draw on it to hide things or add notes.</td></tr>
+</table>
+<p>Short messages appear at the bottom of the picture now and then, for example "PNG export validated". They fade away by themselves.</p>
+<p>The <img class="icon" src="images/icons/panelbutton.png" alt="Panel"> <span class="ui">Panel</span> button (top right) opens a side panel. It lists your redactions and notes, and it has the <span class="ui">Export Options</span>.</p>
+<p>The editor opens the way you last closed it: filling the screen, or in a window of the same size and place. The first time, it fills the screen.</p>
+<p>The editor can be light or dark. Choose in <span class="ui">Settings › General › Theme</span>, or in <span class="ui">View › Theme</span>.</p>
+<figure><img src="images/editor-dark.png" alt="The editor in the Dark theme"><figcaption>The same editor in the Dark theme.</figcaption></figure>
+
+<h2 id="open">Opening pictures and videos</h2>
+<ul>
+ <li><img class="icon" src="images/icons/openbutton.png" alt="Open"> <span class="ui">Open</span> (or <span class="ui">File › Open Media…</span>) opens a picture or a video.</li>
+ <li>You can also drag a file from File Explorer and drop it on the editor.</li>
+ <li>TRT opens most picture types (PNG, JPG, GIF, WebP, BMP, TIFF, HEIC and more) and most video types (MP4, MOV, AVI, MKV, WebM and more).</li>
+ <li>While a file is open, TRT holds it so it can't be changed by accident.</li>
+</ul>
+<p>If you open a file from a network drive, TRT asks first, because the file has not been redacted yet.</p>
+
+<h2 id="redact">Hiding things: redactions</h2>
+<p>A <b>redaction</b> is a shape that hides part of the picture. You choose the <b>shape</b> and the <b>effect</b>.</p>
+<h3>1. Choose a shape</h3>
+<table class="tools">
+ <tr><td><img class="icon" src="images/icons/rectangletool.png" alt=""> Rectangle</td><td>Drag from one corner to the other. Hold <kbd>Shift</kbd> for a square.</td></tr>
+ <tr><td><img class="icon" src="images/icons/ovaltool.png" alt=""> Oval</td><td>Drag, the same way as a rectangle. Good for faces. Hold <kbd>Shift</kbd> for a circle.</td></tr>
+ <tr><td><img class="icon" src="images/icons/polygontool.png" alt=""> Polygon</td><td>Click once at each corner of the area. To finish, click the first corner again, double-click, right-click, or press <kbd>Enter</kbd>. Hold <kbd>Shift</kbd> to keep lines straight or at 45°.</td></tr>
+</table>
+<h3>2. Choose an effect</h3>
+<table class="tools">
+ <tr><td><img class="icon" src="images/icons/opaquetool.png" alt=""> Box</td><td>Covers the area with a solid colour (black unless you choose another). <b>This is the safest choice</b>: nothing underneath can show through.</td></tr>
+ <tr><td><img class="icon" src="images/icons/blurtool.png" alt=""> Blur</td><td>Makes the area soft and fuzzy. It looks nicer, but large text or shapes may still be guessed.</td></tr>
+ <tr><td><img class="icon" src="images/icons/pixelatetool.png" alt=""> Pixelate</td><td>Turns the area into big squares. Like blur, it hides detail but not always everything.</td></tr>
+</table>
+<div class="box warn"><b>Blur and Pixelate are not guaranteed to hide everything.</b>For card numbers, passwords, names and anything that must not be read, use <span class="ui">Box</span>. For Blur and Pixelate, choose <span class="ui">Aggressive</span> and a high strength to hide more.</div>
+<h3>3. The small window under a redaction</h3>
+<p>When you draw or select a redaction, a small window appears under it:</p>
+<figure><img src="images/redaction-window.png" alt="The redaction window" style="max-width:560px"></figure>
+<ul>
+ <li><span class="ui">Box</span>, <span class="ui">Blur</span> and <span class="ui">Pixelate</span> change the effect of this redaction.</li>
+ <li>The colour square chooses the box colour. <img class="icon" src="images/icons/eyedropperbutton.png" alt="Pick Colour" onerror="this.remove()"> picks a colour from the picture itself, so the box blends in.</li>
+ <li>For Blur and Pixelate you also get <span class="ui">Default</span> or <span class="ui">Aggressive</span>, and a <span class="ui">Strength</span> from 1 to 10.</li>
+ <li><span class="ui">Delete</span> removes this redaction.</li>
+ <li><span class="ui">Redact</span> accepts it. Clicking anywhere else does the same.</li>
+</ul>
+<figure><img src="images/editor-selected.png" alt="A selected redaction with its window"><figcaption>The black box is selected: it has small squares on its edges, and its window is underneath.</figcaption></figure>
+<h3>Clearing</h3>
+<ul>
+ <li><img class="icon" src="images/icons/toolclearredactions.png" alt=""> <span class="ui">Clear Redactions</span> removes every redaction (the picture and notes stay).</li>
+ <li><img class="icon" src="images/icons/toolclearannotations.png" alt=""> <span class="ui">Clear Annotations</span> removes every note.</li>
+ <li><img class="icon" src="images/icons/clearscreenbutton.png" alt=""> <span class="ui">Clear Editor</span> closes the picture and everything on it.</li>
+ <li>Made a mistake? <img class="icon" src="images/icons/undobutton.png" alt=""> <span class="ui">Undo</span> (<kbd>Ctrl</kbd>+<kbd>Z</kbd>) brings it back, and <img class="icon" src="images/icons/redobutton.png" alt=""> <span class="ui">Redo</span> (<kbd>Ctrl</kbd>+<kbd>Y</kbd>) repeats it.</li>
+</ul>
+
+<h2 id="select">Selecting, moving and changing shapes</h2>
+<p>Click <img class="icon" src="images/icons/selecttoolbutton.png" alt="Select"> <span class="ui">Select</span>, then:</p>
+<ul>
+ <li><b>Select</b> a shape: click it. Small squares appear on its edges.</li>
+ <li><b>Move</b> it: drag it. To move it a little at a time, press the arrow keys (<kbd>Shift</kbd> with an arrow moves it further).</li>
+ <li><b>Resize</b> it: drag one of the small squares.</li>
+ <li><b>Turn</b> it: move the pointer just outside a corner until it becomes a curved arrow, then drag.</li>
+ <li><b>Select several</b>: drag a box around them on an empty part of the picture. Move them together, or delete them together.</li>
+ <li><b>Delete</b> the selected shape: press <kbd>Delete</kbd>.</li>
+</ul>
+<div class="box tip"><b>Tip</b>With the Rectangle or Oval tool you can also click an existing shape to move or resize it. You don't need to switch to Select every time.</div>
+
+<h2 id="notes">Adding notes: annotations</h2>
+<p>Annotations are notes on top of the picture: text, outlines, arrows and drawing. They don't hide anything. They point things out.</p>
+<table class="tools">
+ <tr><td><img class="icon" src="images/icons/texttool.png" alt=""> Text</td><td>Drag a box, then type. Press <kbd>Enter</kbd> for a new line and <kbd>Ctrl</kbd>+<kbd>Enter</kbd> when you've finished. Double-click a text later to change it.</td></tr>
+ <tr><td><img class="icon" src="images/icons/drawrectangletool.png" alt=""> Outline</td><td>An empty rectangle, to draw attention to something.</td></tr>
+ <tr><td><img class="icon" src="images/icons/drawovaltool.png" alt=""> Ellipse</td><td>An empty oval or circle.</td></tr>
+ <tr><td><img class="icon" src="images/icons/linetool.png" alt=""> Line</td><td>A straight line. It has an arrowhead at the end unless you change it.</td></tr>
+ <tr><td><img class="icon" src="images/icons/polylinetool.png" alt=""> Polyline</td><td>A line that turns corners at right angles as you drag.</td></tr>
+ <tr><td><img class="icon" src="images/icons/freehandtool.png" alt=""> Pen</td><td>Draw freely, like a pen on paper.</td></tr>
+</table>
+<p>When you select a line or a text, a small window lets you change its colour, width, dashes, arrowheads, font and size. The same choices are on the <span class="ui">options bar</span> under the toolbar. The options bar is hidden at first; switch it on in <span class="ui">Settings › Editor</span>.</p>
+<figure><img src="images/options-bar.png" alt="The options bar"><figcaption>The options bar (shown here for redactions: effect, strength and box colour).</figcaption></figure>
+
+<h2 id="images">Adding images and new images</h2>
+<ul>
+ <li><img class="icon" src="images/icons/addimagebutton.png" alt=""> <span class="ui">Add Image</span> puts another picture on top of the open one (for example a logo). You can move it, resize it and turn it like any shape.</li>
+ <li><img class="icon" src="images/icons/pastebutton.png" alt=""> <span class="ui">Paste</span> (<kbd>Ctrl</kbd>+<kbd>V</kbd>) opens a picture from the clipboard. <span class="ui">Edit › Paste onto Image</span> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd>) puts it on top of the open picture instead.</li>
+ <li><img class="icon" src="images/icons/newbutton.png" alt=""> <span class="ui">New</span> (<kbd>Ctrl</kbd>+<kbd>N</kbd>) makes a blank picture to draw on. Choose a size and a background colour. It can start with the current picture already on it.</li>
+</ul>
+<figure><img src="images/new-image.png" alt="The New Image window" style="max-width:520px"></figure>
+
+<h2 id="crop">Crop, resize, rotate and flip</h2>
+<table class="tools">
+ <tr><td><img class="icon" src="images/icons/croptool.png" alt=""> Crop</td><td>Drag the area to keep, then click <span class="ui">Confirm Crop</span> (or press <kbd>Enter</kbd>). <span class="ui">Cancel Crop</span> stops. You can remove the crop later with <span class="ui">Draw › Remove Crop</span>.</td></tr>
+ <tr><td><img class="icon" src="images/icons/resizebutton.png" alt=""> Resize</td><td>Makes the picture bigger or smaller. Your shapes and notes are resized with it.</td></tr>
+ <tr><td><img class="icon" src="images/icons/rotateclockwisebutton.png" alt=""> <img class="icon" src="images/icons/rotatecounterclockwisebutton.png" alt=""> Rotate</td><td>Turns the whole picture or video a quarter turn right or left.</td></tr>
+ <tr><td><img class="icon" src="images/icons/fliphorizontalbutton.png" alt=""> <img class="icon" src="images/icons/flipverticalbutton.png" alt=""> Flip</td><td>Mirrors the picture (in <span class="ui">Edit › Rotate Image or Video</span>; the buttons are hidden at first).</td></tr>
+</table>
+<p>To turn or flip only the selected shapes instead of the whole picture, use <span class="ui">Edit › Transform</span>.</p>
+
+<h2 id="view">Zoom, full screen and slideshow</h2>
+<table class="tools">
+ <tr><td>Mouse wheel</td><td>Zooms in and out where the pointer is.</td></tr>
+ <tr><td><img class="icon" src="images/icons/fitbutton.png" alt=""> Fit</td><td>Shows the whole picture.</td></tr>
+ <tr><td><img class="icon" src="images/icons/actualsizebutton.png" alt=""> Actual Size</td><td>Shows the picture at 100%, one screen dot per picture dot.</td></tr>
+ <tr><td><img class="icon" src="images/icons/pantool.png" alt=""> Pan</td><td>Drag to move around a zoomed-in picture. You can also hold <kbd>Space</kbd> and drag, or drag with the middle mouse button.</td></tr>
+ <tr><td><img class="icon" src="images/icons/fullscreenbutton.png" alt=""> Full Screen</td><td>Hides everything but the picture (<kbd>F11</kbd>; press it again to come back).</td></tr>
+ <tr><td><img class="icon" src="images/icons/slideshowbutton.png" alt=""> Slideshow</td><td>Shows the pictures in the same folder one after another (<kbd>F5</kbd>; <kbd>Esc</kbd> ends it).</td></tr>
+ <tr><td><img class="icon" src="images/icons/navbarbutton.png" alt=""> Nav Bar</td><td>Shows small pictures of the folder along the bottom. Click one to open it. Drag the top edge of the bar to make it taller or shorter. TRT remembers the height.</td></tr>
+ <tr><td><img class="icon" src="images/icons/previouspicturebutton.png" alt=""> <img class="icon" src="images/icons/nextpicturebutton.png" alt=""> Previous / Next</td><td>Opens the previous or next picture in the same folder (<kbd>Page Up</kbd> / <kbd>Page Down</kbd>).</td></tr>
+</table>
+
+<h2 id="gif">Animated GIFs</h2>
+<p>Animated GIFs play by themselves when you open them.</p>
+<ul>
+ <li>To <b>pause</b> or <b>play</b>: click <img class="icon" src="images/icons/selecttoolbutton.png" alt="Select"> <span class="ui">Select</span>, then click the picture (away from any shape).</li>
+ <li>Your redactions and notes are on <b>every frame</b>. Pause on a few frames to check that the boxes still cover what moves.</li>
+ <li><b>Export as GIF</b> keeps the animation, with the redactions on every frame. Exporting as PNG, JPG or WebP saves only the frame you are looking at.</li>
+</ul>
+
+<h2 id="video">Redacting a video</h2>
+<p>When a video is open, a timeline and play buttons appear at the bottom.</p>
+<figure><img src="images/editor-video.png" alt="The editor with a video open, the trim row and timeline"></figure>
+<figure><img src="images/timeline.png" alt="The timeline and play buttons"><figcaption>Under the video: the trim row (when shown), the coloured lines of your redactions, the timeline, and the play buttons.</figcaption></figure>
+<table class="tools">
+ <tr><td><img class="icon" src="images/icons/playbutton.png" alt=""> Play / Pause</td><td>Plays or pauses the video.</td></tr>
+ <tr><td><img class="icon" src="images/icons/previousframebutton.png" alt=""> <img class="icon" src="images/icons/nextframebutton.png" alt=""> Frame by frame</td><td>One picture back or forward (or press <kbd>←</kbd> and <kbd>→</kbd>).</td></tr>
+ <tr><td>Timeline</td><td>Drag along it to jump to another moment. Point at it to see a small preview.</td></tr>
+</table>
+<h3>Hiding something that moves</h3>
+<ol class="steps">
+ <li><b>Pause</b> on the first moment the thing appears (a face, a number plate…).</li>
+ <li><b>Draw</b> a shape over it, and choose Box, Blur or Pixelate in the small window.</li>
+ <li>Click <span class="ui">Start Redaction</span>. TRT <b>tracks</b> the thing: it moves the box along with it, frame by frame.</li>
+ <li>If TRT loses track, it stops and shows you where. Choose <span class="ui">Continue Redaction</span>, <span class="ui">End Redaction Here</span> or adjust the box yourself.</li>
+ <li><b>Play the video through</b> and watch the box. If it drifts, pause, move the box back and click <span class="ui">Track Again</span>.</li>
+</ol>
+<h3>Hiding something that stays still</h3>
+<p>For something that doesn't move (a name in a corner, a sign), tick <span class="ui">Enable Manual Redaction</span> in the small window before clicking <span class="ui">Start Redaction</span>. The box stays where you drew it. Play to the moment it should end, click the box and choose <span class="ui">Stop Redaction</span>.</p>
+<h3>The coloured lines</h3>
+<p>Each redaction and note has a coloured line above the timeline, showing when it is on screen. Point at a line to see what it is.</p>
+<table>
+ <tr><th>Colour</th><th>Meaning</th></tr>
+ <tr><td>Red</td><td>A redaction is on screen.</td></tr>
+ <tr><td>Cyan</td><td>A box position you placed.</td></tr>
+ <tr><td>Green</td><td>TRT tracked the subject here.</td></tr>
+ <tr><td>Orange-red</td><td>Tracking lost the subject here. <b>Check this part.</b></td></tr>
+ <tr><td>Violet</td><td>A note (annotation) is on screen.</td></tr>
+</table>
+<div class="box stop"><b>Always watch the whole video before you share it.</b>Tracking can drift away from what it should cover, especially when things move fast, turn or are hidden for a moment.</div>
+<p>Sound is <b>removed</b> when you export a video, because TRT can't check or redact what is said. If you need to keep it, see <a href="#export">Export</a>.</p>
+
+<h2 id="trim">Trim, append and capture frame</h2>
+<table class="tools">
+ <tr><td><img class="icon" src="images/icons/trimtoolbutton.png" alt=""> Trim</td><td>Shows the trim row. Go to the first frame you want and click <img class="icon" src="images/icons/markerabutton.png" alt="Set A"> (Set A), then to the last and click <img class="icon" src="images/icons/markerbbutton.png" alt="Set B"> (Set B). <span class="ui">Retain A–B</span> keeps only that part. Tick <span class="ui">Invert</span> to delete that part and keep the rest. <img class="icon" src="images/icons/clearmarkersbutton.png" alt="Clear"> clears the marks.</td></tr>
+ <tr><td><img class="icon" src="images/icons/appendtoolbutton.png" alt=""> Append</td><td>Adds another video at the beginning or the end of this one.</td></tr>
+ <tr><td><img class="icon" src="images/icons/captureframebutton.png" alt=""> Capture Frame</td><td>Saves, copies or opens the frame on screen as a picture.</td></tr>
+</table>
+<p>These are also in the <span class="ui">Video</span> menu. <span class="ui">Undo</span> takes back a trim or an append.</p>
+
+<h2 id="export">Export: saving the result</h2>
+<p>Click <img class="icon" src="images/icons/exportbutton.png" alt="Export"> <span class="ui">Export</span> (or <span class="ui">File › Export…</span>), choose where to save and a file name, and click <span class="ui">Save</span>.</p>
+<ul>
+ <li><b>Pictures</b> can be saved as PNG, JPG, GIF or WebP. PNG keeps the best quality.</li>
+ <li><b>Videos</b> can be saved as MP4, MOV, M4V, AVI, MKV or WebM. MP4 works almost everywhere.</li>
+ <li>TRT <b>checks the new file</b> after saving it, to make sure the redactions are really in it. If anything is wrong, it doesn't keep the file.</li>
+ <li>Hidden details inside the file (such as where a photo was taken) are <b>not copied</b> into the new file.</li>
+ <li>TRT never replaces an existing file, and never changes your original.</li>
+</ul>
+<h3>Export Options (in the side panel)</h3>
+<p>Click <img class="icon" src="images/icons/panelbutton.png" alt="Panel"> <span class="ui">Panel</span> and open <span class="ui">Export Options</span>:</p>
+<figure><img src="images/side-panel.png" alt="The side panel with Export Options" style="max-width:340px"></figure>
+<ul>
+ <li><span class="ui">High</span>, <span class="ui">Normal</span> or <span class="ui">Smaller</span>: better quality, or a smaller file.</li>
+ <li><span class="ui">Keep Primary Audio (Unredacted)</span>: keeps the video's sound. TRT asks you to confirm, because the sound is not checked.</li>
+ <li><span class="ui">Securely Delete the Original After Export</span>: after a successful export, TRT asks once more, then overwrites the original file and deletes it. <b>This can't be undone.</b></li>
+</ul>
+
+<h2 id="other-saves">Copy, projects and other ways to save</h2>
+<table class="tools">
+ <tr><td><img class="icon" src="images/icons/copybutton.png" alt=""> Copy</td><td>Copies the picture <b>with</b> its redactions (<kbd>Ctrl</kbd>+<kbd>C</kbd>), ready to paste into an email or document.</td></tr>
+ <tr><td><img class="icon" src="images/icons/saveprojectbutton.png" alt=""> Save Project</td><td>Saves your shapes and notes so you can carry on later. The project needs the original file to open again. A project is not a redacted file: <b>export</b> to share.</td></tr>
+ <tr><td><img class="icon" src="images/icons/openprojectbutton.png" alt=""> Open Project</td><td>Opens a saved project.</td></tr>
+ <tr><td><img class="icon" src="images/icons/savemediabutton.png" alt=""> Save Copy</td><td>Saves a copy of the file <b>as it is, without redactions</b> (File › Save Media As…). Don't share this copy.</td></tr>
+</table>
+
+<h2 id="fileinfo">File Info: what is hidden inside a file</h2>
+<p>Pictures and videos often carry hidden details: the camera, the date, and sometimes the <b>place</b> where they were taken. Click <img class="icon" src="images/icons/fileinfobutton.png" alt="File Info"> <span class="ui">File Info</span> (<kbd>Ctrl</kbd>+<kbd>I</kbd>) to see them. Export leaves these details out of the new file.</p>
+
+<h2 id="capture">The capture bar</h2>
+<p>The capture bar takes screenshots. The screen freezes, you choose what to capture, and the picture opens in the editor, ready to redact.</p>
+<table class="tools">
+ <tr><td><img class="icon" src="images/icons/bar-capture-rectangular-region.png" alt=""></td><td><b>Rectangular region</b>: drag a box around part of the screen.</td></tr>
+ <tr><td><img class="icon" src="images/icons/bar-capture-freehand-region.png" alt=""></td><td><b>Freehand region</b>: draw around any shape.</td></tr>
+ <tr><td><img class="icon" src="images/icons/bar-capture-active-window.png" alt=""></td><td><b>Active window</b>: the window in front.</td></tr>
+ <tr><td><img class="icon" src="images/icons/bar-capture-window-or-object.png" alt=""></td><td><b>Window or object</b>: point at a window or a part of one (it is outlined in red), then click.</td></tr>
+ <tr><td><img class="icon" src="images/icons/bar-capture-full-screen.png" alt=""></td><td><b>Full screen</b>.</td></tr>
+ <tr><td><img class="icon" src="images/icons/bar-capture-scrolling-window.png" alt=""></td><td><b>Scrolling window</b>: for a long web page or document. Click the part that scrolls; TRT scrolls it to the end and joins it into one tall picture. Press <kbd>Esc</kbd> to stop early.</td></tr>
+ <tr><td><img class="icon" src="images/icons/bar-screen-recorder.png" alt=""></td><td><b>Screen recorder</b>: records a video of the screen (see below).</td></tr>
+ <tr><td><img class="icon" src="images/icons/bar-open-the-editor.png" alt=""></td><td><b>Open the editor</b>.</td></tr>
+ <tr><td><img class="icon" src="images/icons/bar-output.png" alt=""></td><td><b>Output</b>: where screenshots go: to the editor, to the clipboard, or straight to a file. You can also include the mouse pointer.</td></tr>
+ <tr><td><img class="icon" src="images/icons/bar-menu.png" alt=""></td><td><b>Menu</b>: Open Editor, Open File in Editor, Screen Ruler, Hide in the Notification Area, Remove History, Help, Settings, About and Quit.</td></tr>
+</table>
+<ul>
+ <li><kbd>Ctrl</kbd>+<kbd>Print Screen</kbd> takes a rectangular screenshot at any time.</li>
+ <li>The <span class="ui">–</span> button on the bar hides it in a thin red tab at the top of the screen. Point at the tab to bring the bar back.</li>
+ <li>You can drag the bar anywhere by its title. Drop it on the top edge of a screen and it tucks itself away.</li>
+</ul>
+<div class="box tip"><b>Screenshots are private until you keep them.</b>A screenshot in the editor is kept in a private temporary folder. TRT wipes it when you close it or quit, unless you export it or save it with <span class="ui">File › Save or Copy the Original Capture</span>.</div>
+
+<h2 id="recorder">Recording the screen</h2>
+<ol class="steps">
+ <li>Click <img class="icon" src="images/icons/bar-screen-recorder.png" alt="Screen Recorder"> on the capture bar (or press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Print Screen</kbd>).</li>
+ <li>Choose what to record (an area, a window or the full screen), then click <span class="ui">Record</span>.</li>
+ <li>A border shows what is recorded, with a small bar to pause or stop. Neither appears in the video.</li>
+ <li>Stop the recording. It opens in the editor, ready to redact.</li>
+</ol>
+<figure><img src="images/recorder.png" alt="The Screen Recorder window" style="max-width:460px"></figure>
+<p>Screen recordings have no sound.</p>
+
+<h2 id="ruler">The screen ruler</h2>
+<p><span class="ui">Screen Ruler</span> (in the capture bar's menu) puts a ruler on the screen to measure things in pixels. Drag it to move it, drag its end to make it longer, and use its buttons to turn it or to measure an area, a distance or an angle. Right-click it for more choices.</p>
+
+<h2 id="privacy">Privacy and Remove History</h2>
+<p>TRT works only on your computer. It doesn't upload files, doesn't phone home, and doesn't keep a list of the files you open.</p>
+<p>A few things are kept while TRT runs: screenshots and working copies in a private temporary folder, the last folder you saved to, and the folders Windows remembers for TRT's Open and Save windows. TRT wipes the temporary files when you quit. Because TRT often keeps running by the clock, you can clear them <b>whenever you like</b>:</p>
+<ul>
+ <li><span class="ui">File › Remove History…</span> in the editor, or</li>
+ <li><span class="ui">Remove History…</span> in the capture bar's menu, or by right-clicking the TRT icon by the clock.</li>
+</ul>
+<figure><img src="images/remove-history.png" alt="The Remove History question" style="max-width:520px"></figure>
+<p>Remove History wipes old screenshots and working copies (it overwrites them before deleting them), clears <span class="ui">Undo</span>, and forgets the folders. What is open in the editor stays until you close it. Files you saved or exported are not touched.</p>
+
+<h2 id="settings">Settings</h2>
+<p>Open Settings from <span class="ui">Help › Settings…</span>, from the capture bar's menu, or with <img class="icon" src="images/icons/settingsbutton.png" alt=""> (if it's on your toolbar). Click <span class="ui">OK</span> to keep your changes, or <span class="ui">Cancel</span>.</p>
+<table>
+ <tr><th>Tab</th><th>What you can change</th></tr>
+ <tr><td>General</td><td>Start TRT with Windows; Light, Dark or the same as Windows; "Open with TRT" in File Explorer; TRT as the app for pictures; save or load all settings as a file.</td></tr>
+ <tr><td>Shortcuts</td><td>The keys for a screenshot, a recording, the capture bar and the editor, and for the previous and next picture.</td></tr>
+ <tr><td>Capture</td><td>A delay before each screenshot, the mouse pointer, several monitors, and recording speed.</td></tr>
+ <tr><td>Capture Bar</td><td>Which buttons the bar shows and in what order, the red tab, and what the bar's ✕ does.</td></tr>
+ <tr><td>Editor</td><td>Small icons, a toolbar on the left, and showing or hiding the options bar.</td></tr>
+ <tr><td>Slideshow</td><td>How long each picture shows, the navigation bar, and the <span class="ui">Nav Bar Height</span>.</td></tr>
+ <tr><td>Toolbar</td><td>Which buttons the editor's toolbar shows, their order, and which sit on the right.</td></tr>
+</table>
+<div class="two">
+ <figure><img src="images/settings-general.png" alt="Settings, General tab"><figcaption>General</figcaption></figure>
+ <figure><img src="images/settings-toolbar.png" alt="Settings, Toolbar tab"><figcaption>Toolbar: tick the buttons you want; Up and Down change the order.</figcaption></figure>
+</div>
+
+<h2 id="keys">Keyboard shortcuts</h2>
+<table>
+ <tr><th>Keys</th><th>What they do</th></tr>
+ <tr><td><kbd>Ctrl</kbd>+<kbd>Print Screen</kbd></td><td>Screenshot of a rectangular region (anywhere, any time)</td></tr>
+ <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Print Screen</kbd></td><td>Start or stop a screen recording</td></tr>
+ <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>B</kbd></td><td>Show or hide the capture bar</td></tr>
+ <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>E</kbd></td><td>Open the editor</td></tr>
+ <tr><td><kbd>Ctrl</kbd>+<kbd>N</kbd></td><td>New image</td></tr>
+ <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd></td><td>Add an image onto this one</td></tr>
+ <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>Ctrl</kbd>+<kbd>V</kbd></td><td>Copy the picture with its redactions / paste a picture</td></tr>
+ <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd></td><td>Paste a picture onto this one</td></tr>
+ <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd></td><td>Undo / redo</td></tr>
+ <tr><td><kbd>Delete</kbd></td><td>Delete the selected shape</td></tr>
+ <tr><td><kbd>Enter</kbd></td><td>Finish a polygon, or confirm a crop</td></tr>
+ <tr><td><kbd>Esc</kbd></td><td>Cancel what you are doing (a polygon, a crop, the colour picker, a slideshow)</td></tr>
+ <tr><td><kbd>Shift</kbd> while drawing</td><td>Squares and circles; straight or 45° polygon lines</td></tr>
+ <tr><td><kbd>Space</kbd> + drag</td><td>Move around the picture</td></tr>
+ <tr><td><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd></td><td>With a shape selected: move it 1 pixel (with <kbd>Shift</kbd>, 10 pixels)</td></tr>
+ <tr><td><kbd>←</kbd> / <kbd>→</kbd></td><td>With nothing selected: previous / next picture in the folder; on a video, one frame back / forward</td></tr>
+ <tr><td><kbd>Page Up</kbd> / <kbd>Page Down</kbd></td><td>Previous / next picture in the folder</td></tr>
+ <tr><td><kbd>Ctrl</kbd>+<kbd>I</kbd></td><td>File Info</td></tr>
+ <tr><td><kbd>F11</kbd></td><td>Full screen</td></tr>
+ <tr><td><kbd>F5</kbd></td><td>Slideshow</td></tr>
+ <tr><td><kbd>F1</kbd></td><td>This Help manual</td></tr>
+</table>
+<p>You can change the first four, and the previous and next picture keys, in <span class="ui">Settings › Shortcuts</span>.</p>
+
+<h2 id="faq">Questions and problems</h2>
+<dl class="faq">
+ <dt>Is the original file changed?</dt>
+ <dd>No. TRT only reads it. Export always makes a new file. The only exception is if you tick <span class="ui">Securely Delete the Original After Export</span> and say yes when asked.</dd>
+ <dt>Which effect should I use?</dt>
+ <dd><span class="ui">Box</span>, whenever something must not be read or recognised. Blur and Pixelate look softer but can leave clues.</dd>
+ <dt>My screenshot shortcut doesn't work.</dt>
+ <dd>Another program may already use that key (for example an older TRT). Quit the other program, or choose a different key in <span class="ui">Settings › Shortcuts</span>. TRT tells you when a shortcut can't be used.</dd>
+ <dt>The export failed its check.</dt>
+ <dd>TRT found a difference between what you drew and what was saved, so it didn't keep the file. Try again, or try PNG (for pictures) or MP4 (for videos).</dd>
+ <dt>Why is there no sound in my exported video?</dt>
+ <dd>TRT removes sound unless you choose <span class="ui">Keep Primary Audio (Unredacted)</span> in the side panel's Export Options, because spoken names can't be redacted.</dd>
+ <dt>TRT asks about a network drive.</dt>
+ <dd>Files on network drives can be seen by others, so TRT checks with you first. Your organisation may block network drives altogether.</dd>
+ <dt>Where are my screenshots?</dt>
+ <dd>Until you export or save them, only in TRT's private temporary folder, which is wiped when you close them or quit. To keep one as it is, use <span class="ui">File › Save or Copy the Original Capture…</span>.</dd>
+ <dt>Can I see what version I have?</dt>
+ <dd>Yes: <span class="ui">Help › About</span>.</dd>
+ <dt>How do I open this manual again?</dt>
+ <dd>Press <kbd>F1</kbd> in the editor, or choose <span class="ui">Help › Help</span>. It is also in the capture bar's menu and in the menu of the TRT icon by the clock. It opens in its own TRT window, with the contents on the left. Nothing is fetched from the internet: the manual comes with TRT.</dd>
+</dl>
+</main>
+</div>
+</body>
+</html>

@@ -1,0 +1,49 @@
+{
+  "SchemaVersion": 1,
+  "Application": "TinyRedactionTool.Wpf.Dev",
+  "CoordinateSpace": "autorotated-square-pixels-v1",
+  "Media": {
+    "Path": "C:\\Users\\david\\.codex\\.chatgpt-projects\\g-p-6aabb115d7bc8191856992724a36a2cd\\TinyRedactionTool.Wpf.Dev\\test-media\\synthetic-source.png",
+    "Length": 273,
+    "Sha256": "5A0C008FCBE429761A53E236B0B96589D418C5CB362DAE7F88BD062516B797DF",
+    "Width": 96,
+    "Height": 64,
+    "Duration": 0,
+    "IsVideo": false
+  },
+  "Regions": [
+    {
+      "Id": "f50d81ed-d308-4fea-8477-fd1fe8e4b634",
+      "Name": "Redaction",
+      "Shape": "Rectangle",
+      "Effect": "Opaque",
+      "Color": "#FF0000",
+      "Strength": 5,
+      "Aggressive": false,
+      "ShowDecorations": false,
+      "Start": 0,
+      "End": 0,
+      "CoverageMargin": 0,
+      "Polygon": [],
+      "Keyframes": [
+        {
+          "Time": 0,
+          "Bounds": {
+            "X": 20,
+            "Y": 20,
+            "Width": 30,
+            "Height": 20
+          },
+          "Origin": "Manual"
+        }
+      ],
+      "Tracking": []
+    }
+  ],
+  "Export": {
+    "Format": "png",
+    "Quality": "Normal",
+    "KeepAudio": false,
+    "DeleteOriginal": false
+  }
+}

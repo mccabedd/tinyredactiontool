@@ -1,0 +1,476 @@
+<Window x:Class="TinyRedaction.Desktop.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:TinyRedaction.Desktop"
+ Title="TinyRedactionTool 3.0.0" Icon="Assets/icon.ico" Width="1240" Height="800" MinWidth="900" MinHeight="580" WindowState="Maximized" Background="{DynamicResource Background}" Foreground="{DynamicResource Foreground}" PreviewKeyDown="WindowKeyDown" AllowDrop="True" DragOver="MediaDragOver" DragEnter="MediaDragOver" Drop="MediaDropped">
+ <!-- Editor layout: menu bar, one row of icon buttons, options bar, workspace, status bar. -->
+ <Grid>
+ <DockPanel>
+  <!-- Menu bar with picture size, zoom and theme on the right (0.10.0: moved from the status bar). -->
+  <Grid x:Name="MenuRow" DockPanel.Dock="Top" Background="{DynamicResource Surface}">
+  <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+  <!-- Status keeps the latest message for the progress popup and notices; it is not shown as a line. -->
+  <TextBlock x:Name="Status" Visibility="Collapsed"/>
+  <Menu x:Name="MainMenu">
+   <MenuItem Header="_File">
+    <!-- 0.26.0 (David): a blank picture to draw on and paste onto. -->
+    <MenuItem Header="_New Image…" InputGestureText="Ctrl+N" Click="NewPicture"/>
+    <MenuItem Header="_Open Media…" Click="OpenMedia"/>
+    <!-- 0.26.1 (David): pictures onto the open one, without closing it. 0.27.0: "Add Image". -->
+    <MenuItem Header="A_dd Image…" InputGestureText="Ctrl+Shift+O" Click="AddPictureFiles" IsEnabled="{Binding IsEnabled, ElementName=AddImageButton}" ToolTip="Put Images onto This One, to Move and Size"/>
+    <MenuItem Header="Open _Project…" Click="OpenProject"/>
+    <MenuItem x:Name="SaveProjectMenuItem" Header="_Save Project…" Click="SaveProject" IsEnabled="False"/>
+    <MenuItem Header="_Export…" Click="ExportImage" IsEnabled="{Binding IsEnabled, ElementName=ExportButton}"/>
+    <!-- 0.18.0 (David): the file as it is. -->
+    <MenuItem x:Name="SaveMediaMenuItem" Header="Save _Media As…" Click="SaveMediaAs" IsEnabled="False" ToolTip="Save a Copy as It Is, Without Redactions or Edits"/>
+    <!-- 0.23.0: what is written inside the file besides the picture, and what Export removes. -->
+    <MenuItem Header="File _Info…" InputGestureText="Ctrl+I" Click="ShowFileInfo"/>
+    <Separator/>
+    <MenuItem x:Name="OriginalMenuItem" Header="Save or Copy the _Original Capture…" Click="KeepOriginal" IsEnabled="False"/>
+    <!-- 0.28.0 (David): wipe old captures and working copies, and forget the folders used, without quitting. -->
+    <MenuItem x:Name="RemoveHistoryMenuItem" Header="_Remove History…" Click="RemoveHistory" ToolTip="Wipe Old Captures and Working Copies, and Forget the Folders Used"/>
+    <Separator/>
+    <MenuItem Header="_Close Editor" Click="ExitWindow"/>
+    <MenuItem x:Name="QuitMenuItem" Header="_Quit TinyRedactionTool" Click="QuitApp" Visibility="Collapsed"/>
+   </MenuItem>
+   <MenuItem Header="_Edit">
+    <MenuItem Header="_Undo" InputGestureText="Ctrl+Z" Click="Undo"/>
+    <MenuItem Header="_Redo" InputGestureText="Ctrl+Y" Click="Redo"/>
+    <Separator/>
+    <!-- 0.19.0 (David): turn or flip the selected shape(s), or the whole picture or video. -->
+    <MenuItem x:Name="TransformMenu" Header="_Transform">
+     <MenuItem Header="Rotate 90° _Clockwise" Tag="Clockwise" Click="TransformSelection"/>
+     <MenuItem Header="Rotate 90° C_ounter-Clockwise" Tag="CounterClockwise" Click="TransformSelection"/>
+     <MenuItem Header="Rotate _180°" Tag="Half" Click="TransformSelection"/>
+     <Separator/>
+     <MenuItem Header="Flip _Horizontal" Tag="FlipHorizontal" Click="TransformSelection"/>
+     <MenuItem Header="Flip _Vertical" Tag="FlipVertical" Click="TransformSelection"/>
+    </MenuItem>
+    <MenuItem x:Name="RotateMenu" Header="R_otate Image or Video">
+     <MenuItem Header="Rotate 90° _Clockwise" Tag="Clockwise" Click="RotateMedia"/>
+     <MenuItem Header="Rotate 90° C_ounter-Clockwise" Tag="CounterClockwise" Click="RotateMedia"/>
+     <MenuItem Header="Rotate _180°" Tag="Half" Click="RotateMedia"/>
+     <Separator/>
+     <MenuItem Header="Flip Canvas _Horizontal" Tag="FlipHorizontal" Click="RotateMedia"/>
+     <MenuItem Header="Flip Canvas _Vertical" Tag="FlipVertical" Click="RotateMedia"/>
+    </MenuItem>
+    <MenuItem Header="Re_size Image…" Click="ResizePicture" IsEnabled="{Binding IsEnabled, ElementName=ResizeButton}"/>
+    <Separator/>
+    <MenuItem Header="_Copy Image" InputGestureText="Ctrl+C" Click="CopyPicture" IsEnabled="{Binding IsEnabled, ElementName=CopyButton}"/>
+    <MenuItem Header="_Paste Image" InputGestureText="Ctrl+V" Click="PastePicture" IsEnabled="{Binding IsEnabled, ElementName=PasteButton}"/>
+    <MenuItem Header="Paste _onto Image" InputGestureText="Ctrl+Shift+V" Click="PasteOntoPicture" ToolTip="Paste onto This Image, to Move and Size"/>
+    <Separator/>
+    <MenuItem Header="_Delete Selected Shape" InputGestureText="Del" Click="DeleteRegion"/>
+    <MenuItem Header="Clear _All Redactions" Click="ClearRegions"/>
+    <!-- 0.27.0 (David): every toolbar button has a menu item. -->
+    <MenuItem Header="Clear All A_nnotations" Click="ClearAnnotations" IsEnabled="{Binding IsEnabled, ElementName=ToolClearAnnotations}"/>
+    <MenuItem Header="C_lear Editor" Click="Clear"/>
+    <Separator/>
+    <MenuItem Header="Cancel _Work" Click="CancelWork"/>
+   </MenuItem>
+   <MenuItem Header="_Draw">
+    <MenuItem Header="_Select" Tag="SelectToolButton" Click="MenuTool"/>
+    <MenuItem Header="_Rectangle" Tag="RectangleTool" Click="MenuTool"/>
+    <MenuItem Header="_Oval" Tag="OvalTool" Click="MenuTool"/>
+    <MenuItem Header="_Polygon" Tag="PolygonTool" Click="MenuTool"/>
+    <MenuItem Header="P_an" Tag="PanTool" Click="MenuTool"/>
+    <Separator/>
+    <MenuItem Header="_Text Annotation" Tag="TextTool" Click="MenuTool"/>
+    <MenuItem Header="_Line / Arrow Annotation" Tag="LineTool" Click="MenuTool"/>
+    <MenuItem Header="Pol_yline Annotation" Tag="PolylineTool" Click="MenuTool"/>
+    <MenuItem Header="Rectangle _Outline" Tag="DrawRectangleTool" Click="MenuTool"/>
+    <MenuItem Header="_Ellipse Outline" Tag="DrawOvalTool" Click="MenuTool"/>
+    <MenuItem Header="Pe_n (Freehand)" Tag="FreehandTool" Click="MenuTool"/>
+    <Separator/>
+    <MenuItem Header="_Crop Image" Tag="CropTool" Click="MenuTool" IsEnabled="{Binding IsEnabled, ElementName=CropTool}"/>
+    <MenuItem Header="Co_nfirm Crop" InputGestureText="Enter" Click="ConfirmCrop" IsEnabled="{Binding IsEnabled, ElementName=ConfirmCropButton}"/>
+    <MenuItem x:Name="RemoveCropMenuItem" Header="R_emove Crop" Click="RemoveCrop" IsEnabled="False"/>
+   </MenuItem>
+   <MenuItem Header="_Redact">
+    <MenuItem Header="_Coloured Box" Tag="OpaqueTool" Click="MenuTool" IsEnabled="{Binding IsEnabled, ElementName=OpaqueTool}"/>
+    <MenuItem Header="_Blur" Tag="BlurTool" Click="MenuTool" IsEnabled="{Binding IsEnabled, ElementName=BlurTool}"/>
+    <MenuItem Header="_Pixelate" Tag="PixelateTool" Click="MenuTool" IsEnabled="{Binding IsEnabled, ElementName=PixelateTool}"/>
+    <Separator/>
+    <MenuItem Header="Box C_olour…" Click="ChooseColor" IsEnabled="{Binding IsEnabled, ElementName=ColorSwatch}"/>
+    <MenuItem Header="Pick Colour from _Image" Tag="EyedropperButton" Click="MenuTool" IsEnabled="{Binding IsEnabled, ElementName=EyedropperButton}"/>
+   </MenuItem>
+   <MenuItem Header="_View">
+    <MenuItem Header="Zoom _In" Click="ZoomIn"/>
+    <MenuItem Header="Zoom _Out" Click="ZoomOut"/>
+    <MenuItem Header="_Fit to Window" Click="Fit"/>
+    <MenuItem Header="_Actual Pixels (100%)" Click="ActualPixels"/>
+    <MenuItem Header="Fit _Width" Click="FitWidth"/>
+    <Separator/>
+    <!-- 0.23.0 (David): the folder's pictures, full screen and a slideshow. -->
+    <MenuItem Header="Pre_vious Image" InputGestureText="Page Up" Click="PreviousPicture"/>
+    <MenuItem Header="_Next Image" InputGestureText="Page Down" Click="NextPicture"/>
+    <MenuItem Header="F_ull Screen" InputGestureText="F11" Click="ToggleFullScreen"/>
+    <MenuItem Header="Sli_deshow" InputGestureText="F5" Click="StartSlideshow"/>
+    <MenuItem Header="Navigation _Bar" Click="ToggleNavBar"/>
+    <Separator/>
+    <MenuItem Header="_Properties Panel" Click="ToggleProperties"/>
+    <MenuItem Header="_Theme">
+     <MenuItem Header="_System" Tag="0" Click="MenuTheme"/>
+     <MenuItem Header="_Dark" Tag="1" Click="MenuTheme"/>
+     <MenuItem Header="_Light" Tag="2" Click="MenuTheme"/>
+    </MenuItem>
+   </MenuItem>
+   <!-- 0.27.0 (David): the video buttons (Trim, Append) and Capture Frame have their own menu. -->
+   <MenuItem x:Name="VideoMenu" Header="V_ideo">
+    <MenuItem x:Name="TrimMenuItem" Header="_Trim" Click="ToggleTrimRow" IsEnabled="False" ToolTip="Show or Hide Trim"/>
+    <MenuItem x:Name="AppendVideoMenuItem" Header="_Append Video…" Click="AppendVideo" IsEnabled="False" ToolTip="Add Another Video at the Beginning or End"/>
+    <MenuItem x:Name="CaptureFrameMenuItem" Header="Capture _Frame…" Click="CaptureFrame" IsEnabled="False" ToolTip="Save, Copy or Edit the Video Frame on Screen as an Image"/>
+   </MenuItem>
+   <!-- Capture (0.12.0): the capture bar's commands, for when the editor is in front. -->
+   <MenuItem x:Name="CaptureMenu" Header="_Capture" Visibility="Collapsed">
+    <MenuItem Header="Capture _Active Window" Tag="ActiveWindow" Click="MenuCapture"/>
+    <MenuItem Header="Capture _Window or Object" Tag="Object" Click="MenuCapture"/>
+    <MenuItem Header="Capture _Rectangular Region" Tag="Rectangle" Click="MenuCapture"/>
+    <MenuItem Header="Capture _Freehand Region" Tag="Freehand" Click="MenuCapture"/>
+    <MenuItem Header="Capture F_ull Screen" Tag="FullScreen" Click="MenuCapture"/>
+    <MenuItem Header="Capture _Scrolling Window" Tag="Scrolling" Click="MenuCapture"/>
+    <Separator/>
+    <MenuItem Header="Screen R_ecorder…" Click="MenuRecorder"/>
+    <MenuItem Header="Screen R_uler" Click="MenuRuler"/>
+    <Separator/>
+    <MenuItem Header="Show Capture _Bar" Click="MenuShowBar"/>
+   </MenuItem>
+   <!-- 3.0.0 (David): Help > Help (the manual), Settings, About. -->
+   <MenuItem x:Name="AboutMenu" Header="_Help">
+    <MenuItem x:Name="HelpMenuItem" Header="_Help" InputGestureText="F1" Click="OpenHelp" ToolTip="Open the Help Manual in Its Own Window"/>
+    <MenuItem x:Name="SettingsMenuItem" Header="_Settings…" Click="OpenSettings"/>
+    <Separator/>
+    <MenuItem Header="_About" Click="About"/>
+   </MenuItem>
+  </Menu>
+  <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,4,0">
+   <TextBlock x:Name="SizeText" Text="Size: –" VerticalAlignment="Center" Margin="8,0"/>
+   <Border BorderBrush="{DynamicResource ChromeLine}" BorderThickness="1,0,0,0" Padding="8,0"><StackPanel Orientation="Horizontal" VerticalAlignment="Center"><TextBlock Text="Zoom: "/><TextBlock x:Name="ZoomText" Text="Fit"/></StackPanel></Border>
+   <!-- 0.18.0: the theme is chosen in Settings; the hidden ThemeChoice holds it (View › Theme too). -->
+   <ComboBox x:Name="ThemeChoice" Visibility="Collapsed" SelectionChanged="ThemeChanged"><ComboBoxItem Content="System"/><ComboBoxItem Content="Dark"/><ComboBoxItem Content="Light"/></ComboBox>
+  </StackPanel>
+  </Grid>
+  <Border x:Name="ToolStrip" DockPanel.Dock="Top" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource ChromeLine}" BorderThickness="0,1,0,1" Padding="4,2">
+   <!-- 0.16.1 (David): Panel sits at the far right of the strip, apart from the wrapping buttons. -->
+   <DockPanel LastChildFill="True">
+   <!-- 0.18.0 (David): the three Clear buttons sit at the far right beside Panel, with a separator. -->
+   <StackPanel x:Name="RightTools" DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+    <Button x:Name="ToolClearRedactions" Style="{StaticResource ToolButton}" Content="Clear&#10;Redactions" local:Toolbar.WordsOnly="True" Click="ClearRegions" IsEnabled="False" ToolTipService.ShowOnDisabled="True" ToolTip="Remove All Redactions (Undo Brings Them Back)" local:Toolbar.Icon="{StaticResource IconClearRedactions}" local:Toolbar.Accent="{StaticResource AccentClear}" local:Toolbar.AccentBrush="{StaticResource AccentRed}"/>
+    <Button x:Name="ToolClearAnnotations" Style="{StaticResource ToolButton}" Content="Clear&#10;Annotations" local:Toolbar.WordsOnly="True" Click="ClearAnnotations" IsEnabled="False" ToolTipService.ShowOnDisabled="True" ToolTip="Remove All Annotations (Undo Brings Them Back)" local:Toolbar.Icon="{StaticResource IconClearAnnotations}" local:Toolbar.Accent="{StaticResource AccentClear}" local:Toolbar.AccentBrush="{StaticResource AccentRed}"/>
+    <Button x:Name="ClearScreenButton" Style="{StaticResource ToolButton}" Content="Clear&#10;Editor" local:Toolbar.WordsOnly="True" Click="Clear" ToolTip="Clear the Editor" local:Toolbar.Icon="{StaticResource IconClear}" local:Toolbar.Accent="{StaticResource AccentClear}" local:Toolbar.AccentBrush="{StaticResource AccentRed}"/>
+    <Rectangle Style="{StaticResource ToolSeparator}"/>
+    <Button x:Name="PanelButton" Style="{StaticResource ToolButton}" Content="Panel" Click="ToggleProperties" ToolTip="Show or Hide the Side Panel" local:Toolbar.Icon="{StaticResource IconPanel}" local:Toolbar.Accent="{StaticResource AccentPanel}" local:Toolbar.AccentBrush="{StaticResource AccentBlue}"/>
+   </StackPanel>
+   <WrapPanel x:Name="ToolButtons">
+    <Button x:Name="NewButton" Style="{StaticResource ToolButton}" Content="New" Click="NewPicture" ToolTip="New Image" local:Toolbar.Icon="{StaticResource IconNew}"/>
+    <Button x:Name="OpenButton" Style="{StaticResource ToolButton}" Content="Open" Click="OpenMedia" ToolTip="Open an Image or Video" local:Toolbar.Icon="{StaticResource IconOpen}" local:Toolbar.Accent="{StaticResource IconOpen}" local:Toolbar.AccentBrush="{StaticResource AccentFolder}"/>
+    <!-- 0.27.0 (David): Add Image sits beside Open (File › Add Image…). -->
+    <Button x:Name="AddImageButton" Style="{StaticResource ToolButton}" Content="Add Image" Click="AddPictureFiles" IsEnabled="False" ToolTipService.ShowOnDisabled="True" ToolTip="Add Images onto This One" local:Toolbar.Icon="{StaticResource IconAddImage}" local:Toolbar.Accent="{StaticResource AccentAddImage}" local:Toolbar.AccentBrush="{StaticResource AccentGreen}"/>
+    <Button x:Name="PreviousPictureButton" Style="{StaticResource ToolButton}" Content="Previous" Click="PreviousPicture" ToolTip="Previous Picture in the Folder" local:Toolbar.Icon="{StaticResource IconPrevious}"/>
+    <Button x:Name="NextPictureButton" Style="{StaticResource ToolButton}" Content="Next" Click="NextPicture" ToolTip="Next Picture in the Folder" local:Toolbar.Icon="{StaticResource IconNext}"/>
+    <Button x:Name="ExportButton" Style="{StaticResource ToolButton}" Content="Export" Click="ExportImage" IsEnabled="False" ToolTip="Export with Redactions (Checked After Saving)" ToolTipService.ShowOnDisabled="True" local:Toolbar.Icon="{StaticResource IconExport}" local:Toolbar.Accent="{StaticResource AccentExport}" local:Toolbar.AccentBrush="{StaticResource AccentGreen}"/>
+    <Button x:Name="OriginalButton" Style="{StaticResource ToolButton}" Content="Original" Click="KeepOriginal" Visibility="Collapsed" local:Toolbar.Icon="{StaticResource IconOriginal}" local:Toolbar.Accent="{StaticResource AccentOriginal}" local:Toolbar.AccentBrush="{StaticResource AccentFolder}"/>
+    <!-- Copy and Paste (0.14.0, David): copy the picture as it would be exported; paste a picture as a new capture. -->
+    <Button x:Name="CopyButton" Style="{StaticResource ToolButton}" Content="Copy" Click="CopyPicture" IsEnabled="False" ToolTipService.ShowOnDisabled="True" local:Toolbar.Icon="{StaticResource IconCopy}" local:Toolbar.Accent="{StaticResource AccentCopy}" local:Toolbar.AccentBrush="{StaticResource AccentGlass}"/>
+    <Button x:Name="PasteButton" Style="{StaticResource ToolButton}" Content="Paste" Click="PastePicture" ToolTip="Paste the Image from the Clipboard" local:Toolbar.Icon="{StaticResource IconPaste}" local:Toolbar.Accent="{StaticResource AccentPaste}" local:Toolbar.AccentBrush="{StaticResource AccentFolder}"/>
+    <Rectangle Style="{StaticResource ToolSeparator}"/>
+    <Button x:Name="UndoButton" Style="{StaticResource ToolButton}" Content="Undo" Click="Undo" ToolTip="Undo (Ctrl+Z)" local:Toolbar.Icon="{StaticResource IconUndo}"/>
+    <Button x:Name="RedoButton" Style="{StaticResource ToolButton}" Content="Redo" Click="Redo" ToolTip="Redo (Ctrl+Y)" local:Toolbar.Icon="{StaticResource IconRedo}"/>
+    <Rectangle Style="{StaticResource ToolSeparator}"/>
+    <Button x:Name="SelectToolButton" Style="{StaticResource ToolButton}" Content="Select" Tag="Select" Click="SelectTool" ToolTip="Select, Move, Resize and Turn Shapes (Drag Round Several to Select Them)" local:Toolbar.Icon="{StaticResource IconSelect}" local:Toolbar.Accent="{StaticResource IconSelect}" local:Toolbar.AccentBrush="{StaticResource AccentWhite}"/>
+    <Button x:Name="RectangleTool" Style="{StaticResource ToolButton}" Content="Rectangle" Tag="Rectangle" Click="SelectTool" ToolTip="Draw a Rectangle Redaction" local:Toolbar.Icon="{StaticResource IconRectangle}"/>
+    <Button x:Name="OvalTool" Style="{StaticResource ToolButton}" Content="Oval" Tag="Oval" Click="SelectTool" ToolTip="Draw an Oval Redaction" local:Toolbar.Icon="{StaticResource IconOval}"/>
+    <Button x:Name="PolygonTool" Style="{StaticResource ToolButton}" Content="Polygon" Tag="Polygon" Click="SelectTool" ToolTip="Draw a Polygon Redaction" local:Toolbar.Icon="{StaticResource IconPolygon}"/>
+    <Button x:Name="PanTool" Style="{StaticResource ToolButton}" Content="Pan" Tag="Pan" Click="SelectTool" ToolTip="Move the View" local:Toolbar.Icon="{StaticResource IconPan}"/>
+    <Button x:Name="CropTool" Style="{StaticResource ToolButton}" Content="Crop" Tag="Crop" Click="SelectTool" ToolTip="Crop" local:Toolbar.Icon="{StaticResource IconCrop}"/>
+    <Button x:Name="ResizeButton" Style="{StaticResource ToolButton}" Content="Resize" Click="ResizePicture" ToolTip="Resize the Picture" local:Toolbar.Icon="{StaticResource IconResize}"/>
+    <!-- Videos only (0.21.0, David): Trim shows or hides the trim row above the timeline; Append adds another video. -->
+    <Button x:Name="TrimToolButton" Style="{StaticResource ToolButton}" Content="Trim" Click="ToggleTrimRow" Visibility="Collapsed" ToolTip="Show or Hide Trim" local:Toolbar.Icon="{StaticResource IconTrim}" local:Toolbar.Accent="{StaticResource AccentTrim}" local:Toolbar.AccentBrush="{StaticResource AccentRed}"/>
+    <Button x:Name="AppendToolButton" Style="{StaticResource ToolButton}" Content="Append" Click="AppendVideo" Visibility="Collapsed" ToolTip="Add Another Video at the Beginning or End" local:Toolbar.Icon="{StaticResource IconAppend}" local:Toolbar.Accent="{StaticResource AccentAppend}" local:Toolbar.AccentBrush="{StaticResource AccentGreen}"/>
+    <Rectangle Style="{StaticResource ToolSeparator}"/>
+    <Button x:Name="OpaqueTool" Style="{StaticResource ToolButton}" Content="Box" Tag="Opaque" Click="SelectEffectTool" ToolTip="Redaction Box" local:Toolbar.Icon="{StaticResource IconBox}" local:Toolbar.Accent="{StaticResource IconBox}" local:Toolbar.AccentBrush="{StaticResource AccentSolid}"/>
+    <Button x:Name="BlurTool" Style="{StaticResource ToolButton}" Content="Blur" Tag="Blur" Click="SelectEffectTool" ToolTip="Blur" local:Toolbar.Accent="{StaticResource AccentBlur}" local:Toolbar.AccentBrush="{StaticResource AccentSoft}"/>
+    <Button x:Name="PixelateTool" Style="{StaticResource ToolButton}" Content="Pixelate" Tag="Pixelate" Click="SelectEffectTool" ToolTip="Pixelate" local:Toolbar.Icon="{StaticResource IconPixelate}" local:Toolbar.Accent="{StaticResource AccentPixelate}" local:Toolbar.AccentBrush="{StaticResource AccentGrey}"/>
+    <Rectangle Style="{StaticResource ToolSeparator}"/>
+    <Button x:Name="TextTool" Style="{StaticResource ToolButton}" Content="Text" Tag="Text" Click="SelectTool" ToolTip="Text: Drag a Box, Then Type (Double-Click a Text to Edit It)" local:Toolbar.Icon="{StaticResource IconText}"/>
+    <Button x:Name="DrawRectangleTool" Style="{StaticResource ToolButton}" Content="Outline" Tag="DrawRectangle" Click="SelectTool" ToolTip="Rectangle Outline" local:Toolbar.Icon="{StaticResource IconDrawRectangle}" local:Toolbar.Accent="{StaticResource AccentPencil}" local:Toolbar.AccentBrush="{StaticResource AccentRed}"/>
+    <Button x:Name="DrawOvalTool" Style="{StaticResource ToolButton}" Content="Ellipse" Tag="DrawOval" Click="SelectTool" ToolTip="Ellipse Outline" local:Toolbar.Icon="{StaticResource IconDrawOval}" local:Toolbar.Accent="{StaticResource AccentPencil}" local:Toolbar.AccentBrush="{StaticResource AccentRed}"/>
+    <Button x:Name="LineTool" Style="{StaticResource ToolButton}" Content="Line" Tag="Line" Click="SelectTool" ToolTip="Line or Arrow" local:Toolbar.Icon="{StaticResource IconLine}" local:Toolbar.Accent="{StaticResource AccentLine}" local:Toolbar.AccentBrush="{StaticResource AccentRed}"/>
+    <Button x:Name="PolylineTool" Style="{StaticResource ToolButton}" Content="Polyline" Tag="Polyline" Click="SelectTool" ToolTip="Polyline: Drag; Turning Adds a Right-Angled Corner" local:Toolbar.Icon="{StaticResource IconPolyline}"/>
+    <Button x:Name="FreehandTool" Style="{StaticResource ToolButton}" Content="Pen" Tag="Freehand" Click="SelectTool" ToolTip="Pen: Draw Freehand" local:Toolbar.Icon="{StaticResource IconFreehand}" local:Toolbar.Accent="{StaticResource AccentPencil}" local:Toolbar.AccentBrush="{StaticResource AccentRed}"/>
+    <Rectangle Style="{StaticResource ToolSeparator}"/>
+    <Button x:Name="ZoomInButton" Style="{StaticResource ToolButton}" Content="Zoom In" Click="ZoomIn" ToolTip="Zoom In" local:Toolbar.Icon="{StaticResource IconZoomIn}" local:Toolbar.Accent="{StaticResource AccentLens}" local:Toolbar.AccentBrush="{StaticResource AccentGlass}"/>
+    <Button x:Name="ZoomOutButton" Style="{StaticResource ToolButton}" Content="Zoom Out" Click="ZoomOut" ToolTip="Zoom Out" local:Toolbar.Icon="{StaticResource IconZoomOut}" local:Toolbar.Accent="{StaticResource AccentLens}" local:Toolbar.AccentBrush="{StaticResource AccentGlass}"/>
+    <Button x:Name="FitButton" Style="{StaticResource ToolButton}" Content="Fit" Click="Fit" ToolTip="Fit to Window" local:Toolbar.Icon="{StaticResource IconFit}" local:Toolbar.Accent="{StaticResource AccentFit}" local:Toolbar.AccentBrush="{StaticResource AccentGlass}"/>
+    <Button x:Name="ActualSizeButton" Style="{StaticResource ToolButton}" Content="Actual Size" Click="ActualPixels" ToolTip="Actual Size (100%)" local:Toolbar.Icon="{StaticResource IconActualSize}" local:Toolbar.Accent="{StaticResource AccentFit}" local:Toolbar.AccentBrush="{StaticResource AccentGlass}"/>
+    <!-- 0.24.0 (David): more commands as buttons. Settings › Editor shows, hides and orders all of them (MainWindow.Toolbar.cs). -->
+    <Button x:Name="RotateClockwiseButton" Style="{StaticResource ToolButton}" Content="Rotate Right" Tag="Clockwise" Click="RotateMedia" ToolTip="Rotate 90° Clockwise" local:Toolbar.Icon="{StaticResource IconRotateClockwise}"/>
+    <Button x:Name="RotateCounterClockwiseButton" Style="{StaticResource ToolButton}" Content="Rotate Left" Tag="CounterClockwise" Click="RotateMedia" ToolTip="Rotate 90° Anti-Clockwise" local:Toolbar.Icon="{StaticResource IconRotateCounterClockwise}"/>
+    <Button x:Name="FlipHorizontalButton" Style="{StaticResource ToolButton}" Content="Flip H" Tag="FlipHorizontal" Click="RotateMedia" ToolTip="Flip Canvas Horizontally" local:Toolbar.Icon="{StaticResource IconFlipHorizontal}"/>
+    <Button x:Name="FlipVerticalButton" Style="{StaticResource ToolButton}" Content="Flip V" Tag="FlipVertical" Click="RotateMedia" ToolTip="Flip Canvas Vertically" local:Toolbar.Icon="{StaticResource IconFlipVertical}"/>
+    <Button x:Name="FullScreenButton" Style="{StaticResource ToolButton}" Content="Full Screen" Click="ToggleFullScreen" ToolTip="Full Screen (F11)" local:Toolbar.Icon="{StaticResource IconFullScreen}"/>
+    <Button x:Name="SlideshowButton" Style="{StaticResource ToolButton}" Content="Slideshow" Click="StartSlideshow" ToolTip="Slideshow (F5)" local:Toolbar.Icon="{StaticResource IconSlideshow}"/>
+    <!-- 0.25.0 (David): the navigation bar (the folder's pictures along the bottom). -->
+    <Button x:Name="NavBarButton" Style="{StaticResource ToolButton}" Content="Nav Bar" Click="ToggleNavBar" ToolTip="Show or Hide the Navigation Bar" local:Toolbar.Icon="{StaticResource IconNavBar}"/>
+    <Button x:Name="FileInfoButton" Style="{StaticResource ToolButton}" Content="File Info" Click="ShowFileInfo" ToolTip="File Info (Ctrl+I)" local:Toolbar.Icon="{StaticResource IconFileInfo}"/>
+    <Button x:Name="OpenProjectButton" Style="{StaticResource ToolButton}" Content="Open Project" Click="OpenProject" ToolTip="Open a Project" local:Toolbar.Icon="{StaticResource IconOpenProject}" local:Toolbar.Accent="{StaticResource IconOpenProject}" local:Toolbar.AccentBrush="{StaticResource AccentFolder}"/>
+    <Button x:Name="SaveProjectButton" Style="{StaticResource ToolButton}" Content="Save Project" Click="SaveProject" IsEnabled="{Binding IsEnabled, ElementName=SaveProjectMenuItem}" ToolTipService.ShowOnDisabled="True" ToolTip="Save the Project" local:Toolbar.Icon="{StaticResource IconSave}" local:Toolbar.Accent="{StaticResource AccentSave}" local:Toolbar.AccentBrush="{StaticResource AccentBlue}"/>
+    <Button x:Name="SaveMediaButton" Style="{StaticResource ToolButton}" Content="Save Copy" Click="SaveMediaAs" IsEnabled="{Binding IsEnabled, ElementName=SaveMediaMenuItem}" ToolTipService.ShowOnDisabled="True" ToolTip="Save a Copy as It Is" local:Toolbar.Icon="{StaticResource IconSaveMediaAs}"/>
+    <Button x:Name="FitWidthButton" Style="{StaticResource ToolButton}" Content="Fit Width" Click="FitWidth" ToolTip="Fit Width" local:Toolbar.Icon="{StaticResource IconFitWidth}" local:Toolbar.Accent="{StaticResource AccentFit}" local:Toolbar.AccentBrush="{StaticResource AccentGlass}"/>
+    <Button x:Name="DeleteButton" Style="{StaticResource ToolButton}" Content="Delete" Click="DeleteRegion" ToolTip="Delete the Selected Shape (Del)" local:Toolbar.Icon="{StaticResource IconDelete}" local:Toolbar.Accent="{StaticResource IconDelete}" local:Toolbar.AccentBrush="{StaticResource AccentRed}"/>
+    <Button x:Name="SettingsButton" Style="{StaticResource ToolButton}" Content="Settings" Click="OpenSettings" ToolTip="Settings" local:Toolbar.Icon="{StaticResource IconSettings}"/>
+   </WrapPanel>
+   </DockPanel>
+  </Border>
+  <Border x:Name="OptionsBar" DockPanel.Dock="Top" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource ChromeLine}" BorderThickness="0,0,0,1" Padding="6,1">
+   <WrapPanel>
+    <WrapPanel.Resources><Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Setter Property="Padding" Value="7,2"/><Setter Property="Margin" Value="2"/></Style></WrapPanel.Resources>
+    <StackPanel x:Name="EffectOptions" Orientation="Horizontal">
+     <TextBlock Text="Effect" Margin="2,0,4,0" VerticalAlignment="Center"/>
+     <ComboBox x:Name="EffectMode" SelectedIndex="0" Width="100" Margin="2" SelectionChanged="EffectOptionsChanged" ToolTip="Default or Aggressive"><ComboBoxItem Content="Default"/><ComboBoxItem Content="Aggressive"/></ComboBox>
+     <TextBlock Text="Strength" Margin="10,0,4,0" VerticalAlignment="Center"/>
+     <Slider x:Name="EffectStrength" Width="110" Minimum="1" Maximum="10" Value="5" TickFrequency="1" IsSnapToTickEnabled="True" Margin="2" VerticalAlignment="Center" ValueChanged="EffectStrengthChanged" ToolTip="Strength (1–10)"/>
+     <TextBlock Text="{Binding Value, ElementName=EffectStrength, StringFormat={}{0:0}}" VerticalAlignment="Center" Margin="3,0"/>
+     <Rectangle Width="1" Height="18" Margin="8,0" Fill="{DynamicResource ChromeLine}"/>
+     <TextBlock Text="Box Colour" Margin="2,0,4,0" VerticalAlignment="Center"/>
+     <Button x:Name="ColorSwatch" Padding="4,4" Click="ChooseColor" ToolTip="Box Colour"><Border x:Name="ColorSwatchFill" Width="22" Height="12" Background="Black" BorderBrush="#9AA3B2" BorderThickness="1"/></Button>
+     <Button x:Name="EyedropperButton" Style="{StaticResource IconButton}" Content="Pick Colour" Click="ToggleEyedropper" ToolTip="Pick a Colour from the Picture" local:Toolbar.Icon="{StaticResource IconEyedropper}" local:Toolbar.IconFill="{StaticResource IconFillEyedropper}" local:Toolbar.Accent="{StaticResource AccentEyedropper}" local:Toolbar.AccentBrush="{Binding Background, ElementName=ColorSwatchFill}"/>
+    </StackPanel>
+    <!-- Annotation options: change the selected annotation, otherwise the style for new ones. -->
+    <StackPanel x:Name="AnnotationOptions" Orientation="Horizontal" Visibility="Collapsed">
+     <TextBlock x:Name="AnnotationOptionsLabel" Text="Annotation" Margin="2,0,6,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
+     <TextBlock Text="Colour" Margin="2,0,4,0" VerticalAlignment="Center"/>
+     <Button x:Name="AnnotationColorSwatch" Padding="4,4" Click="ChooseAnnotationColor" ToolTip="Colour"><Border x:Name="AnnotationColorFill" Width="22" Height="12" Background="Red" BorderBrush="#9AA3B2" BorderThickness="1"/></Button>
+     <StackPanel x:Name="LineOptions" Orientation="Horizontal">
+      <TextBlock Text="Width" Margin="8,0,4,0" VerticalAlignment="Center"/>
+      <local:NumberSpinner x:Name="AnnotationWidth" Minimum="1" Maximum="20" Value="6" Margin="2" ValueChanged="AnnotationWidthChanged" ToolTip="Line Width"/>
+      <TextBlock Text="Dash" Margin="8,0,4,0" VerticalAlignment="Center"/>
+      <ComboBox x:Name="AnnotationDash" Width="92" Margin="2" ItemTemplate="{StaticResource LineStyleTemplate}" SelectionChanged="AnnotationOptionChanged" ToolTip="Line Style"/>
+      <StackPanel x:Name="EndsOptions" Orientation="Horizontal">
+      <TextBlock Text="Ends" Margin="8,0,4,0" VerticalAlignment="Center"/>
+      <ComboBox x:Name="AnnotationEnds" Width="92" Margin="2" ItemTemplate="{StaticResource LineStyleTemplate}" SelectionChanged="AnnotationOptionChanged" ToolTip="Line Ends"/>
+      </StackPanel>
+      <StackPanel x:Name="JoinOptions" Orientation="Horizontal">
+       <TextBlock Text="Joins" Margin="8,0,4,0" VerticalAlignment="Center"/>
+       <ComboBox x:Name="AnnotationJoin" Width="74" Margin="2" SelectionChanged="AnnotationOptionChanged"><ComboBoxItem Content="Miter"/><ComboBoxItem Content="Round"/></ComboBox>
+      </StackPanel>
+     </StackPanel>
+     <StackPanel x:Name="TextOptions" Orientation="Horizontal">
+      <TextBlock Text="Font" Margin="8,0,4,0" VerticalAlignment="Center"/>
+      <ComboBox x:Name="AnnotationFont" Width="150" Margin="2" MaxDropDownHeight="320" SelectionChanged="AnnotationOptionChanged" ToolTip="Font"/>
+      <TextBlock Text="Size (px)" Margin="8,0,4,0" VerticalAlignment="Center"/>
+      <local:NumberSpinner x:Name="AnnotationSize" Minimum="6" Maximum="200" Decimals="1" Value="24" Margin="2" ValueChanged="AnnotationWidthChanged" ToolTip="Font Size"/>
+      <CheckBox x:Name="AnnotationBold" Content="Bold" FontWeight="Bold" VerticalAlignment="Center" Margin="8,0,2,0" Click="AnnotationOptionClicked"/>
+      <CheckBox x:Name="AnnotationItalic" Content="Italic" FontStyle="Italic" VerticalAlignment="Center" Margin="6,0,2,0" Click="AnnotationOptionClicked"/>
+      <TextBlock Text="Align" Margin="8,0,4,0" VerticalAlignment="Center"/>
+      <ComboBox x:Name="AnnotationAlign" Width="74" Margin="2" SelectionChanged="AnnotationOptionChanged"><ComboBoxItem Content="Left"/><ComboBoxItem Content="Centre"/><ComboBoxItem Content="Right"/></ComboBox>
+     </StackPanel>
+    </StackPanel>
+   </WrapPanel>
+  </Border>
+  <Grid>
+   <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition x:Name="PropertiesColumn" Width="0"/></Grid.ColumnDefinitions>
+   <Grid Grid.Column="0">
+    <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <local:PreviewSurface x:Name="Preview"/>
+    <!-- 0.25.0 (David): the navigation bar, at the bottom (MainWindow.NavBar.cs). -->
+    <Border x:Name="NavBarHost" Grid.Row="2"/>
+    <!-- Floating multiline text editor (baseline): placed below the text box, or above if it doesn't fit. -->
+    <Canvas x:Name="TextEditorLayer" Panel.ZIndex="10" ClipToBounds="True">
+     <!-- Text window: title with close, style row, multiline text, tips line. -->
+     <Border x:Name="TextEditorPanel" Visibility="Collapsed" Width="460" PreviewKeyDown="AnnotationTextKey" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource ChromeLine}" BorderThickness="1" CornerRadius="2">
+      <Border.Effect><DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.35"/></Border.Effect>
+      <StackPanel>
+       <Grid Margin="6,3,3,0">
+        <TextBlock Text="Text" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"/>
+        <Button x:Name="TextEditorClose" Style="{StaticResource EditorFlatButton}" HorizontalAlignment="Right" Content="✕" Click="AnnotationTextDone" ToolTip="Done (Ctrl+Enter)"/>
+       </Grid>
+       <StackPanel Orientation="Horizontal" Margin="6,2,6,4">
+        <Button x:Name="TextColorSwatch" Padding="3" Margin="0,0,6,0" Click="ChooseEditorTextColor" ToolTip="Text Colour"><Border x:Name="TextColorFill" Width="22" Height="16" Background="Red" BorderBrush="#9AA3B2" BorderThickness="1"/></Button>
+        <Rectangle Width="1" Height="20" Margin="2,0,6,0" Fill="{DynamicResource ChromeLine}"/>
+        <ComboBox x:Name="TextFont" Width="150" Margin="0,0,4,0" MaxDropDownHeight="320" SelectionChanged="EditorStyleChanged" ToolTip="Font"/>
+        <TextBox x:Name="TextSize" Width="38" Margin="0" Padding="3,2" Text="24" TextChanged="EditorSizeTyped" ToolTip="Font Size"/>
+        <StackPanel Margin="1,0,6,0">
+         <Button x:Name="TextSizeUp" Style="{StaticResource EditorFlatButton}" Padding="3,0" FontSize="7" Content="▲" Click="EditorSizeStep" Tag="1" ToolTip="Larger"/>
+         <Button x:Name="TextSizeDown" Style="{StaticResource EditorFlatButton}" Padding="3,0" FontSize="7" Content="▼" Click="EditorSizeStep" Tag="-1" ToolTip="Smaller"/>
+        </StackPanel>
+        <Rectangle Width="1" Height="20" Margin="2,0,6,0" Fill="{DynamicResource ChromeLine}"/>
+        <ToggleButton x:Name="TextBold" Style="{StaticResource EditorToggle}" Click="EditorStyleClicked" ToolTip="Bold"><TextBlock Text="B" FontWeight="Bold" FontSize="13"/></ToggleButton>
+        <ToggleButton x:Name="TextItalic" Style="{StaticResource EditorToggle}" Click="EditorStyleClicked" ToolTip="Italic"><TextBlock Text="I" FontStyle="Italic" FontWeight="SemiBold" FontFamily="Georgia" FontSize="13"/></ToggleButton>
+        <Rectangle Width="1" Height="20" Margin="4,0,6,0" Fill="{DynamicResource ChromeLine}"/>
+        <ToggleButton x:Name="TextAlignLeft" Style="{StaticResource EditorToggle}" Tag="0" Click="EditorAlignClicked" ToolTip="Align Left"><Path Data="{StaticResource IconAlignLeft}" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" StrokeThickness="1.4"/></ToggleButton>
+        <ToggleButton x:Name="TextAlignCentre" Style="{StaticResource EditorToggle}" Tag="1" Click="EditorAlignClicked" ToolTip="Centre"><Path Data="{StaticResource IconAlignCentre}" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" StrokeThickness="1.4"/></ToggleButton>
+        <ToggleButton x:Name="TextAlignRight" Style="{StaticResource EditorToggle}" Tag="2" Click="EditorAlignClicked" ToolTip="Align Right"><Path Data="{StaticResource IconAlignRight}" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" StrokeThickness="1.4"/></ToggleButton>
+       </StackPanel>
+       <TextBox x:Name="AnnotationTextBox" Height="74" Margin="0" BorderThickness="0,1,0,1" BorderBrush="{DynamicResource ChromeLine}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" TextChanged="AnnotationTextChanged"/>
+       <Border BorderBrush="{DynamicResource ToolSelected}" BorderThickness="0,2,0,0">
+        <TextBlock Text="Tips: Press Enter for multi-line text. Press Ctrl+Enter to close. Esc cancels." FontSize="11" Margin="6,2,6,3"/>
+       </Border>
+      </StackPanel>
+     </Border>
+     <!-- Redaction popup under a new or selected redaction (0.9.1): effect, its option, Follow, delete, accept. -->
+     <Border x:Name="RegionPopup" Visibility="Collapsed" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource ChromeLine}" BorderThickness="1" CornerRadius="3" Padding="6,4">
+      <Border.Effect><DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.35"/></Border.Effect>
+      <StackPanel Orientation="Horizontal">
+       <Button x:Name="PopupOpaque" Style="{StaticResource ToolButton}" Content="Box" Tag="Opaque" Click="SelectEffectTool" ToolTip="Coloured Box" IsEnabled="{Binding IsEnabled, ElementName=OpaqueTool}" local:Toolbar.Icon="{StaticResource IconBox}" local:Toolbar.Accent="{StaticResource IconBox}" local:Toolbar.AccentBrush="{StaticResource AccentSolid}"/>
+       <Button x:Name="PopupBlur" Style="{StaticResource ToolButton}" Content="Blur" Tag="Blur" Click="SelectEffectTool" ToolTip="Blur" IsEnabled="{Binding IsEnabled, ElementName=BlurTool}" local:Toolbar.Accent="{StaticResource AccentBlur}" local:Toolbar.AccentBrush="{StaticResource AccentSoft}"/>
+       <Button x:Name="PopupPixelate" Style="{StaticResource ToolButton}" Content="Pixelate" Tag="Pixelate" Click="SelectEffectTool" ToolTip="Pixelate" IsEnabled="{Binding IsEnabled, ElementName=PixelateTool}" local:Toolbar.Icon="{StaticResource IconPixelate}" local:Toolbar.Accent="{StaticResource AccentPixelate}" local:Toolbar.AccentBrush="{StaticResource AccentGrey}"/>
+       <Rectangle Width="1" Height="30" Margin="6,0" Fill="{DynamicResource ChromeLine}"/>
+       <StackPanel x:Name="PopupColorOption" Orientation="Horizontal" VerticalAlignment="Center">
+        <Button x:Name="PopupColorSwatch" Padding="4" Margin="2" Click="ChooseColor" ToolTip="Box Colour" IsEnabled="{Binding IsEnabled, ElementName=ColorSwatch}"><Border Width="22" Height="14" Background="{Binding Background, ElementName=ColorSwatchFill}" BorderBrush="#9AA3B2" BorderThickness="1"/></Button>
+        <!-- 0.18.0 (David): pick the box colour from the picture, right here. -->
+        <Button x:Name="PopupEyedropper" Style="{StaticResource IconButton}" Content="Pick Colour" Click="ToggleEyedropper" IsEnabled="{Binding IsEnabled, ElementName=EyedropperButton}" ToolTip="Pick a Colour from the Picture" local:Toolbar.Icon="{StaticResource IconEyedropper}" local:Toolbar.IconFill="{StaticResource IconFillEyedropper}" local:Toolbar.Accent="{StaticResource AccentEyedropper}" local:Toolbar.AccentBrush="{Binding Background, ElementName=ColorSwatchFill}"/>
+       </StackPanel>
+       <!-- 0.18.0 (David): Default / Aggressive wherever Blur and Pixelate are chosen. -->
+       <ComboBox x:Name="PopupEffectMode" Width="96" Margin="2,0,4,0" VerticalAlignment="Center" SelectedIndex="{Binding SelectedIndex, ElementName=EffectMode, Mode=TwoWay}" IsEnabled="{Binding IsEnabled, ElementName=EffectMode}" Visibility="{Binding Visibility, ElementName=PopupStrengthOption}" ToolTip="Aggressive Hides More Detail"><ComboBoxItem Content="Default"/><ComboBoxItem Content="Aggressive"/></ComboBox>
+       <StackPanel x:Name="PopupStrengthOption" VerticalAlignment="Center" Margin="2,0">
+        <TextBlock Text="{Binding Value, ElementName=EffectStrength, StringFormat=Strength {0:0}}" FontSize="11" HorizontalAlignment="Center"/>
+        <Slider x:Name="PopupStrength" Width="90" Minimum="1" Maximum="10" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding Value, ElementName=EffectStrength, Mode=TwoWay}" IsEnabled="{Binding IsEnabled, ElementName=EffectStrength}" ToolTip="Strength (1–10)"/>
+       </StackPanel>
+       <Rectangle Width="1" Height="30" Margin="6,0" Fill="{DynamicResource ChromeLine}"/>
+       <Button x:Name="PopupDelete" Style="{StaticResource ToolButton}" Content="Delete" Click="DeleteRegion" ToolTip="Delete This Redaction (Del)" local:Toolbar.Icon="{StaticResource IconTrash}"/>
+      <!-- Videos (0.13.0, David; 0.22.0: tracking by default): "Enable Manual Redaction" makes Start Redaction keep the box in place; Stop Redaction ends a box on a later frame. -->
+      <CheckBox x:Name="PopupTrack" Content="Enable Manual Redaction" VerticalAlignment="Center" Margin="8,0,2,0" Visibility="Collapsed" ToolTipService.ShowOnDisabled="True" Checked="TrackingChoiceChanged" Unchecked="TrackingChoiceChanged"/>
+       <Button x:Name="PopupRedact" Content="Redact" Click="AcceptRegion" Background="#1765A5" Foreground="White" BorderBrush="#0F4C80" FontWeight="SemiBold" Padding="18,6" Margin="8,2,2,2" VerticalAlignment="Center" ToolTip="Accept This Redaction"/>
+      <Button x:Name="PopupStop" Content="Stop Redaction" Click="StopRedactionFromPopup" Visibility="Collapsed" Background="#B3261E" Foreground="White" BorderBrush="#7F1A15" FontWeight="SemiBold" Padding="14,6" Margin="4,2,2,2" VerticalAlignment="Center" ToolTip="End the Redaction on This Frame"/>
+      <!-- Shown once a redaction has been tracked: track again from the shown frame. -->
+       <Button x:Name="PopupFollow" Content="Track Again" Click="FollowSubject" Background="#1765A5" Foreground="White" BorderBrush="#0F4C80" FontWeight="SemiBold" Padding="14,6" Margin="4,2,2,2" VerticalAlignment="Center" ToolTipService.ShowOnDisabled="True" IsEnabled="{Binding IsEnabled, ElementName=FollowSubjectButton}"/>
+      </StackPanel>
+     </Border>
+     <!-- Line / Polyline window (0.10.0): the same floating treatment as the text window, under the
+          selected line. Its controls mirror the options bar, so both stay in step. -->
+     <Border x:Name="LinePopup" Visibility="Collapsed" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource ChromeLine}" BorderThickness="1" CornerRadius="2">
+      <Border.Effect><DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.35"/></Border.Effect>
+      <StackPanel>
+       <Grid Margin="6,3,3,0">
+        <TextBlock x:Name="LinePopupTitle" Text="Line" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"/>
+        <Button x:Name="LinePopupClose" Style="{StaticResource EditorFlatButton}" HorizontalAlignment="Right" Content="✕" Click="LinePopupDone" ToolTip="Done"/>
+       </Grid>
+       <StackPanel Orientation="Horizontal" Margin="6,2,6,6">
+        <Button x:Name="LinePopupColor" Padding="3" Margin="0,0,6,0" Click="ChooseAnnotationColor" ToolTip="Line Colour"><Border Width="22" Height="16" Background="{Binding Background, ElementName=AnnotationColorFill}" BorderBrush="#9AA3B2" BorderThickness="1"/></Button>
+        <Rectangle Width="1" Height="20" Margin="2,0,6,0" Fill="{DynamicResource ChromeLine}"/>
+        <local:NumberSpinner x:Name="LinePopupWidth" Minimum="1" Maximum="20" Margin="0,0,6,0" Value="{Binding Value, ElementName=AnnotationWidth, Mode=TwoWay}" ToolTip="Line Width"/>
+        <ComboBox x:Name="LinePopupDash" Width="92" Margin="0,0,4,0" ItemTemplate="{StaticResource LineStyleTemplate}" ItemsSource="{Binding ItemsSource, ElementName=AnnotationDash}" SelectedIndex="{Binding SelectedIndex, ElementName=AnnotationDash, Mode=TwoWay}" ToolTip="Line Style"/>
+        <ComboBox x:Name="LinePopupEnds" Width="92" Margin="0,0,4,0" Visibility="{Binding Visibility, ElementName=EndsOptions}" ItemTemplate="{StaticResource LineStyleTemplate}" ItemsSource="{Binding ItemsSource, ElementName=AnnotationEnds}" SelectedIndex="{Binding SelectedIndex, ElementName=AnnotationEnds, Mode=TwoWay}" ToolTip="Line Ends"/>
+        <ComboBox x:Name="LinePopupJoin" Width="74" Margin="0,0,4,0" SelectedIndex="{Binding SelectedIndex, ElementName=AnnotationJoin, Mode=TwoWay}" Visibility="{Binding Visibility, ElementName=JoinOptions}" ToolTip="Corners"><ComboBoxItem Content="Miter"/><ComboBoxItem Content="Round"/></ComboBox>
+        <Rectangle Width="1" Height="20" Margin="2,0,4,0" Fill="{DynamicResource ChromeLine}"/>
+        <Button x:Name="LinePopupDelete" Style="{StaticResource EditorFlatButton}" Click="DeleteAnnotation" ToolTip="Delete This Annotation (Del)"><Path Data="{StaticResource IconTrash}" Width="20" Height="20" Stroke="{DynamicResource Foreground}" StrokeThickness="1.4"/></Button>
+       </StackPanel>
+      </StackPanel>
+     </Border>
+     <!-- Crop window (0.21.4, David): under the crop rectangle, like the other tool windows. -->
+     <Border x:Name="CropPopup" Visibility="Collapsed" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource ChromeLine}" BorderThickness="1" CornerRadius="3" Padding="6,4">
+      <Border.Effect><DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.35"/></Border.Effect>
+      <StackPanel Orientation="Horizontal">
+       <Button x:Name="ConfirmCropButton" Content="Confirm Crop" Click="ConfirmCrop" IsEnabled="False" ToolTipService.ShowOnDisabled="True" Background="#2E7D32" Foreground="White" BorderBrush="#1B5E20" FontWeight="SemiBold" Padding="14,6" Margin="2" VerticalAlignment="Center" ToolTip="Apply the Crop (Enter)"/>
+       <Button x:Name="CancelCropButton" Content="Cancel Crop" Click="CancelCrop" Background="#B3261E" Foreground="White" BorderBrush="#7F1A15" FontWeight="SemiBold" Padding="14,6" Margin="4,2,2,2" VerticalAlignment="Center" ToolTip="Stop Cropping"/>
+       <Button x:Name="RemoveCropButton" Content="Remove Crop" Click="RemoveCrop" Visibility="Collapsed" Padding="10,6" Margin="8,2,2,2" VerticalAlignment="Center" ToolTip="Undo the Crop"/>
+      </StackPanel>
+     </Border>
+    </Canvas>
+    <!-- Short notices (results, warnings) replace the old status line; they fade after a few seconds. -->
+    <Border x:Name="NoticeBar" Grid.Row="0" Panel.ZIndex="15" Visibility="Collapsed" IsHitTestVisible="False" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="16,0,16,14" MaxWidth="720" Background="#E6202630" CornerRadius="3" Padding="12,6">
+     <TextBlock x:Name="NoticeText" Foreground="White" TextWrapping="Wrap"/>
+    </Border>
+    <!-- Videos only (0.17.0/0.18.0): the timeline, time and playback controls. -->
+    <Border x:Name="PlaybackBar" Grid.Row="1" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource ChromeLine}" BorderThickness="0,1,0,0" Padding="6,2">
+     <StackPanel>
+      <!-- Trim (0.20.0, David): mark A and B on the timeline, then delete between them (or, inverted, keep only between them). -->
+      <StackPanel x:Name="TrimRow" Orientation="Horizontal" Margin="0,2,0,0" Visibility="Collapsed" HorizontalAlignment="Center">
+       <StackPanel.Resources><Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Setter Property="Padding" Value="8,1"/><Setter Property="Margin" Value="0,0,4,0"/></Style></StackPanel.Resources>
+       <TextBlock Text="Trim" FontWeight="SemiBold" VerticalAlignment="Center" Margin="2,0,8,0"/>
+       <!-- 0.21.0 (David): Set A, Set B and Clear as icons (their names are in the tooltips). -->
+       <Button x:Name="MarkerAButton" Style="{StaticResource IconButton}" local:Toolbar.IconSize="24" Margin="0,0,2,0" Content="Set A" Click="SetMarkerA" ToolTip="Set A: Mark This Frame" local:Toolbar.Icon="{StaticResource IconMarkerA}" local:Toolbar.Accent="{StaticResource AccentMarker}" local:Toolbar.AccentBrush="{StaticResource AccentBlue}"/>
+       <Button x:Name="MarkerBButton" Style="{StaticResource IconButton}" local:Toolbar.IconSize="24" Margin="0,0,2,0" Content="Set B" Click="SetMarkerB" ToolTip="Set B: Mark This Frame" local:Toolbar.Icon="{StaticResource IconMarkerB}" local:Toolbar.Accent="{StaticResource AccentMarker}" local:Toolbar.AccentBrush="{StaticResource AccentBlue}"/>
+       <Button x:Name="ClearMarkersButton" Style="{StaticResource IconButton}" local:Toolbar.IconSize="24" Margin="0,0,2,0" Content="Clear Marks" Click="ClearMarkers" ToolTip="Clear the Marks" local:Toolbar.Icon="{StaticResource IconClearMarkers}" local:Toolbar.Accent="{StaticResource AccentClearMarkers}" local:Toolbar.AccentBrush="{StaticResource AccentRed}"/>
+       <TextBlock x:Name="TrimText" VerticalAlignment="Center" Margin="8,0,12,0" FontSize="11"/>
+       <CheckBox x:Name="InvertTrimBox" Content="Invert" VerticalAlignment="Center" Margin="0,0,8,0" Checked="TrimOptionChanged" Unchecked="TrimOptionChanged" ToolTip="Delete A–B and Retain the Rest"/>
+       <Button x:Name="DeleteSelectionButton" Content="Retain A–B" Click="DeleteSelection" IsEnabled="False" ToolTipService.ShowOnDisabled="True" Background="#B3261E" Foreground="White" BorderBrush="#7F1A15"/>
+      </StackPanel>
+      <!-- 0.22.1 (David): hovering between the lines shows what the colours mean. -->
+      <Canvas x:Name="RangeLane" Height="28" SizeChanged="RangeLaneSizeChanged" Background="Transparent" ToolTip="Red: Redaction · Cyan: Box Positions · Green: Tracked · Orange-Red: Tracking Lost · Violet: Annotation"/>
+      <Slider x:Name="Timeline" Minimum="0" Maximum="1" ValueChanged="SeekChanged" PreviewMouseMove="HoverTimeline" MouseLeave="LeaveTimeline" IsMoveToPointEnabled="True"/>
+      <!-- Time and frame on the left, transport in the centre (0.18.0: the Clear buttons moved to the toolbar). -->
+      <Grid x:Name="TransportRow">
+       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+       <Grid.Resources><Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Setter Property="Padding" Value="8,2"/><Setter Property="Margin" Value="2"/></Style></Grid.Resources>
+       <TextBlock x:Name="ClockText" Text="00:00:00.000" VerticalAlignment="Center" Margin="4,0"/>
+       <StackPanel x:Name="TransportControls" Grid.Column="1" Orientation="Horizontal">
+       <Button x:Name="CaptureFrameButton" Style="{StaticResource IconButton}" local:Toolbar.IconSize="26" VerticalAlignment="Center" Margin="0,0,10,0" Content="Capture Frame" Click="CaptureFrame" ToolTip="Save, Copy or Edit This Frame as a Picture" local:Toolbar.Icon="{StaticResource IconCaptureFrame}" local:Toolbar.Accent="{StaticResource AccentCaptureFrame}" local:Toolbar.AccentBrush="{StaticResource AccentBlue}"/>
+       <Button x:Name="PreviousFrameButton" Style="{StaticResource IconButton}" local:Toolbar.IconSize="30" VerticalAlignment="Center" Content="Previous Frame" Click="PreviousFrame" ToolTip="Previous Frame (Left Arrow)" local:Toolbar.Icon="{StaticResource IconFrameBack}" local:Toolbar.Accent="{StaticResource IconFrameBack}" local:Toolbar.AccentBrush="{StaticResource AccentGrey}"/>
+       <Button x:Name="PlayButton" Style="{StaticResource IconButton}" local:Toolbar.IconSize="35" VerticalAlignment="Center" Content="Play" Click="PlayPause" ToolTip="Play / Pause" local:Toolbar.Icon="{StaticResource IconPlay}" local:Toolbar.Accent="{StaticResource IconPlay}" local:Toolbar.AccentBrush="{StaticResource AccentGreen}"/>
+       <Button x:Name="NextFrameButton" Style="{StaticResource IconButton}" local:Toolbar.IconSize="30" VerticalAlignment="Center" Content="Next Frame" Click="NextFrame" ToolTip="Next Frame (Right Arrow)" local:Toolbar.Icon="{StaticResource IconFrameForward}" local:Toolbar.Accent="{StaticResource IconFrameForward}" local:Toolbar.AccentBrush="{StaticResource AccentGrey}"/>
+       <TextBlock Text="Playback Speed" VerticalAlignment="Center" Margin="12,0,4,0"/>
+       <ComboBox x:Name="Speed" SelectedIndex="2" SelectionChanged="SpeedChanged" Width="50" Margin="0,2" VerticalAlignment="Center" ToolTip="Playback Speed"><ComboBoxItem Content="0.25"/><ComboBoxItem Content="0.5"/><ComboBoxItem Content="1"/><ComboBoxItem Content="1.5"/><ComboBoxItem Content="2"/></ComboBox>
+       </StackPanel>
+      </Grid>
+     </StackPanel>
+    </Border>
+    <Canvas x:Name="HoverLayer" Grid.RowSpan="2" Panel.ZIndex="20" IsHitTestVisible="False" SizeChanged="HoverLayerSizeChanged">
+     <Border x:Name="HoverPopup" Visibility="Collapsed" Width="236" Background="#20242C" BorderBrush="#7C8799" BorderThickness="1" Padding="5">
+      <StackPanel><Image x:Name="HoverImage" Width="224" Height="126" Stretch="Uniform"/><TextBlock x:Name="HoverTime" HorizontalAlignment="Center" Foreground="White"/></StackPanel>
+     </Border>
+    </Canvas>
+   </Grid>
+   <Border x:Name="PropertiesPanel" Grid.Column="1" Visibility="Collapsed" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource ChromeLine}" BorderThickness="1,0,0,0" Padding="8,0,8,8">
+    <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+     <TextBlock Text="Regions" Style="{StaticResource PanelHeading}"/>
+     <ListBox x:Name="Regions" Height="100" SelectionChanged="RegionSelected"/>
+     <WrapPanel><Button Content="Delete" Click="DeleteRegion"/><Button Content="Clear All" Click="ClearRegions"/></WrapPanel>
+     <TextBox x:Name="RegionName" ToolTip="Name (Press Apply Details to Save)"/>
+     <TextBlock Text="Annotations" Style="{StaticResource PanelHeading}" Margin="2,14,2,4"/>
+     <ListBox x:Name="AnnotationsList" Height="72" SelectionChanged="AnnotationListSelected"/>
+     <WrapPanel>
+      <Button x:Name="DeleteAnnotationButton" Content="Delete" Click="DeleteAnnotation"/><Button Content="Clear All" Click="ClearAnnotations"/>
+      <Button x:Name="EditAnnotationTextButton" Content="Edit Text" Click="EditAnnotationText"/>
+     </WrapPanel>
+     <StackPanel x:Name="AnnotationTiming">
+      <TextBlock x:Name="AnnotationTimingText" TextWrapping="Wrap" Margin="4,2" FontSize="12"/>
+      <WrapPanel><Button x:Name="AnnotationBeginButton" Content="Begin Here" Click="AnnotationBeginHere" ToolTip="Show It from This Frame"/><Button x:Name="AnnotationEndButton" Content="End Here" Click="AnnotationEndHere" ToolTip="Show It Up to This Frame"/></WrapPanel>
+     </StackPanel>
+     <TextBlock Text="Tracking" Style="{StaticResource PanelHeading}" Margin="2,14,2,4"/>
+     <TextBlock x:Name="WorkflowHint" Text="Pause and draw over the subject to set the start." TextWrapping="Wrap" Margin="4" FontSize="12"/>
+     <Button x:Name="FollowSubjectButton" Click="FollowSubject" Background="#1765A5" Foreground="White" MinHeight="34"><TextBlock Text="Track Subject" Foreground="White"/></Button>
+     <Button x:Name="StopRedactionButton" Content="Stop Redaction Here" Click="StopRedactionHere" MinHeight="32"/>
+     <TextBlock Text="Play to check. If the box drifts, pause, adjust it, and Track subject again." TextWrapping="Wrap" Margin="4,6" FontSize="11"/>
+     <ListBox x:Name="TrackingRanges" Height="60" ScrollViewer.HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Stretch"><ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"/></DataTemplate></ListBox.ItemTemplate></ListBox>
+     <Expander x:Name="RegionDetails" Header="Region Details and Keyframes" IsExpanded="False" Margin="4,12,4,4"><StackPanel>
+      <TextBlock Text="Effect" Margin="4"/>
+      <ComboBox x:Name="EffectChoice" SelectedIndex="0" Margin="4" SelectionChanged="EffectOptionsChanged"><ComboBoxItem Content="Coloured Box"/><ComboBoxItem Content="Blur"/><ComboBoxItem Content="Pixelate"/></ComboBox>
+      <TextBlock Text="Opaque Colour (#RRGGBB)" Margin="4"/><TextBox x:Name="RegionColor" Text="#000000"/>
+      <CheckBox x:Name="Decorations" Content="Show Editing Outlines" IsChecked="True"/>
+      <TextBlock Text="X, Y, Width, Height (Source Pixels)" Margin="4"/>
+      <UniformGrid Columns="2"><TextBox x:Name="GeometryX"/><TextBox x:Name="GeometryY"/><TextBox x:Name="GeometryW"/><TextBox x:Name="GeometryH"/></UniformGrid>
+      <TextBlock Text="Start / End (Seconds)" Margin="4"/>
+      <UniformGrid Columns="2"><TextBox x:Name="StartTime"/><TextBox x:Name="EndTime"/></UniformGrid>
+      <WrapPanel><Button Content="Begin Here" Click="BeginHere"/><Button Content="End Here" Click="EndHere"/></WrapPanel>
+      <TextBlock Text="Extra Coverage Margin (Source Pixels)" Margin="4"/><TextBox x:Name="CoverageMargin" Text="0"/>
+      <Button x:Name="ApplyPropertiesButton" Content="Apply Details / Keyframe Here" Click="ApplyProperties"/>
+      <TextBlock Text="ADVANCED TRACKING · From Playhead" FontWeight="SemiBold" Margin="4,12,4,4"/>
+      <WrapPanel><Button Content="Track Backward" Click="TrackBackward"/><Button Content="Track Forward" Click="TrackForward"/></WrapPanel>
+      <TextBlock Text="KEYFRAMES · Linear Interpolation" Margin="4,12,4,5"/>
+      <ListBox x:Name="Keyframes" Height="100" MouseDoubleClick="SeekKeyframe"/>
+      <Button Content="Remove Selected Keyframe" Click="RemoveKeyframe"/>
+     </StackPanel></Expander>
+     <Expander Header="Export Options" IsExpanded="False" Margin="4,8"><StackPanel>
+      <ComboBox x:Name="ExportQuality" SelectedIndex="1" Margin="4" SelectionChanged="ExportOptionsChanged"><ComboBoxItem Content="High"/><ComboBoxItem Content="Normal"/><ComboBoxItem Content="Smaller"/></ComboBox>
+      <CheckBox x:Name="KeepAudio" Content="Keep Primary Audio (Unredacted)" Click="ExportOptionsChanged"/>
+      <!-- 0.18.0 (David): secure deletion of the original, only from here and only after a checked export. -->
+      <CheckBox x:Name="DeleteOriginalBox" Content="Securely Delete the Original After Export" Click="ExportOptionsChanged" ToolTipService.ShowOnDisabled="True"
+       ToolTip="After the export has been written and checked, TRT asks once more, then overwrites the original file with zeros, checks that, and deletes it. It can't be undone. (On solid-state drives a copy may survive in the drive's spare area.)"/>
+     </StackPanel></Expander>
+     <TextBlock Text="Blur and Pixelate obscure appearance. Use a coloured box for opaque replacement. Play a tracked range through to check the box stays on the subject." Margin="4,10" TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource Warning}"/>
+    </StackPanel></ScrollViewer>
+   </Border>
+  </Grid>
+ </DockPanel>
+ <!-- Progress popup for loading, saving, export and analysis (0.9.1): hard to miss, with Cancel. -->
+ <Grid x:Name="WorkOverlay" Visibility="Collapsed" Background="#66000000" Panel.ZIndex="100">
+  <Border Width="380" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource ToolHoverBorder}" BorderThickness="1" CornerRadius="3" Padding="16,12">
+   <StackPanel>
+    <TextBlock x:Name="WorkTitle" Text="Working" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,8"/>
+    <ProgressBar x:Name="WorkProgress" Height="14" Minimum="0" Maximum="1" IsIndeterminate="True"/>
+    <TextBlock x:Name="WorkDetail" Text="{Binding Text, ElementName=Status}" TextWrapping="Wrap" FontSize="12" Margin="0,8,0,10" MinHeight="32"/>
+    <Button x:Name="WorkCancelButton" Content="Cancel" HorizontalAlignment="Right" MinWidth="80" Click="CancelWork"/>
+   </StackPanel>
+  </Border>
+ </Grid>
+ </Grid>
+</Window>

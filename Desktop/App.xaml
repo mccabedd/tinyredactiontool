@@ -1,0 +1,445 @@
+<Application x:Class="TinyRedaction.Desktop.App" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:TinyRedaction.Desktop">
+ <Application.Resources>
+  <!-- Light defaults; MainWindow.ApplyTheme replaces these for Light/Dark/System. -->
+  <SolidColorBrush x:Key="Surface" Color="#F0F0F0"/><SolidColorBrush x:Key="Background" Color="#FFFFFF"/><SolidColorBrush x:Key="Foreground" Color="#1E1E1E"/>
+  <SolidColorBrush x:Key="Warning" Color="#875000"/>
+  <SolidColorBrush x:Key="ChromeLine" Color="#C8C8C8"/><SolidColorBrush x:Key="CanvasBackdrop" Color="#C4C4C4"/><SolidColorBrush x:Key="CanvasText" Color="#3C3C3C"/>
+  <SolidColorBrush x:Key="ToolSelected" Color="#CCE4F7"/><SolidColorBrush x:Key="ToolSelectedText" Color="#1E1E1E"/>
+  <SolidColorBrush x:Key="ToolHover" Color="#E5F1FB"/><SolidColorBrush x:Key="ToolHoverBorder" Color="#7EB4EA"/>
+  <SolidColorBrush x:Key="FieldBorder" Color="#8E949E"/>
+  <Style TargetType="Control"><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="FontSize" Value="13"/></Style>
+  <!-- Themed flat button, so no part turns system-white in Dark (hover, pressed or disabled). -->
+  <Style TargetType="Button">
+   <Setter Property="Padding" Value="8,4"/><Setter Property="Margin" Value="3"/><Setter Property="Background" Value="{DynamicResource Surface}"/><Setter Property="Foreground" Value="{DynamicResource Foreground}"/><Setter Property="BorderBrush" Value="{DynamicResource FieldBorder}"/><Setter Property="BorderThickness" Value="1"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+    <Border x:Name="Chrome" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="2" SnapsToDevicePixels="True">
+     <!-- Captions use the button's own Foreground (e.g. white on the blue Redact button); the empty
+          TextBlock style stops the themed TextBlock style from overriding it. -->
+     <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" TextElement.Foreground="{TemplateBinding Foreground}">
+      <ContentPresenter.Resources><Style TargetType="TextBlock"/></ContentPresenter.Resources>
+     </ContentPresenter>
+    </Border>
+    <ControlTemplate.Triggers>
+     <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource ToolHoverBorder}"/></Trigger>
+     <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource ToolHoverBorder}"/></Trigger>
+     <Trigger Property="IsPressed" Value="True"><Setter TargetName="Chrome" Property="Opacity" Value="0.8"/></Trigger>
+     <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Chrome" Property="Opacity" Value="0.45"/></Trigger>
+    </ControlTemplate.Triggers>
+   </ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <Style TargetType="TextBlock"><Setter Property="Foreground" Value="{DynamicResource Foreground}"/></Style>
+  <!-- Tooltips follow the theme (0.13.0): the system tooltip stays white, which made Dark's light text unreadable. -->
+  <Style TargetType="ToolTip">
+   <Setter Property="Background" Value="{DynamicResource Surface}"/><Setter Property="Foreground" Value="{DynamicResource Foreground}"/><Setter Property="BorderBrush" Value="{DynamicResource FieldBorder}"/>
+   <Setter Property="Padding" Value="6,3"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="FontSize" Value="12"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToolTip">
+    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" Padding="{TemplateBinding Padding}" MaxWidth="480">
+     <ContentPresenter TextElement.Foreground="{TemplateBinding Foreground}">
+      <ContentPresenter.Resources><Style TargetType="TextBlock"><Setter Property="TextWrapping" Value="Wrap"/><Setter Property="Foreground" Value="{DynamicResource Foreground}"/></Style></ContentPresenter.Resources>
+     </ContentPresenter>
+    </Border>
+   </ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <Style TargetType="TextBox"><Setter Property="Margin" Value="3"/><Setter Property="Padding" Value="4,3"/><Setter Property="Background" Value="{DynamicResource Background}"/><Setter Property="Foreground" Value="{DynamicResource Foreground}"/><Setter Property="BorderBrush" Value="{DynamicResource FieldBorder}"/><Setter Property="CaretBrush" Value="{DynamicResource Foreground}"/></Style>
+  <Style TargetType="CheckBox"><Setter Property="Foreground" Value="{DynamicResource Foreground}"/><Setter Property="Margin" Value="6"/></Style>
+  <!-- Themed drop-down: field and list follow Light/Dark instead of always being white. -->
+  <Style TargetType="ComboBox">
+   <Setter Property="Foreground" Value="{DynamicResource Foreground}"/><Setter Property="Background" Value="{DynamicResource Background}"/><Setter Property="BorderBrush" Value="{DynamicResource FieldBorder}"/>
+   <Setter Property="MinHeight" Value="24"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox">
+    <Grid x:Name="Root">
+     <ToggleButton Focusable="False" IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+      <ToggleButton.Template><ControlTemplate TargetType="ToggleButton">
+       <Border x:Name="Field" Background="{Binding Background, RelativeSource={RelativeSource AncestorType=ComboBox}}" BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource AncestorType=ComboBox}}" BorderThickness="1" CornerRadius="2" SnapsToDevicePixels="True">
+        <Grid Margin="6,2"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="16"/></Grid.ColumnDefinitions>
+         <ContentPresenter Content="{Binding SelectionBoxItem, RelativeSource={RelativeSource AncestorType=ComboBox}}" ContentTemplate="{Binding SelectionBoxItemTemplate, RelativeSource={RelativeSource AncestorType=ComboBox}}" VerticalAlignment="Center" IsHitTestVisible="False"/>
+         <Path Grid.Column="1" Data="M0,0 L4,4 L8,0" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ComboBox}}" StrokeThickness="1.4" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+        </Grid>
+       </Border>
+       <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Field" Property="BorderBrush" Value="{DynamicResource ToolHoverBorder}"/></Trigger></ControlTemplate.Triggers>
+      </ControlTemplate></ToggleButton.Template>
+     </ToggleButton>
+     <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" AllowsTransparency="True" Focusable="False">
+      <Border Background="{DynamicResource Background}" BorderBrush="{DynamicResource FieldBorder}" BorderThickness="1" MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"><ScrollViewer MaxHeight="{TemplateBinding MaxDropDownHeight}"><ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/></ScrollViewer></Border>
+     </Popup>
+    </Grid>
+    <ControlTemplate.Triggers><Trigger Property="IsEnabled" Value="False"><Setter TargetName="Root" Property="Opacity" Value="0.45"/></Trigger></ControlTemplate.Triggers>
+   </ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <Style TargetType="ComboBoxItem"><Setter Property="Padding" Value="6,4"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBoxItem">
+   <!-- A Binding, not a TemplateBinding: numbers (frames per second, delay, line width) need converting to
+        text, which a TemplateBinding cannot do, so those lists showed empty rows (0.14.0). -->
+   <!-- 0.15.0: a ContentPresenter, so items can be pictures (LineStyleTemplate) as well as words and numbers.
+        The empty TextBlock style lets the row's own text colour (ItemText) reach generated text. -->
+   <Border x:Name="ItemBorder" Padding="{TemplateBinding Padding}" Background="Transparent">
+    <ContentPresenter x:Name="ItemText" TextElement.Foreground="{DynamicResource Foreground}">
+     <ContentPresenter.Resources><Style TargetType="TextBlock"/></ContentPresenter.Resources>
+    </ContentPresenter>
+   </Border>
+   <ControlTemplate.Triggers>
+    <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource ToolSelected}"/><Setter TargetName="ItemText" Property="TextElement.Foreground" Value="{DynamicResource ToolSelectedText}"/></Trigger>
+    <Trigger Property="IsEnabled" Value="False"><Setter TargetName="ItemBorder" Property="Opacity" Value="0.45"/></Trigger>
+   </ControlTemplate.Triggers>
+  </ControlTemplate></Setter.Value></Setter></Style>
+  <!-- Themed tabs for the Settings window (0.18.0). -->
+  <Style TargetType="TabControl">
+   <Setter Property="Background" Value="{DynamicResource Surface}"/><Setter Property="BorderBrush" Value="{DynamicResource ChromeLine}"/><Setter Property="Padding" Value="14,12"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabControl">
+    <DockPanel>
+     <TabPanel DockPanel.Dock="Top" IsItemsHost="True" Margin="0,0,0,-1" Panel.ZIndex="1"/>
+     <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" Padding="{TemplateBinding Padding}"><ContentPresenter ContentSource="SelectedContent"/></Border>
+    </DockPanel>
+   </ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <Style TargetType="TabItem">
+   <Setter Property="Foreground" Value="{DynamicResource Foreground}"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabItem">
+    <Border x:Name="Tab" Background="Transparent" BorderBrush="Transparent" BorderThickness="1,1,1,0" CornerRadius="3,3,0,0" Padding="12,5" Margin="0,0,2,0">
+     <ContentPresenter ContentSource="Header" TextElement.Foreground="{DynamicResource Foreground}"><ContentPresenter.Resources><Style TargetType="TextBlock"/></ContentPresenter.Resources></ContentPresenter>
+    </Border>
+    <ControlTemplate.Triggers>
+     <Trigger Property="IsSelected" Value="True"><Setter TargetName="Tab" Property="Background" Value="{DynamicResource Surface}"/><Setter TargetName="Tab" Property="BorderBrush" Value="{DynamicResource ChromeLine}"/></Trigger>
+     <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Tab" Property="Background" Value="{DynamicResource ToolHover}"/></Trigger>
+    </ControlTemplate.Triggers>
+   </ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <Style TargetType="ListBox"><Setter Property="Background" Value="{DynamicResource Background}"/><Setter Property="Foreground" Value="{DynamicResource Foreground}"/><Setter Property="BorderBrush" Value="{DynamicResource FieldBorder}"/></Style>
+
+  <!-- Menus (0.28.0, David: menus follow Light and Dark). The menu bar, its drop-downs, right-click menus and the
+       capture bar's menus draw on the themed MenuBackground; the empty TextBlock style stops the themed TextBlock
+       style above from overriding a disabled item's own faded colour. -->
+  <SolidColorBrush x:Key="MenuBackground" Color="#FBFBFB"/>
+  <Style x:Key="{x:Static MenuItem.SeparatorStyleKey}" TargetType="Separator">
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Separator"><Rectangle Height="1" Margin="28,3,6,3" Fill="{DynamicResource ChromeLine}" SnapsToDevicePixels="True"/></ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <ControlTemplate x:Key="MenuItemTemplate" TargetType="MenuItem">
+   <Border x:Name="Row" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True" CornerRadius="2">
+    <Grid>
+     <Grid.ColumnDefinitions>
+      <ColumnDefinition x:Name="IconColumn" Width="26"/>
+      <ColumnDefinition Width="*"/>
+      <ColumnDefinition x:Name="GestureColumn" Width="Auto"/>
+      <ColumnDefinition x:Name="ArrowColumn" Width="18"/>
+     </Grid.ColumnDefinitions>
+     <ContentPresenter x:Name="IconHost" ContentSource="Icon" Width="16" Height="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+     <Path x:Name="CheckMark" Data="M0,4 L3,7 L9,0" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.6" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+     <ContentPresenter x:Name="HeaderHost" Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center" Margin="0,4,18,4" TextElement.Foreground="{TemplateBinding Foreground}">
+      <ContentPresenter.Resources><Style TargetType="TextBlock"/></ContentPresenter.Resources>
+     </ContentPresenter>
+     <TextBlock x:Name="GestureText" Grid.Column="2" Text="{TemplateBinding InputGestureText}" Foreground="{TemplateBinding Foreground}" Opacity="0.7" VerticalAlignment="Center" Margin="10,0,0,0"/>
+     <Path x:Name="SubmenuArrow" Grid.Column="3" Data="M0,0 L4,4 L0,8 Z" Fill="{TemplateBinding Foreground}" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+     <Popup x:Name="PART_Popup" Placement="Right" HorizontalOffset="-3" VerticalOffset="-3" IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}" AllowsTransparency="True" Focusable="False" PopupAnimation="None">
+      <Border Background="{DynamicResource MenuBackground}" BorderBrush="{DynamicResource ChromeLine}" BorderThickness="1" Padding="2" Margin="0,0,4,4">
+       <Border.Effect><DropShadowEffect BlurRadius="6" ShadowDepth="2" Opacity="0.25"/></Border.Effect>
+       <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" Grid.IsSharedSizeScope="True"/></ScrollViewer>
+      </Border>
+     </Popup>
+    </Grid>
+   </Border>
+   <ControlTemplate.Triggers>
+    <Trigger Property="Role" Value="TopLevelHeader">
+     <Setter TargetName="IconColumn" Property="Width" Value="0"/><Setter TargetName="ArrowColumn" Property="Width" Value="0"/><Setter TargetName="GestureText" Property="Visibility" Value="Collapsed"/>
+     <Setter TargetName="HeaderHost" Property="Margin" Value="0"/><Setter TargetName="PART_Popup" Property="Placement" Value="Bottom"/><Setter TargetName="PART_Popup" Property="HorizontalOffset" Value="0"/><Setter TargetName="PART_Popup" Property="VerticalOffset" Value="0"/>
+    </Trigger>
+    <Trigger Property="Role" Value="TopLevelItem">
+     <Setter TargetName="IconColumn" Property="Width" Value="0"/><Setter TargetName="ArrowColumn" Property="Width" Value="0"/><Setter TargetName="GestureText" Property="Visibility" Value="Collapsed"/><Setter TargetName="HeaderHost" Property="Margin" Value="0"/>
+    </Trigger>
+    <Trigger Property="Role" Value="SubmenuHeader"><Setter TargetName="SubmenuArrow" Property="Visibility" Value="Visible"/></Trigger>
+    <Trigger Property="IsChecked" Value="True"><Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/></Trigger>
+    <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Row" Property="Background" Value="{DynamicResource ToolHover}"/></Trigger>
+    <Trigger Property="IsSubmenuOpen" Value="True"><Setter TargetName="Row" Property="Background" Value="{DynamicResource ToolHover}"/></Trigger>
+    <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Row" Property="Opacity" Value="0.45"/></Trigger>
+   </ControlTemplate.Triggers>
+  </ControlTemplate>
+  <Style TargetType="MenuItem">
+   <Setter Property="Foreground" Value="{DynamicResource Foreground}"/><Setter Property="Background" Value="Transparent"/><Setter Property="Padding" Value="2,0"/>
+   <Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="FontSize" Value="12"/>
+   <Setter Property="Template" Value="{StaticResource MenuItemTemplate}"/>
+   <Style.Resources><Style TargetType="TextBlock"/></Style.Resources>
+  </Style>
+  <Style x:Key="TopMenuItem" TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}"><Setter Property="Padding" Value="7,3"/></Style>
+  <Style TargetType="ContextMenu">
+   <Setter Property="Foreground" Value="{DynamicResource Foreground}"/><Setter Property="Background" Value="{DynamicResource MenuBackground}"/><Setter Property="BorderBrush" Value="{DynamicResource ChromeLine}"/>
+   <Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="FontSize" Value="12"/><Setter Property="HasDropShadow" Value="False"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ContextMenu">
+    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" Padding="2">
+     <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+    </Border>
+   </ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <Style TargetType="Menu"><Setter Property="Background" Value="{DynamicResource Surface}"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="FontSize" Value="12"/><Setter Property="ItemContainerStyle" Value="{StaticResource TopMenuItem}"/></Style>
+
+  <!-- Flat icon-over-caption toolbar button. Code sets Background to Surface/ToolSelected for tool state. -->
+  <Style x:Key="ToolButton" TargetType="Button">
+   <Setter Property="Background" Value="{DynamicResource Surface}"/><Setter Property="Foreground" Value="{DynamicResource Foreground}"/>
+   <Setter Property="FontSize" Value="11"/><Setter Property="Padding" Value="4,2"/><Setter Property="Margin" Value="0"/><Setter Property="MinWidth" Value="36"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+    <Border x:Name="Chrome" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="2" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+      <Grid x:Name="IconBox" Width="20" Height="20" HorizontalAlignment="Center">
+       <Path Data="{TemplateBinding local:Toolbar.Accent}" Fill="{TemplateBinding local:Toolbar.AccentBrush}"/>
+      <Path Data="{TemplateBinding local:Toolbar.IconFill}" Fill="{TemplateBinding Foreground}"/>
+       <Path Data="{TemplateBinding local:Toolbar.IconFill}" Fill="{TemplateBinding Foreground}"/>
+       <Path Data="{TemplateBinding local:Toolbar.Icon}" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.4" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+      </Grid>
+      <ContentPresenter HorizontalAlignment="Center" Margin="0,1,0,0" RecognizesAccessKey="True">
+       <!-- Two-line captions (0.16.1, "Clear&#10;Editor") are centred line by line; a fixed 12-px line height (0.16.2) lets two lines fit the height of an icon and one line. -->
+       <ContentPresenter.Resources><Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}"><Setter Property="TextAlignment" Value="Center"/><Setter Property="LineStackingStrategy" Value="BlockLineHeight"/><Setter Property="LineHeight" Value="12"/></Style></ContentPresenter.Resources>
+      </ContentPresenter>
+     </StackPanel>
+    </Border>
+    <ControlTemplate.Triggers>
+     <MultiTrigger><MultiTrigger.Conditions><Condition Property="local:Toolbar.Icon" Value="{x:Null}"/><Condition Property="local:Toolbar.Accent" Value="{x:Null}"/></MultiTrigger.Conditions><Setter TargetName="IconBox" Property="Visibility" Value="Collapsed"/></MultiTrigger>
+     <Trigger Property="local:Toolbar.WordsOnly" Value="True"><Setter TargetName="IconBox" Property="Visibility" Value="Collapsed"/></Trigger>
+     <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource ToolHoverBorder}"/></Trigger>
+     <Trigger Property="IsPressed" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource ToolSelected}"/></Trigger>
+     <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource ToolHoverBorder}"/></Trigger>
+     <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Chrome" Property="Opacity" Value="0.4"/></Trigger>
+    </ControlTemplate.Triggers>
+   </ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <!-- Compact icon-only variant (transport row, eyedropper); the caption lives in ToolTip/Content for accessibility. -->
+  <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource ToolButton}">
+   <Setter Property="MinWidth" Value="30"/><Setter Property="Padding" Value="4,2"/><Setter Property="Margin" Value="1"/>
+   <Setter Property="AutomationProperties.Name" Value="{Binding Content, RelativeSource={RelativeSource Self}}"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+    <Border x:Name="Chrome" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="2" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+     <Viewbox Width="{TemplateBinding local:Toolbar.IconSize}" Height="{TemplateBinding local:Toolbar.IconSize}" HorizontalAlignment="Center">
+      <Grid Width="20" Height="20">
+       <Path Data="{TemplateBinding local:Toolbar.Accent}" Fill="{TemplateBinding local:Toolbar.AccentBrush}"/>
+      <Path Data="{TemplateBinding local:Toolbar.IconFill}" Fill="{TemplateBinding Foreground}"/>
+       <Path Data="{TemplateBinding local:Toolbar.IconFill}" Fill="{TemplateBinding Foreground}"/>
+       <Path Data="{TemplateBinding local:Toolbar.Icon}" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.4" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+      </Grid>
+     </Viewbox>
+    </Border>
+    <ControlTemplate.Triggers>
+     <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource ToolHoverBorder}"/></Trigger>
+     <Trigger Property="IsPressed" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource ToolSelected}"/></Trigger>
+     <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource ToolHoverBorder}"/></Trigger>
+     <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Chrome" Property="Opacity" Value="0.4"/></Trigger>
+    </ControlTemplate.Triggers>
+   </ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <!-- Settings › Small icons (0.10.0): toolbar icons at 16 px with no caption; the caption stays in the tooltip. -->
+  <Style x:Key="SmallToolButton" TargetType="Button" BasedOn="{StaticResource ToolButton}">
+   <Setter Property="MinWidth" Value="24"/><Setter Property="Padding" Value="3"/><Setter Property="Margin" Value="0"/>
+   <Setter Property="AutomationProperties.Name" Value="{Binding Content, RelativeSource={RelativeSource Self}}"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+    <Border x:Name="Chrome" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="2" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+     <Viewbox Width="16" Height="16"><Grid Width="20" Height="20">
+      <Path Data="{TemplateBinding local:Toolbar.Accent}" Fill="{TemplateBinding local:Toolbar.AccentBrush}"/>
+      <Path Data="{TemplateBinding local:Toolbar.IconFill}" Fill="{TemplateBinding Foreground}"/>
+      <Path Data="{TemplateBinding local:Toolbar.Icon}" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.6" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+     </Grid></Viewbox>
+    </Border>
+    <ControlTemplate.Triggers>
+     <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource ToolHoverBorder}"/></Trigger>
+     <Trigger Property="IsPressed" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource ToolSelected}"/></Trigger>
+     <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource ToolHoverBorder}"/></Trigger>
+     <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Chrome" Property="Opacity" Value="0.4"/></Trigger>
+    </ControlTemplate.Triggers>
+   </ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <!-- Capture bar (0.12.0): icon with a small drop-down arrow, for the Output and menu buttons. -->
+  <Style x:Key="DropIconButton" TargetType="Button" BasedOn="{StaticResource IconButton}">
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+    <Border x:Name="Chrome" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="2" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+     <StackPanel Orientation="Horizontal">
+      <Grid Width="20" Height="20">
+       <Path Data="{TemplateBinding local:Toolbar.Accent}" Fill="{TemplateBinding local:Toolbar.AccentBrush}"/>
+      <Path Data="{TemplateBinding local:Toolbar.IconFill}" Fill="{TemplateBinding Foreground}"/>
+       <Path Data="{TemplateBinding local:Toolbar.IconFill}" Fill="{TemplateBinding Foreground}"/>
+       <Path Data="{TemplateBinding local:Toolbar.Icon}" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.4" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+      </Grid>
+      <Path Data="M0,0 L3.5,3.5 L7,0" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.2" Margin="2,0,0,0" VerticalAlignment="Center"/>
+     </StackPanel>
+    </Border>
+    <ControlTemplate.Triggers>
+     <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource ToolHoverBorder}"/></Trigger>
+     <Trigger Property="IsPressed" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource ToolSelected}"/></Trigger>
+     <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource ToolHoverBorder}"/></Trigger>
+     <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Chrome" Property="Opacity" Value="0.4"/></Trigger>
+    </ControlTemplate.Triggers>
+   </ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <!-- Small flat buttons and toggles for the floating text window. -->
+  <Style x:Key="EditorFlatButton" TargetType="Button">
+   <Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="{DynamicResource Foreground}"/><Setter Property="Padding" Value="5,1"/><Setter Property="Margin" Value="0"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+    <Border x:Name="Chrome" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="2" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+    <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource ToolHoverBorder}"/></Trigger><Trigger Property="IsPressed" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource ToolSelected}"/></Trigger></ControlTemplate.Triggers>
+   </ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <!-- The ▲▼ of NumberSpinner (0.15.0): EditorFlatButton's look, repeating while held. -->
+  <Style x:Key="EditorFlatRepeat" TargetType="RepeatButton">
+   <Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="{DynamicResource Foreground}"/><Setter Property="Padding" Value="5,1"/><Setter Property="Margin" Value="0"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="RepeatButton">
+    <Border x:Name="Chrome" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="2" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+    <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource ToolHoverBorder}"/></Trigger><Trigger Property="IsPressed" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource ToolSelected}"/></Trigger><Trigger Property="IsEnabled" Value="False"><Setter TargetName="Chrome" Property="Opacity" Value="0.4"/></Trigger></ControlTemplate.Triggers>
+   </ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <!-- Line pictures for the Ends and Dashes lists (0.15.0): a LineStyleItem drawn as a short line. -->
+  <DataTemplate x:Key="LineStyleTemplate">
+   <Grid Width="64" Height="14" Background="Transparent" ToolTip="{Binding Name}">
+    <!-- 0.16.1: no VerticalAlignment, so the line and its arrowheads/dots share the same origin (centring the line alone moved it 3 px). -->
+    <Path Data="{Binding Line}" Stroke="{DynamicResource Foreground}" StrokeThickness="2" StrokeDashArray="{Binding Dash}"/>
+    <Path Data="{Binding Heads}" Fill="{DynamicResource Foreground}"/>
+   </Grid>
+  </DataTemplate>
+  <!-- Light/Dark switch (0.16.0, David: "(O-) and (-O)"): knob on the left = Light, on the right = Dark. -->
+  <Style x:Key="ThemeSwitch" TargetType="ToggleButton">
+   <Setter Property="Width" Value="40"/><Setter Property="Height" Value="20"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Focusable" Value="True"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToggleButton">
+    <Border x:Name="Track" CornerRadius="10" Background="#E2E2E2" BorderBrush="{DynamicResource FieldBorder}" BorderThickness="1">
+     <Ellipse x:Name="Knob" Width="14" Height="14" Margin="3,0" HorizontalAlignment="Left" VerticalAlignment="Center" Fill="#FFFFFF" Stroke="#7A7A7A" StrokeThickness="1"/>
+    </Border>
+    <ControlTemplate.Triggers>
+     <Trigger Property="IsChecked" Value="True"><Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right"/><Setter TargetName="Track" Property="Background" Value="#2F6EA8"/><Setter TargetName="Knob" Property="Stroke" Value="#1E4E7A"/></Trigger>
+     <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource ToolHoverBorder}"/></Trigger>
+     <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource ToolHoverBorder}"/></Trigger>
+    </ControlTemplate.Triggers>
+   </ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <Style x:Key="EditorToggle" TargetType="ToggleButton">
+   <Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="{DynamicResource Foreground}"/><Setter Property="Width" Value="26"/><Setter Property="Height" Value="24"/><Setter Property="Margin" Value="1,0"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToggleButton">
+    <Border x:Name="Chrome" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="2"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+    <ControlTemplate.Triggers>
+     <Trigger Property="IsChecked" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource ToolSelected}"/><Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource ToolHoverBorder}"/></Trigger>
+     <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource ToolHoverBorder}"/></Trigger>
+    </ControlTemplate.Triggers>
+   </ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <Style x:Key="ToolSeparator" TargetType="Rectangle"><Setter Property="Width" Value="1"/><Setter Property="Height" Value="36"/><Setter Property="Margin" Value="4,0"/><Setter Property="Fill" Value="{DynamicResource ChromeLine}"/></Style>
+  <Style x:Key="PanelHeading" TargetType="TextBlock"><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Margin" Value="2,10,2,4"/><Setter Property="Foreground" Value="{DynamicResource Foreground}"/></Style>
+
+  <!-- TRT's own toolbar artwork, drawn on a 20 × 20 grid. -->
+  <!-- 0.23.0: previous and next picture (arrows), Resize (a small frame growing into a bigger one). -->
+  <Geometry x:Key="IconPrevious">M12.5,4 L6.5,10 L12.5,16 M7,10 L17,10</Geometry>
+  <Geometry x:Key="IconNext">M7.5,4 L13.5,10 L7.5,16 M13,10 L3,10</Geometry>
+  <Geometry x:Key="IconResize">M2,9 L2,18 L11,18 L11,9 Z M8,2 L18,2 L18,12 M13,7 L18,2 M14.5,2 L18,2 L18,5.5</Geometry>
+  <!-- 0.24.0 (David): more commands on the toolbar. Drawn in the theme's ink, so each follows Light and Dark. -->
+  <Geometry x:Key="IconRotateClockwise">M4,10 A6,6 0 1 1 10,16 M10,16 L12.5,13.5 M10,16 L12.5,18.5</Geometry>
+  <Geometry x:Key="IconRotateCounterClockwise">M16,10 A6,6 0 1 0 10,16 M10,16 L7.5,13.5 M10,16 L7.5,18.5</Geometry>
+  <Geometry x:Key="IconFlipHorizontal">M10,2 L10,4 M10,6.5 L10,8.5 M10,11 L10,13 M10,15.5 L10,18 M8,5 L2,15 L8,15 Z M12,5 L18,15 L12,15 Z</Geometry>
+  <Geometry x:Key="IconFlipVertical">M2,10 L4,10 M6.5,10 L8.5,10 M11,10 L13,10 M15.5,10 L18,10 M5,8 L15,2 L15,8 Z M5,12 L15,18 L15,12 Z</Geometry>
+  <Geometry x:Key="IconFullScreen">M3,8 L3,3 L8,3 M3,3 L8,8 M12,3 L17,3 L17,8 M17,3 L12,8 M17,12 L17,17 L12,17 M17,17 L12,12 M8,17 L3,17 L3,12 M3,17 L8,12</Geometry>
+  <Geometry x:Key="IconSlideshow">M2,3 L18,3 L18,14 L2,14 Z M8,6 L13,8.5 L8,11 Z M10,14 L10,17 M6,17.5 L14,17.5</Geometry>
+  <!-- 0.25.0: the navigation bar (a screen with a row of small pictures), and its own buttons. -->
+  <Geometry x:Key="IconNavBar">M2,3 L18,3 L18,17 L2,17 Z M2,12 L18,12 M4.5,13.8 L7,13.8 L7,15.5 L4.5,15.5 Z M8.75,13.8 L11.25,13.8 L11.25,15.5 L8.75,15.5 Z M13,13.8 L15.5,13.8 L15.5,15.5 L13,15.5 Z M8,6 L12,7.5 L8,9 Z</Geometry>
+  <Geometry x:Key="IconNew">M5,2 L12,2 L16,6 L16,18 L5,18 Z M12,2 L12,6 L16,6 M10.5,9 L10.5,15 M7.5,12 L13.5,12</Geometry>
+  <!-- 0.27.0 (David): Add Image, a picture with a green plus badge (TRT's own drawing). -->
+  <Geometry x:Key="IconAddImage">M11,13 L2,13 L2,3 L16,3 L16,10 M3.5,11.5 L6.5,7.5 L9,10 L10.5,8.5 L12.5,10.5 M11.5,5.2 L13,5.2 L13,6.7 L11.5,6.7 Z M12,11 L19,11 L19,18 L12,18 Z M15.5,12.5 L15.5,16.5 M13.5,14.5 L17.5,14.5</Geometry>
+  <Geometry x:Key="AccentAddImage">M12,11 L19,11 L19,18 L12,18 Z</Geometry>
+  <Geometry x:Key="IconNavClose">M5.5,5.5 L14.5,14.5 M14.5,5.5 L5.5,14.5</Geometry>
+  <Geometry x:Key="IconPin">M7,2.5 L13,2.5 L12,8 L14.5,11 L5.5,11 L8,8 Z M10,11 L10,17.5</Geometry>
+  <Geometry x:Key="IconFileInfo">M5,2 L12,2 L16,6 L16,18 L5,18 Z M12,2 L12,6 L16,6 M10.5,9.5 L10.5,15 M9,15 L12,15 M9.5,9.5 L10.5,9.5 M10.5,6.8 L10.5,7.3</Geometry>
+  <Geometry x:Key="IconOpenProject">M2,5.5 L7.5,5.5 L9,7 L17,7 L17,16 L2,16 Z M6,10.5 L13,10.5 M6,13 L11,13</Geometry>
+  <Geometry x:Key="IconSaveMediaAs">M2,3 L11,3 L13,5 L13,17 L2,17 Z M5,3 L5,7 L10,7 L10,3 M17,7 L17,15 M14.5,12.5 L17,15 L19.5,12.5</Geometry>
+  <Geometry x:Key="IconFitWidth">M2,4 L2,16 M18,4 L18,16 M4.5,10 L15.5,10 M7.5,7 L4.5,10 L7.5,13 M12.5,7 L15.5,10 L12.5,13</Geometry>
+  <Geometry x:Key="IconSettings">M3,5 L17,5 M3,10 L17,10 M3,15 L17,15 M7,3 L7,7 M13,8 L13,12 M9,13 L9,17</Geometry>
+  <Geometry x:Key="IconDelete">M3.5,5 L16.5,5 M8,5 L8,2.5 L12,2.5 L12,5 M5.5,5 L6.5,17.5 L13.5,17.5 L14.5,5 M8.5,8 L8.8,14.5 M11.5,8 L11.2,14.5</Geometry>
+  <Geometry x:Key="IconOpen">M2,5.5 L7.5,5.5 L9,7 L17,7 L17,16 L2,16 Z</Geometry>
+  <Geometry x:Key="IconSave">M3,3 L15,3 L17,5 L17,17 L3,17 Z M6,3 L6,8 L14,8 L14,3 M6,17 L6,12 L14,12 L14,17</Geometry>
+  <Geometry x:Key="AccentSave">M3,3 L15,3 L17,5 L17,17 L3,17 Z</Geometry>
+  <Geometry x:Key="IconExport">M12,5 L3,5 L3,17 L15,17 L15,8 M8.5,11.5 L17,3 M12,3 L17,3 L17,8</Geometry>
+  <Geometry x:Key="AccentExport">M3,5 L12,5 L15,8 L15,17 L3,17 Z</Geometry>
+  <Geometry x:Key="IconUndo">M7,4 L3,8 L7,12 M3,8 L12,8 A4,4 0 0 1 12,16 L8,16</Geometry>
+  <Geometry x:Key="IconRedo">M13,4 L17,8 L13,12 M17,8 L8,8 A4,4 0 0 0 8,16 L12,16</Geometry>
+  <Geometry x:Key="IconSelect">M5,2 L5,16 L8.5,12.5 L11,18 L13,17 L10.5,11.5 L15,11.5 Z</Geometry>
+  <Geometry x:Key="IconRectangle">M3,5 L17,5 L17,15 L3,15 Z</Geometry>
+  <Geometry x:Key="IconOval">M3,10 A7,5 0 1 1 17,10 A7,5 0 1 1 3,10 Z</Geometry>
+  <Geometry x:Key="IconPolygon">M4,15 L3,7 L10,3 L17,8 L13,17 Z</Geometry>
+  <Geometry x:Key="IconPan">M10,2 L10,18 M2,10 L18,10 M8,4 L10,2 L12,4 M8,16 L10,18 L12,16 M4,8 L2,10 L4,12 M16,8 L18,10 L16,12</Geometry>
+  <Geometry x:Key="IconCrop">M5,1 L5,15 L19,15 M1,5 L15,5 L15,19</Geometry>
+  <Geometry x:Key="AccentCrop">M5,5 L15,5 L15,15 L5,15 Z</Geometry>
+  <Geometry x:Key="IconZoomIn">M2.5,8.5 A6,6 0 1 1 14.5,8.5 A6,6 0 1 1 2.5,8.5 Z M13,13 L18,18 M6,8.5 L11,8.5 M8.5,6 L8.5,11</Geometry>
+  <Geometry x:Key="IconZoomOut">M2.5,8.5 A6,6 0 1 1 14.5,8.5 A6,6 0 1 1 2.5,8.5 Z M13,13 L18,18 M6,8.5 L11,8.5</Geometry>
+  <Geometry x:Key="AccentLens">M2.5,8.5 A6,6 0 1 1 14.5,8.5 A6,6 0 1 1 2.5,8.5 Z</Geometry>
+  <Geometry x:Key="IconFit">M2,7 L2,2 L7,2 M13,2 L18,2 L18,7 M18,13 L18,18 L13,18 M7,18 L2,18 L2,13</Geometry>
+  <!-- Capture frame (0.18.0): a camera. -->
+  <!-- 0.21.0 video editing: Trim (a film strip with two cut marks; the part between them red), Append (two
+       strips, a plus on the added one), and the trim row's Set A, Set B (a flag with its letter) and Clear (a flag crossed out). -->
+  <Geometry x:Key="IconTrim">M1,6 L19,6 L19,14 L1,14 Z M6,2.5 L6,17.5 M14,2.5 L14,17.5 M2.5,7.5 L4,7.5 M2.5,12.5 L4,12.5 M16,7.5 L17.5,7.5 M16,12.5 L17.5,12.5</Geometry>
+  <Geometry x:Key="AccentTrim">M6.5,6.5 L13.5,6.5 L13.5,13.5 L6.5,13.5 Z</Geometry>
+  <Geometry x:Key="IconAppend">M1,6 L8,6 L8,14 L1,14 Z M11,6 L19,6 L19,14 L11,14 Z M2.5,7.5 L3.5,7.5 M2.5,12.5 L3.5,12.5 M5.5,7.5 L6.5,7.5 M5.5,12.5 L6.5,12.5</Geometry>
+  <Geometry x:Key="AccentAppend">M14,7.5 L16,7.5 L16,9 L17.5,9 L17.5,11 L16,11 L16,12.5 L14,12.5 L14,11 L12.5,11 L12.5,9 L14,9 Z</Geometry>
+  <Geometry x:Key="IconMarkerA">M2.5,17 L5.5,7 L8.5,17 M3.7,13.5 L7.3,13.5 M12,18 L12,2.5 M12,2.5 L18.5,5 L12,7.5</Geometry>
+  <Geometry x:Key="IconMarkerB">M3,7 L3,17 L6.3,17 A2.5,2.5 0 0 0 6.3,12 L3,12 M3,7 L6,7 A2.5,2.5 0 0 1 6,12 M12,18 L12,2.5 M12,2.5 L18.5,5 L12,7.5</Geometry>
+  <Geometry x:Key="AccentMarker">M12,2.5 L18.5,5 L12,7.5 Z</Geometry>
+  <Geometry x:Key="IconClearMarkers">M9,18 L9,2.5 M9,2.5 L15.5,5 L9,7.5 M12,11 L18,17 M18,11 L12,17</Geometry>
+  <Geometry x:Key="AccentClearMarkers">M9,2.5 L15.5,5 L9,7.5 Z</Geometry>
+  <Geometry x:Key="IconCaptureFrame">M2,6.5 L6,6.5 L7.5,4 L12.5,4 L14,6.5 L18,6.5 L18,16 L2,16 Z M7,11 A3,3 0 1 1 13,11 A3,3 0 1 1 7,11 Z</Geometry>
+  <Geometry x:Key="AccentCaptureFrame">M7,11 A3,3 0 1 1 13,11 A3,3 0 1 1 7,11 Z</Geometry>
+  <Geometry x:Key="IconActualSize">M2,3 L18,3 L18,17 L2,17 Z M5.5,8 L7.5,6.5 L7.5,13.5 M10,8.6 L10,9.4 M10,11.6 L10,12.4 M12.5,8 L14.5,6.5 L14.5,13.5</Geometry>
+  <Geometry x:Key="AccentFit">M5,5 L15,5 L15,15 L5,15 Z</Geometry>
+  <Geometry x:Key="IconBox">M3,4 L17,4 L17,16 L3,16 Z</Geometry>
+  <Geometry x:Key="AccentBlur">M2,10 A8,8 0 1 1 18,10 A8,8 0 1 1 2,10 Z</Geometry>
+  <Geometry x:Key="IconPixelate">M3,3 L17,3 L17,17 L3,17 Z</Geometry>
+  <Geometry x:Key="AccentPixelate">M3,3 L8,3 L8,8 L3,8 Z M12,3 L17,3 L17,8 L12,8 Z M8,8 L12,8 L12,12 L8,12 Z M3,12 L8,12 L8,17 L3,17 Z M12,12 L17,12 L17,17 L12,17 Z</Geometry>
+  <Geometry x:Key="IconPanel">M2,3 L18,3 L18,17 L2,17 Z M12,3 L12,17 M14,6.5 L16,6.5 M14,9.5 L16,9.5 M14,12.5 L16,12.5</Geometry>
+  <Geometry x:Key="AccentPanel">M12,3 L18,3 L18,17 L12,17 Z</Geometry>
+  <Geometry x:Key="IconAlignLeft">M2,3 L16,3 M2,7 L11,7 M2,11 L16,11 M2,15 L11,15</Geometry>
+  <Geometry x:Key="IconAlignCentre">M2,3 L16,3 M4.5,7 L13.5,7 M2,11 L16,11 M4.5,15 L13.5,15</Geometry>
+  <Geometry x:Key="IconAlignRight">M2,3 L16,3 M7,7 L16,7 M2,11 L16,11 M7,15 L16,15</Geometry>
+  <Geometry x:Key="IconTrash">M4,5 L16,5 M8,5 L8,3 L12,3 L12,5 M5.5,5 L6.5,17 L13.5,17 L14.5,5 M8.5,8 L8.8,14.5 M11.5,8 L11.2,14.5</Geometry>
+  <Geometry x:Key="IconFollow">M3,15 C6,15 7,6 11,6 M11,6 L9,3.5 M11,6 L8.2,7.5 M12,10 L18,10 L18,16 L12,16 Z</Geometry>
+  <Geometry x:Key="IconDrawRectangle">M2,4 L14,4 L14,14 L2,14 Z M11.5,17 L18,10.5 L19.5,12 L13,18.5 L11,19 Z</Geometry>
+  <Geometry x:Key="IconDrawOval">M8,3.5 C11.6,3.5 14,5.8 14,8.5 C14,11.2 11.6,13.5 8,13.5 C4.4,13.5 2,11.2 2,8.5 C2,5.8 4.4,3.5 8,3.5 Z M11.5,17 L18,10.5 L19.5,12 L13,18.5 L11,19 Z</Geometry>
+  <Geometry x:Key="IconFreehand">M2,12 C4,5 6,5 7,9 C8,13 9.5,13 11,8 M11.5,17 L18,10.5 L19.5,12 L13,18.5 L11,19 Z</Geometry>
+  <Geometry x:Key="AccentPencil">M12.2,17.2 L18,11.4 L18.6,12 L12.8,17.8 Z</Geometry>
+  <!-- Copy and Paste (0.14.0): two sheets; a clipboard with a sheet on it. -->
+  <Geometry x:Key="IconCopy">M3,2 L12,2 L12,13 L3,13 Z M8,7 L17,7 L17,18 L8,18 Z M10.5,10.5 L14.5,10.5 M10.5,13 L14.5,13 M10.5,15.5 L13,15.5</Geometry>
+  <Geometry x:Key="AccentCopy">M8,7 L17,7 L17,18 L8,18 Z</Geometry>
+  <Geometry x:Key="IconPaste">M6,4 L3,4 L3,18 L9,18 M12,4 L15,4 L15,8 M6,2.5 L12,2.5 L12,5.5 L6,5.5 Z M9,9 L18,9 L18,19 L9,19 Z M11,12 L16,12 M11,14.5 L16,14.5 M11,17 L14,17</Geometry>
+  <Geometry x:Key="AccentPaste">M6,2.5 L12,2.5 L12,5.5 L6,5.5 Z</Geometry>
+  <Geometry x:Key="IconClearRedactions">M2,3 L12,3 L12,12 L2,12 Z M4,5 L10,5 L10,10 L4,10 Z</Geometry>
+  <Geometry x:Key="IconClearAnnotations">M2,13 L9,4 M5.5,3.8 L9.2,3.6 L9.6,7.3 M2,16.5 L8,16.5</Geometry>
+  <Geometry x:Key="IconClear">M4,2 L11,2 L15,6 L15,18 L4,18 Z M11,2 L11,6 L15,6</Geometry>
+  <Geometry x:Key="AccentClear">M10,10 A4,4 0 1 1 18,10 A4,4 0 1 1 10,10 Z M12,8 L16,12 M16,8 L12,12</Geometry>
+  <Geometry x:Key="IconText">M4,17 L10,3 L16,17 M6.4,11.5 L13.6,11.5</Geometry>
+  <Geometry x:Key="IconLine">M3,17 L14,6</Geometry>
+  <Geometry x:Key="AccentLine">M17,3 L10.5,5 L15,9.5 Z</Geometry>
+  <Geometry x:Key="IconPolyline">M3,17 L3,10 L10,10 L10,4 L17,4</Geometry>
+  <SolidColorBrush x:Key="AccentRed" Color="#E04848"/>
+  <Geometry x:Key="IconFrameBack">M5,4 L5,16 M16,4 L8,10 L16,16 Z</Geometry>
+  <Geometry x:Key="IconFrameForward">M15,4 L15,16 M4,4 L12,10 L4,16 Z</Geometry>
+  <Geometry x:Key="IconPlay">M6,3.5 L16,10 L6,16.5 Z</Geometry>
+  <Geometry x:Key="IconPause">M5.5,4 L8.5,4 L8.5,16 L5.5,16 Z M11.5,4 L14.5,4 L14.5,16 L11.5,16 Z</Geometry>
+  <!-- 0.15.0 (David): a solid pipette, after the example he sent (TRT's own drawing): bulb, collar and tube. -->
+  <!-- 0.18.0: David chose design D, a solid pipette (IconFillEyedropper, text colour) and a swatch (accent, the chosen colour). -->
+  <Geometry x:Key="IconEyedropper">M10.7,5.3 L14.7,9.3 M1.5,12.5 L7.5,12.5 L7.5,18.5 L1.5,18.5 Z</Geometry>
+  <Geometry x:Key="IconFillEyedropper">M13.8,2.2 A2.6,2.6 0 0 1 17.8,6.2 L16.1,7.9 L12.1,3.9 Z M12.9,7.1 L7.6,12.4 L7,13.8 L8.4,13.2 L13.7,7.9 Z</Geometry>
+  <Geometry x:Key="AccentEyedropper">M1.5,12.5 L7.5,12.5 L7.5,18.5 L1.5,18.5 Z</Geometry>
+  <SolidColorBrush x:Key="AccentFolder" Color="#E8B84A"/><SolidColorBrush x:Key="AccentBlue" Color="#7FAEE8"/><SolidColorBrush x:Key="AccentGreen" Color="#7CC48A"/>
+  <SolidColorBrush x:Key="AccentGlass" Color="#B9DDF5"/><SolidColorBrush x:Key="AccentSolid" Color="#202020"/><SolidColorBrush x:Key="AccentGrey" Color="#8C97A8"/>
+  <SolidColorBrush x:Key="AccentWhite" Color="#FFFFFF"/>
+  <!-- Capture bar artwork (0.12.0), TRT's own, one for each kind of capture. -->
+  <Geometry x:Key="IconCaptureWindow">M2,4 L18,4 L18,16 L2,16 Z M2,7.5 L18,7.5</Geometry>
+  <Geometry x:Key="AccentCaptureWindow">M2,4 L18,4 L18,7.5 L2,7.5 Z</Geometry>
+  <Geometry x:Key="IconCaptureObject">M2,4 L18,4 L18,16 L2,16 Z M2,7.5 L18,7.5 M5,10 L12,10 L12,14 L5,14 Z</Geometry>
+  <Geometry x:Key="AccentCaptureObject">M5,10 L12,10 L12,14 L5,14 Z</Geometry>
+  <Geometry x:Key="IconCaptureRegion">M2,5 L2,3 L4,3 M6,3 L8,3 M10,3 L12,3 M14,3 L15,3 L15,5 M15,7.5 L15,9.5 M11.5,13 L9.5,13 M7,13 L5,13 M3,13 L2,13 L2,11 M2,9 L2,7 M15.5,12 L15.5,19 M12,15.5 L19,15.5</Geometry>
+  <Geometry x:Key="AccentCaptureRegion">M2,3 L15,3 L15,13 L2,13 Z</Geometry>
+  <Geometry x:Key="IconCaptureFreehand">M5,3.5 C9,1.5 14.5,3 14,6.5 C13.6,9 10.5,9.5 11,12 C11.5,14.5 6.5,15.5 4,13 C1.5,10.5 2,5 5,3.5 Z M15.5,12 L15.5,19 M12,15.5 L19,15.5</Geometry>
+  <Geometry x:Key="AccentCaptureFreehand">M5,3.5 C9,1.5 14.5,3 14,6.5 C13.6,9 10.5,9.5 11,12 C11.5,14.5 6.5,15.5 4,13 C1.5,10.5 2,5 5,3.5 Z</Geometry>
+  <Geometry x:Key="IconCaptureScreen">M2,3 L18,3 L18,14 L2,14 Z M7.5,17.5 L12.5,17.5 M10,14 L10,17.5</Geometry>
+  <Geometry x:Key="AccentCaptureScreen">M2,3 L18,3 L18,14 L2,14 Z</Geometry>
+  <Geometry x:Key="IconRecorder">M2,6 L12.5,6 L12.5,15 L2,15 Z M12.5,9 L18,6 L18,15 L12.5,12</Geometry>
+  <Geometry x:Key="AccentRecorder">M4,8.5 A1.7,1.7 0 1 1 7.4,8.5 A1.7,1.7 0 1 1 4,8.5 Z</Geometry>
+  <Geometry x:Key="IconEditor">M2,3 L14,3 L14,13 L2,13 Z M3.5,11.5 L6.5,7.5 L8.5,10 L10,8.5 L12.5,11.5 M11.5,17 L18,10.5 L19.5,12 L13,18.5 L11,19 Z</Geometry>
+  <Geometry x:Key="IconToClipboard">M6,4 L3.5,4 L3.5,18 L15.5,18 L15.5,4 L13,4 M6.5,2.5 L12.5,2.5 L12.5,5.5 L6.5,5.5 Z M6.5,9 L12.5,9 M6.5,12 L12.5,12 M6.5,15 L10,15</Geometry>
+  <Geometry x:Key="AccentToClipboard">M6.5,2.5 L12.5,2.5 L12.5,5.5 L6.5,5.5 Z</Geometry>
+  <Geometry x:Key="IconCaptureScrolling">M3,2 L13,2 L13,18 L3,18 Z M5.5,6 L10.5,6 M5.5,9 L10.5,9 M5.5,12 L9,12 M16.5,3 L16.5,16 M14,13.5 L16.5,16 L19,13.5</Geometry>
+  <Geometry x:Key="AccentCaptureScrolling">M3,2 L13,2 L13,18 L3,18 Z</Geometry>
+  <Geometry x:Key="IconRuler">M1.5,7 L18.5,7 L18.5,13 L1.5,13 Z M4,7 L4,10 M7,7 L7,9 M10,7 L10,11 M13,7 L13,9 M16,7 L16,10</Geometry>
+  <Geometry x:Key="AccentRuler">M1.5,7 L18.5,7 L18.5,13 L1.5,13 Z</Geometry>
+  <Geometry x:Key="IconCaptureWorkArea">M2,3 L18,3 L18,14 L2,14 Z M2,11.5 L18,11.5 M7.5,17.5 L12.5,17.5 M10,14 L10,17.5</Geometry>
+  <Geometry x:Key="AccentCaptureWorkArea">M2,3 L18,3 L18,11.5 L2,11.5 Z</Geometry>
+  <Geometry x:Key="IconMenu">M3,5 L17,5 M3,10 L17,10 M3,15 L17,15</Geometry>
+  <Geometry x:Key="IconOriginal">M2,4 L18,4 L18,16 L2,16 Z M3.5,14.5 L8,9 L11,12.5 L13,10.5 L16.5,14.5</Geometry>
+  <Geometry x:Key="AccentOriginal">M13,7.5 A1.6,1.6 0 1 1 16.2,7.5 A1.6,1.6 0 1 1 13,7.5 Z</Geometry>
+  <RadialGradientBrush x:Key="AccentSoft"><GradientStop Color="#FF4F8FD8" Offset="0"/><GradientStop Color="#994F8FD8" Offset="0.5"/><GradientStop Color="#004F8FD8" Offset="1"/></RadialGradientBrush>
+ </Application.Resources>
+</Application>

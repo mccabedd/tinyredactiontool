@@ -1,0 +1,26 @@
+Testing TRT-Moving-Text-Test.mp4
+PASS TRT exact frame 0
+PASS TRT exact frame 72
+PASS TRT exact frame 144
+PASS TRT exact frame 287
+PASS TRT native playback advances
+VIDEO PASS TRT-Moving-Text-Test.mp4
+[h264 @ 000001af298ca5c0] get_buffer() failed
+[h264 @ 000001af298ca5c0] thread_get_buffer() failed
+[h264 @ 000001af298ca5c0] no frame!
+[h264 @ 000001af298ecd80] get_buffer() failed
+[h264 @ 000001af298ecd80] thread_get_buffer() failed
+[h264 @ 000001af298ecd80] no frame!
+Testing TRT-Moving-Text-Compatible.mp4
+PASS TRT exact frame 0
+PASS TRT exact frame 72
+PASS TRT exact frame 144
+PASS TRT exact frame 287
+PASS TRT native playback advances
+VIDEO PASS TRT-Moving-Text-Compatible.mp4
+[h264 @ 000001af298c3e40] get_buffer() failed
+[h264 @ 000001af298c3e40] thread_get_buffer() failed
+[h264 @ 000001af298c3e40] no frame!
+[h264 @ 000001af298c2bc0] get_buffer() failed
+[h264 @ 000001af298c2bc0] thread_get_buffer() failed
+[h264 @ 000001af298c2bc0] no frame!

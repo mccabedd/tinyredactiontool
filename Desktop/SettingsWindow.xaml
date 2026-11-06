@@ -1,0 +1,186 @@
+<Window x:Class="TinyRedaction.Desktop.SettingsWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:TinyRedaction.Desktop"
+ Icon="Assets/icon.ico" Title="Settings" Width="620" SizeToContent="Height" ResizeMode="NoResize" WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+ Background="{DynamicResource Background}" Foreground="{DynamicResource Foreground}" FontFamily="Segoe UI" FontSize="12">
+ <!-- Settings (0.10.0), redesigned with tabs in 0.18.0 (David): General, Shortcuts, Capture, Capture bar and
+      Editor. OK saves; Cancel or Esc leaves everything as it was. -->
+ <Grid Margin="12,12,12,12">
+  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+  <TabControl x:Name="Tabs" Height="470">
+   <TabItem Header="General">
+    <StackPanel>
+     <TextBlock Text="Starting TRT" Style="{StaticResource PanelHeading}" Margin="0,0,0,6"/>
+     <CheckBox x:Name="StartupBox" Content="Start TRT When Windows Starts" Margin="0,2"/>
+     <TextBlock Text="It starts quietly in the notification area. For your Windows user only." TextWrapping="Wrap" FontSize="11" Margin="20,0,0,0"/>
+     <TextBlock Text="Theme" Style="{StaticResource PanelHeading}" Margin="0,16,0,6"/>
+     <StackPanel Orientation="Horizontal">
+      <RadioButton x:Name="ThemeLightBox" GroupName="Theme" Content="Light" Margin="0,2,18,2" Foreground="{DynamicResource Foreground}"/>
+      <RadioButton x:Name="ThemeDarkBox" GroupName="Theme" Content="Dark" Margin="0,2,18,2" Foreground="{DynamicResource Foreground}"/>
+      <RadioButton x:Name="ThemeSystemBox" GroupName="Theme" Content="Same as Windows" Margin="0,2" Foreground="{DynamicResource Foreground}"/>
+     </StackPanel>
+     <TextBlock Text="File Explorer" Style="{StaticResource PanelHeading}" Margin="0,16,0,6"/>
+     <CheckBox x:Name="ExplorerMenuBox" Content="Add &quot;Open with TRT&quot; to the Right-Click Menu" Margin="0,2"/>
+     <TextBlock Text="For your Windows user only. On Windows 11 it is under &quot;Show more options&quot;." TextWrapping="Wrap" FontSize="11" Margin="20,0,0,0"/>
+     <!-- 0.25.0 (David): pictures only, not videos. -->
+     <CheckBox x:Name="DefaultPictureAppBox" Content="Open Pictures with TRT (The Default App for Pictures, Not Videos)" Margin="0,8,0,2"/>
+     <TextBlock Text="After OK, Windows shows its Default apps page for TRT: press Set default there. For your Windows user only." TextWrapping="Wrap" FontSize="11" Margin="20,0,0,0"/>
+     <!-- 0.22.0 (David): save these settings to a file, or load them from one (for another PC or a fresh start). -->
+     <TextBlock Text="Settings File" Style="{StaticResource PanelHeading}" Margin="0,16,0,6"/>
+     <StackPanel Orientation="Horizontal">
+      <Button x:Name="ExportSettingsButton" Content="Export Settings…" Click="ExportSettings" Padding="10,3" Margin="0,2,8,2" ToolTip="Save These Settings to a File"/>
+      <Button x:Name="ImportSettingsButton" Content="Import Settings…" Click="ImportSettings" Padding="10,3" Margin="0,2" ToolTip="Load Settings from a File"/>
+     </StackPanel>
+     <TextBlock Text="Imported settings fill in this window; press OK to use them." TextWrapping="Wrap" FontSize="11" Margin="0,2,0,0"/>
+    </StackPanel>
+   </TabItem>
+   <TabItem Header="Shortcuts">
+    <StackPanel>
+     <TextBlock Text="Click a box, then press the keys. Screenshot captures a rectangle; Recording starts or stops recording one." TextWrapping="Wrap" FontSize="11" Margin="0,0,0,10"/>
+     <Grid>
+      <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+      <TextBlock Text="Screenshot" VerticalAlignment="Center" Margin="0,0,12,0"/>
+      <TextBox x:Name="ScreenshotBox" Grid.Column="1" IsReadOnly="True" IsReadOnlyCaretVisible="False" Margin="0,3" Padding="4,3" PreviewKeyDown="ShortcutKeyDown" PreviewKeyUp="ShortcutKeyUp" ToolTip="Click, Then Press the Shortcut (For Example Ctrl+Print Screen)"/>
+      <TextBlock Grid.Row="1" Text="Recording" VerticalAlignment="Center" Margin="0,0,12,0"/>
+      <TextBox x:Name="RecordingBox" Grid.Row="1" Grid.Column="1" IsReadOnly="True" IsReadOnlyCaretVisible="False" Margin="0,3" Padding="4,3" PreviewKeyDown="ShortcutKeyDown" PreviewKeyUp="ShortcutKeyUp" ToolTip="Click, Then Press the Shortcut (For Example Ctrl+Shift+Print Screen)"/>
+      <TextBlock Grid.Row="2" Text="Show or Hide the Capture Bar" VerticalAlignment="Center" Margin="0,0,12,0"/>
+      <TextBox x:Name="BarShortcutBox" Grid.Row="2" Grid.Column="1" IsReadOnly="True" IsReadOnlyCaretVisible="False" Margin="0,3" Padding="4,3" PreviewKeyDown="ShortcutKeyDown" PreviewKeyUp="ShortcutKeyUp" ToolTip="Click, Then Press the Shortcut (For Example Ctrl+Alt+B)"/>
+      <Button x:Name="BarShortcutNone" Grid.Row="2" Grid.Column="2" Content="None" Padding="8,2" Margin="6,3,0,3" Click="ClearShortcut" Tag="Bar" ToolTip="No Shortcut"/>
+      <TextBlock Grid.Row="3" Text="Open the Editor" VerticalAlignment="Center" Margin="0,0,12,0"/>
+      <TextBox x:Name="EditorShortcutBox" Grid.Row="3" Grid.Column="1" IsReadOnly="True" IsReadOnlyCaretVisible="False" Margin="0,3" Padding="4,3" PreviewKeyDown="ShortcutKeyDown" PreviewKeyUp="ShortcutKeyUp" ToolTip="Click, Then Press the Shortcut (For Example Ctrl+Alt+E)"/>
+      <Button x:Name="EditorShortcutNone" Grid.Row="3" Grid.Column="2" Content="None" Padding="8,2" Margin="6,3,0,3" Click="ClearShortcut" Tag="Editor" ToolTip="No Shortcut"/>
+     </Grid>
+     <TextBlock x:Name="ShortcutMessage" TextWrapping="Wrap" FontSize="11" Margin="0,4,0,0" MinHeight="15"/>
+     <Button x:Name="ResetShortcutsButton" Content="Reset Shortcuts to Defaults" HorizontalAlignment="Left" Margin="0,4,0,0" Padding="8,3" Click="ResetShortcuts"/>
+     <!-- 0.24.0 (David): keys for the previous and next picture, in the editor and the slideshow (any key). -->
+     <TextBlock Text="Pictures (Editor and Slideshow)" Style="{StaticResource PanelHeading}" Margin="0,16,0,6"/>
+     <Grid>
+      <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+      <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+      <TextBlock Text="Previous Picture" VerticalAlignment="Center" Margin="0,0,12,0"/>
+      <TextBox x:Name="PreviousKeyBox" Grid.Column="1" IsReadOnly="True" IsReadOnlyCaretVisible="False" Margin="0,3" Padding="4,3" PreviewKeyDown="PictureKeyDown" ToolTip="Click, Then Press a Key"/>
+      <TextBlock Grid.Row="1" Text="Next Picture" VerticalAlignment="Center" Margin="0,0,12,0"/>
+      <TextBox x:Name="NextKeyBox" Grid.Row="1" Grid.Column="1" IsReadOnly="True" IsReadOnlyCaretVisible="False" Margin="0,3" Padding="4,3" PreviewKeyDown="PictureKeyDown" ToolTip="Click, Then Press a Key"/>
+     </Grid>
+     <TextBlock Text="Left and Right work as well." TextWrapping="Wrap" FontSize="11" Margin="0,2,0,0"/>
+    </StackPanel>
+   </TabItem>
+   <TabItem Header="Capture">
+    <StackPanel>
+     <StackPanel Orientation="Horizontal" Margin="0,2">
+      <TextBlock Text="Delay Before Capture" VerticalAlignment="Center" Margin="0,0,8,0"/>
+      <ComboBox x:Name="DelayChoice" Width="70" ToolTip="Wait Before Taking the Screenshot"/>
+      <TextBlock Text="Seconds" VerticalAlignment="Center" Margin="6,0,0,0"/>
+     </StackPanel>
+     <CheckBox x:Name="CapturePointerBox" Content="Include the Mouse Pointer in Screenshots" Margin="0,6,0,2"/>
+     <StackPanel Orientation="Horizontal" Margin="0,6,0,2">
+      <TextBlock Text="Full Screen with Several Monitors" VerticalAlignment="Center" Margin="0,0,8,0"/>
+      <ComboBox x:Name="FullScreenChoice" Width="220"><ComboBoxItem Content="The Screen with the Cursor"/><ComboBoxItem Content="All Screens"/></ComboBox>
+     </StackPanel>
+     <TextBlock Text="Screen Recording" Style="{StaticResource PanelHeading}" Margin="0,16,0,6"/>
+     <StackPanel Orientation="Horizontal" Margin="0,2">
+      <TextBlock Text="Frames per Second" VerticalAlignment="Center" Margin="0,0,8,0"/>
+      <ComboBox x:Name="FrameRateChoice" Width="64"/>
+     </StackPanel>
+     <CheckBox x:Name="RecordPointerBox" Content="Record the Mouse Pointer" Margin="0,6,0,2"/>
+    </StackPanel>
+   </TabItem>
+   <TabItem Header="Capture Bar">
+    <StackPanel>
+     <CheckBox x:Name="ShowBarBox" Content="Show the Capture Bar" Margin="0,0,0,2"/>
+     <TextBlock Text="Without it, TRT works from its notification-area icon and the shortcuts." TextWrapping="Wrap" FontSize="11" Margin="20,0,0,8"/>
+     <TextBlock Text="Tick the buttons to show; use Up and Down to change the order. Menu is always last." TextWrapping="Wrap" FontSize="11" Margin="0,0,0,6"/>
+     <Grid>
+      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <ListBox x:Name="BarButtonList" Height="150" SelectionChanged="BarButtonSelected"/>
+      <StackPanel Grid.Column="1" Margin="8,0,0,0">
+       <Button x:Name="BarButtonUp" Content="Up" MinWidth="72" Margin="0,0,0,4" Padding="8,3" Click="MoveBarButton" Tag="-1" ToolTip="Move Left"/>
+       <Button x:Name="BarButtonDown" Content="Down" MinWidth="72" Margin="0,0,0,4" Padding="8,3" Click="MoveBarButton" Tag="1" ToolTip="Move Right"/>
+       <Button x:Name="BarButtonReset" Content="Reset" MinWidth="72" Margin="0,12,0,0" Padding="8,3" Click="ResetBarButtons" ToolTip="Show Every Button in the Usual Order"/>
+      </StackPanel>
+     </Grid>
+     <TextBlock Text="Red Tab at the Top of the Screen" Margin="0,12,0,2" FontWeight="SemiBold"/>
+     <StackPanel Orientation="Horizontal">
+      <TextBlock Text="Width" VerticalAlignment="Center" Width="58"/>
+      <Slider x:Name="StripWidthSlider" Width="220" Minimum="30" Maximum="600" SmallChange="5" LargeChange="20" TickFrequency="10" IsSnapToTickEnabled="True" VerticalAlignment="Center" ToolTip="Width of the Red Tab, in Pixels"/>
+      <TextBlock Text="{Binding Value, ElementName=StripWidthSlider, StringFormat={}{0:0} pixels}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+     </StackPanel>
+     <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+      <TextBlock Text="Place" VerticalAlignment="Center" Width="58"/>
+      <RadioButton x:Name="StripUnderBarBox" GroupName="StripPlace" Content="Under the Bar" VerticalAlignment="Center" Margin="0,0,12,0" Foreground="{DynamicResource Foreground}"/>
+      <RadioButton x:Name="StripSetPlaceBox" GroupName="StripPlace" Content="Here:" VerticalAlignment="Center" Foreground="{DynamicResource Foreground}"/>
+      <Slider x:Name="StripPositionSlider" Width="150" Minimum="0" Maximum="100" TickFrequency="5" IsSnapToTickEnabled="True" VerticalAlignment="Center" Margin="6,0,0,0" IsEnabled="{Binding IsChecked, ElementName=StripSetPlaceBox}" ToolTip="Where the Red Tab Sits Along the Top Edge"/>
+     </StackPanel>
+     <!-- A small picture of the screen's top edge with the tab where it will be. -->
+     <Border x:Name="StripPreviewScreen" Width="300" Height="16" HorizontalAlignment="Left" Margin="58,6,0,0" BorderBrush="{DynamicResource FieldBorder}" BorderThickness="1" Background="{DynamicResource Background}">
+      <Canvas x:Name="StripPreviewCanvas"><Border x:Name="StripPreview" Background="#D63030" Height="4"/></Canvas>
+     </Border>
+     <TextBlock Text="The Capture Bar's ✕ Button" Margin="0,12,0,2" FontWeight="SemiBold"/>
+     <StackPanel Orientation="Horizontal">
+      <RadioButton x:Name="CloseHidesBox" GroupName="CloseButton" Content="Hides TRT in the Notification Area" Margin="0,2,16,2" IsChecked="True" Foreground="{DynamicResource Foreground}"/>
+      <RadioButton x:Name="CloseQuitsBox" GroupName="CloseButton" Content="Quits TRT" Margin="0,2" Foreground="{DynamicResource Foreground}"/>
+     </StackPanel>
+    </StackPanel>
+   </TabItem>
+   <TabItem Header="Editor">
+    <StackPanel>
+     <TextBlock Text="Toolbar" Style="{StaticResource PanelHeading}" Margin="0,0,0,6"/>
+     <CheckBox x:Name="SmallIconsBox" Content="Small Icons (No Captions)" Margin="0,2"/>
+     <TextBlock Text="Position" Margin="0,8,0,2"/>
+     <StackPanel Orientation="Horizontal">
+      <RadioButton x:Name="HorizontalBox" GroupName="ToolbarPosition" Content="Horizontal, Across the Top" Margin="0,2,16,2" IsChecked="True" Foreground="{DynamicResource Foreground}"/>
+      <RadioButton x:Name="VerticalBox" GroupName="ToolbarPosition" Content="Vertical, on the Left" Margin="0,2" Foreground="{DynamicResource Foreground}"/>
+     </StackPanel>
+     <TextBlock Text="Options Bar" Style="{StaticResource PanelHeading}" Margin="0,16,0,6"/>
+     <CheckBox x:Name="HideOptionsBarBox" Content="Hide the Options Bar Under the Toolbar (Colour, Width, Font…)" Margin="0,2"/>
+     <TextBlock Text="The floating windows beside a selection have the same choices. The bar still shows while cropping." TextWrapping="Wrap" FontSize="11" Margin="20,0,0,0"/>
+    </StackPanel>
+   </TabItem>
+   <!-- 0.25.0 (David): the slideshow (0.23.0, moved from Editor) and the navigation bar. -->
+   <TabItem Header="Slideshow">
+    <StackPanel>
+     <TextBlock Text="Slideshow" Style="{StaticResource PanelHeading}" Margin="0,0,0,6"/>
+     <StackPanel Orientation="Horizontal" Margin="0,2">
+      <TextBlock Text="Each Picture for" VerticalAlignment="Center" Margin="0,0,8,0"/>
+      <ComboBox x:Name="SlideshowTimeChoice" Width="64"/>
+      <TextBlock Text="Seconds" VerticalAlignment="Center" Margin="8,0,0,0"/>
+     </StackPanel>
+     <TextBlock Text="0: each picture stays until you press the next or previous key." TextWrapping="Wrap" FontSize="11" Margin="0,2,0,0"/>
+     <CheckBox x:Name="SlideshowRepeatBox" Content="Start Again After the Last Picture" Margin="0,6,0,2"/>
+     <TextBlock Text="Navigation Bar" Style="{StaticResource PanelHeading}" Margin="0,16,0,6"/>
+     <TextBlock Text="The folder's pictures along the bottom, with Close, Previous, Play/Pause, Next and Pin." TextWrapping="Wrap" FontSize="11" Margin="0,0,0,6"/>
+     <CheckBox x:Name="NavBarEditorBox" Content="Show It in the Editor" Margin="0,2"/>
+     <TextBlock Text="The Nav Bar button shows or hides it too. In the editor it is always pinned." TextWrapping="Wrap" FontSize="11" Margin="20,0,0,0"/>
+     <CheckBox x:Name="NavBarSlideshowBox" Content="Show It When the Slideshow Starts" Margin="0,8,0,2"/>
+     <CheckBox x:Name="NavBarPinnedBox" Content="Pinned When the Slideshow Starts" Margin="20,2,0,2" IsEnabled="{Binding IsChecked, ElementName=NavBarSlideshowBox}"/>
+     <TextBlock Text="Unpinned, it slides out of sight like the capture bar and leaves a red tab at the bottom: point at the tab to bring it back. Tab shows or hides it." TextWrapping="Wrap" FontSize="11" Margin="40,0,0,0"/>
+     <StackPanel Orientation="Horizontal" Margin="0,8,0,2">
+      <!-- 0.28.0 (David): the height itself, in pixels; dragging the bar's top edge sets it too and it is kept. -->
+      <TextBlock Text="Nav Bar Height" VerticalAlignment="Center" Margin="0,0,8,0"/>
+      <local:NumberSpinner x:Name="NavBarHeightBox" Minimum="32" Maximum="256" Value="72" Width="80" ToolTip="Height of the Small Pictures"/>
+      <TextBlock Text="Pixels" VerticalAlignment="Center" Margin="8,0,0,0"/>
+     </StackPanel>
+     <TextBlock Text="Dragging the top edge of the bar changes it too; TRT remembers the height." TextWrapping="Wrap" FontSize="11" Margin="0,2,0,0"/>
+    </StackPanel>
+   </TabItem>
+   <!-- 0.24.0 (David): which toolbar buttons show and in which order; the "Right side" line splits left from right.
+        0.24.1: its own tab (on the Editor tab it pushed the other settings out of reach). -->
+   <TabItem Header="Toolbar">
+    <DockPanel>
+     <TextBlock DockPanel.Dock="Top" Text="Tick the buttons to show; use Up and Down to change the order. Buttons below the Right side line sit on the right (at the bottom when vertical)." TextWrapping="Wrap" FontSize="11" Margin="0,0,0,6"/>
+     <StackPanel DockPanel.Dock="Right" Margin="8,0,0,0">
+      <Button x:Name="ToolbarUp" Content="Up" MinWidth="96" Margin="0,0,0,4" Padding="8,3" Click="MoveToolbarItem" Tag="-1" ToolTip="Move Left"/>
+      <Button x:Name="ToolbarDown" Content="Down" MinWidth="96" Margin="0,0,0,4" Padding="8,3" Click="MoveToolbarItem" Tag="1" ToolTip="Move Right"/>
+      <Button x:Name="ToolbarAddSeparator" Content="Add Separator" MinWidth="96" Margin="0,8,0,4" Padding="8,3" Click="AddToolbarSeparator" ToolTip="Add a Separator Line"/>
+      <Button x:Name="ToolbarRemoveSeparator" Content="Remove" MinWidth="96" Margin="0,0,0,4" Padding="8,3" Click="RemoveToolbarSeparator" ToolTip="Remove the Separator"/>
+      <Button x:Name="ToolbarReset" Content="Reset" MinWidth="96" Margin="0,8,0,0" Padding="8,3" Click="ResetToolbar" ToolTip="The Usual Buttons and Order"/>
+     </StackPanel>
+     <ListBox x:Name="ToolbarList" SelectionChanged="ToolbarSelected"/>
+    </DockPanel>
+   </TabItem>
+  </TabControl>
+  <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+   <Button x:Name="OkButton" Content="OK" MinWidth="80" Margin="0,0,8,0" Padding="8,3" IsDefault="True" Click="Accept"/>
+   <Button Content="Cancel" MinWidth="80" Padding="8,3" IsCancel="True"/>
+  </StackPanel>
+ </Grid>
+</Window>

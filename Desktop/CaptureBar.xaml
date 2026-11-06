@@ -1,0 +1,56 @@
+<Window x:Class="TinyRedaction.Desktop.CaptureBar" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:TinyRedaction.Desktop"
+ Title="TinyRedactionTool" Icon="Assets/icon.ico" WindowStyle="None" ResizeMode="NoResize" SizeToContent="WidthAndHeight" Topmost="True" ShowInTaskbar="False"
+ Background="{DynamicResource Surface}" Foreground="{DynamicResource Foreground}" BorderBrush="{DynamicResource FieldBorder}" BorderThickness="1" FontFamily="Segoe UI" FontSize="12">
+ <!-- Capture bar (0.12.0), laid out as a compact capture panel: a small title row, then one
+      row of capture buttons, the Screen Recorder, the editor, the Output choice and a menu. -->
+ <StackPanel>
+  <Grid x:Name="TitleRow" Background="{DynamicResource Surface}" MouseLeftButtonDown="DragBar">
+   <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+   <Image Source="Assets/icon.ico" Width="16" Height="16" Margin="5,3,4,3" VerticalAlignment="Center"/>
+   <TextBlock x:Name="TitleText" Grid.Column="1" Text="TinyRedactionTool" VerticalAlignment="Center" Margin="0,0,12,0"/>
+   <Button x:Name="MinimiseButton" Grid.Column="2" Style="{StaticResource EditorFlatButton}" Content="–" Width="24" Click="Minimise" ToolTip="Hide in a Red Tab at the Top of the Screen (Point at the Tab to Bring It Back)"/>
+   <Button x:Name="CloseButton" Grid.Column="3" Style="{StaticResource EditorFlatButton}" Content="✕" Width="24" Click="CloseBar"/>
+  </Grid>
+  <Rectangle Height="1" Fill="{DynamicResource ChromeLine}"/>
+  <StackPanel x:Name="CaptureButtons" Orientation="Horizontal" Margin="3,3,3,3">
+   <Button x:Name="ActiveWindowButton" Style="{StaticResource IconButton}" Content="Capture Active Window" Tag="ActiveWindow" Click="CaptureClick" ToolTip="Capture the Active Window" local:Toolbar.Icon="{StaticResource IconCaptureWindow}" local:Toolbar.Accent="{StaticResource AccentCaptureWindow}" local:Toolbar.AccentBrush="{StaticResource AccentBlue}"/>
+   <Button x:Name="WindowObjectButton" Style="{StaticResource IconButton}" Content="Capture Window or Object" Tag="Object" Click="CaptureClick" ToolTip="Capture a Window or Part of One: Point, Then Click" local:Toolbar.Icon="{StaticResource IconCaptureObject}" local:Toolbar.Accent="{StaticResource AccentCaptureObject}" local:Toolbar.AccentBrush="{StaticResource AccentRed}"/>
+   <Button x:Name="RegionButton" Style="{StaticResource IconButton}" Content="Capture Rectangular Region" Tag="Rectangle" Click="CaptureClick" local:Toolbar.Icon="{StaticResource IconCaptureRegion}" local:Toolbar.Accent="{StaticResource AccentCaptureRegion}" local:Toolbar.AccentBrush="{StaticResource AccentGlass}"/>
+   <Button x:Name="FreehandButton" Style="{StaticResource IconButton}" Content="Capture Freehand Region" Tag="Freehand" Click="CaptureClick" ToolTip="Capture a Freehand Area: Draw Round It" local:Toolbar.Icon="{StaticResource IconCaptureFreehand}" local:Toolbar.Accent="{StaticResource AccentCaptureFreehand}" local:Toolbar.AccentBrush="{StaticResource AccentGlass}"/>
+   <Button x:Name="FullScreenButton" Style="{StaticResource IconButton}" Content="Capture Full Screen" Tag="FullScreen" Click="CaptureClick" local:Toolbar.Icon="{StaticResource IconCaptureScreen}" local:Toolbar.Accent="{StaticResource AccentCaptureScreen}" local:Toolbar.AccentBrush="{StaticResource AccentBlue}"/>
+   <Button x:Name="ScrollingButton" Style="{StaticResource IconButton}" Content="Capture Scrolling Window" Tag="Scrolling" Click="CaptureClick" ToolTip="Capture a Scrolling Window (Esc Stops)" local:Toolbar.Icon="{StaticResource IconCaptureScrolling}" local:Toolbar.Accent="{StaticResource AccentCaptureScrolling}" local:Toolbar.AccentBrush="{StaticResource AccentGlass}"/>
+   <Button x:Name="RecorderButton" Style="{StaticResource IconButton}" Content="Screen Recorder" Click="RecorderClick" local:Toolbar.Icon="{StaticResource IconRecorder}" local:Toolbar.Accent="{StaticResource AccentRecorder}" local:Toolbar.AccentBrush="{StaticResource AccentRed}"/>
+   <Button x:Name="RulerButton" Style="{StaticResource IconButton}" Content="Screen Ruler" Click="RulerClick" ToolTip="Screen Ruler: Measure on Screen in Pixels" local:Toolbar.Icon="{StaticResource IconRuler}" local:Toolbar.Accent="{StaticResource AccentRuler}" local:Toolbar.AccentBrush="{StaticResource AccentFolder}"/>
+   <Button x:Name="EditorButton" Style="{StaticResource IconButton}" Content="Open the Editor" Click="EditorClick" ToolTip="Open the Editor" local:Toolbar.Icon="{StaticResource IconEditor}" local:Toolbar.Accent="{StaticResource AccentPencil}" local:Toolbar.AccentBrush="{StaticResource AccentRed}"/>
+   <Button x:Name="OutputButton" Style="{StaticResource DropIconButton}" Content="Output" Click="OutputClick">
+    <Button.ContextMenu>
+     <ContextMenu x:Name="OutputMenu">
+      <MenuItem x:Name="ToEditorItem" Header="To _Editor" IsCheckable="True" Tag="Editor" Click="OutputChosen"/>
+      <MenuItem x:Name="ToClipboardItem" Header="To _Clipboard" IsCheckable="True" Tag="Clipboard" Click="OutputChosen"/>
+      <MenuItem x:Name="ToFileItem" Header="To _File…" IsCheckable="True" Tag="File" Click="OutputChosen"/>
+      <Separator/>
+      <MenuItem x:Name="MousePointerItem" Header="Include _Mouse Pointer" IsCheckable="True" Click="MousePointerChosen"/>
+     </ContextMenu>
+    </Button.ContextMenu>
+   </Button>
+   <Button x:Name="MenuButton" Style="{StaticResource DropIconButton}" Content="Menu" Click="MenuClick" ToolTip="Settings, Editor and Quit" local:Toolbar.Icon="{StaticResource IconMenu}">
+    <Button.ContextMenu>
+     <ContextMenu x:Name="BarMenu">
+      <MenuItem Header="Open _Editor" Click="EditorClick"/>
+      <MenuItem Header="_Open File in Editor…" Click="OpenFileClick"/>
+      <Separator/>
+      <MenuItem Header="Screen _Ruler" Click="RulerClick"/>
+      <MenuItem Header="_Hide in the Notification Area" Click="HideClick"/>
+      <MenuItem Header="Remove Hi_story…" Click="RemoveHistoryClick" ToolTip="Wipe Old Captures and Working Copies, and Forget the Folders Used"/>
+      <Separator/>
+      <MenuItem Header="He_lp" Click="HelpClick" ToolTip="Open the Help Manual"/>
+      <MenuItem Header="_Settings…" Click="SettingsClick"/>
+      <MenuItem Header="_About" Click="AboutClick"/>
+      <Separator/>
+      <MenuItem Header="_Quit TinyRedactionTool" Click="QuitClick"/>
+     </ContextMenu>
+    </Button.ContextMenu>
+   </Button>
+  </StackPanel>
+ </StackPanel>
+</Window>

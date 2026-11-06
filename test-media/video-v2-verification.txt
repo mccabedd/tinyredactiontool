@@ -1,0 +1,13 @@
+Testing TRT-Moving-Text-v2.mp4
+PASS TRT exact frame 0
+PASS TRT exact frame 72
+PASS TRT exact frame 144
+PASS TRT exact frame 287
+PASS TRT native playback advances
+VIDEO PASS TRT-Moving-Text-v2.mp4
+[h264 @ 00000267297c8d40] get_buffer() failed
+[h264 @ 00000267297c8d40] thread_get_buffer() failed
+[h264 @ 00000267297c8d40] no frame!
+[h264 @ 00000267297eb200] get_buffer() failed
+[h264 @ 00000267297eb200] thread_get_buffer() failed
+[h264 @ 00000267297eb200] no frame!
