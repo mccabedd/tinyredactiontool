@@ -32,7 +32,7 @@ internal static class Release300Checks
         check(Regex.Matches(html, "color-scheme: dark;").Count >= 2 && html.Contains("scrollbar-color"), "in Dark, the manual's scroll bars are dark too");
         // The name Windows shows ("Open with", Task Manager, file properties): TinyRedactionTool, not the internal name.
         var details = System.Diagnostics.FileVersionInfo.GetVersionInfo(typeof(MainWindow).Assembly.Location);
-        check(details.FileDescription == "TinyRedactionTool" && details.ProductName == "TinyRedactionTool" && details.CompanyName == "David McCabe" && details.ProductVersion?.StartsWith("3.0.0") == true,
+        check(details.FileDescription == "TinyRedactionTool" && details.ProductName == "TinyRedactionTool" && details.CompanyName == "David McCabe" && details.ProductVersion?.StartsWith("3.1.0") == true,
             $"Windows calls the program TinyRedactionTool (description {details.FileDescription}, product {details.ProductName})");
         var savedRoot = PictureApp.SoftwareRoot; PictureApp.SoftwareRoot = @"Software\TRT-Checks-300";
         try
@@ -59,6 +59,6 @@ internal static class Release300Checks
             check(!StartupEntry.Refresh() && StartupEntry.IsInstalled, "a development run never rewrites the Windows startup entry (a copied .exe does, on a throw-away key here)");
         }
         finally { Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(@"Software\TRT-Checks-300", false); StartupEntry.RunKey = savedRun; }
-        check(MainWindow.AboutText.StartsWith("TinyRedactionTool 3.0.0\n", StringComparison.Ordinal), "the version is 3.0.0");
+        check(MainWindow.AboutText.StartsWith("TinyRedactionTool 3.1.0\n", StringComparison.Ordinal), "the version is 3.1.0 (3.0.0 is published; layers and video crop came after)");
     }
 }

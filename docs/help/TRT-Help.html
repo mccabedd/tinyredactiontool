@@ -84,7 +84,7 @@
 <body>
 <header>
  <img src="images/help-icon.png" alt="" style="height:48px;border:0">
- <div><h1>TinyRedactionTool Help</h1><p>How to hide private details in pictures and videos, step by step. For TinyRedactionTool 3.0.</p></div>
+ <div><h1>TinyRedactionTool Help</h1><p>How to hide private details in pictures and videos, step by step. For TinyRedactionTool 3.1.</p></div>
 </header>
 <div class="layout">
 <nav aria-label="Contents">
@@ -98,6 +98,7 @@
  <a href="#redact">Hiding things: redactions</a>
  <a href="#select">Selecting, moving and changing shapes</a>
  <a href="#notes">Adding notes: annotations</a>
+ <a href="#layers">Layers: what is on top</a>
  <a href="#images">Adding images and new images</a>
  <a href="#crop">Crop, resize, rotate and flip</a>
  <a href="#view">Zoom, full screen and slideshow</a>
@@ -236,6 +237,18 @@
 </table>
 <p>When you select a line or a text, a small window lets you change its colour, width, dashes, arrowheads, font and size. The same choices are on the <span class="ui">options bar</span> under the toolbar. The options bar is hidden at first; switch it on in <span class="ui">Settings › Editor</span>.</p>
 <figure><img src="images/options-bar.png" alt="The options bar"><figcaption>The options bar (shown here for redactions: effect, strength and box colour).</figcaption></figure>
+<p>On a video, a note stays on screen to the end unless you say otherwise. See <a href="#video">Notes on a video</a>.</p>
+
+<h2 id="layers">Layers: what is on top</h2>
+<p>Each redaction and each note is a <b>layer</b>. Whatever you add last sits on top. The side panel (<img class="icon" src="images/icons/panelbutton.png" alt="Panel"> <span class="ui">Panel</span>) lists them under <span class="ui">Regions</span> and <span class="ui">Annotations</span>, <b>top layer first</b>.</p>
+<table class="tools">
+ <tr><td>▲ ▼ Move Up / Move Down</td><td>The arrows beside each list move the selected item up or down (<kbd>Ctrl</kbd>+<kbd>]</kbd> and <kbd>Ctrl</kbd>+<kbd>[</kbd>). A note moved up past a black box is drawn on top of the box.</td></tr>
+ <tr><td>Duplicate</td><td>Makes a copy of the selected item, on top and a little to the right, ready to move (<kbd>Ctrl</kbd>+<kbd>D</kbd>).</td></tr>
+ <tr><td>Delete</td><td>Removes the selected item (<kbd>Delete</kbd>).</td></tr>
+ <tr><td>Flatten Image</td><td>Pictures only. Makes the redactions and notes part of the picture itself, so they can't be moved any more. <span class="ui">Undo</span> separates them again.</td></tr>
+</table>
+<p>These are also in <span class="ui">Edit › Layers</span>.</p>
+<div class="box tip"><b>The order never uncovers anything.</b>A redaction always hides the picture under it. Moving a note above a redaction only puts the note on top; what the redaction hides stays hidden.</div>
 
 <h2 id="images">Adding images and new images</h2>
 <ul>
@@ -247,7 +260,7 @@
 
 <h2 id="crop">Crop, resize, rotate and flip</h2>
 <table class="tools">
- <tr><td><img class="icon" src="images/icons/croptool.png" alt=""> Crop</td><td>Drag the area to keep, then click <span class="ui">Confirm Crop</span> (or press <kbd>Enter</kbd>). <span class="ui">Cancel Crop</span> stops. You can remove the crop later with <span class="ui">Draw › Remove Crop</span>.</td></tr>
+ <tr><td><img class="icon" src="images/icons/croptool.png" alt=""> Crop</td><td>Drag the area to keep, then click <span class="ui">Confirm Crop</span> (or press <kbd>Enter</kbd>). <span class="ui">Cancel Crop</span> stops. You can remove the crop later with <span class="ui">Draw › Remove Crop</span>. This works on <b>videos</b> too: every frame is cut to the same area when you export.</td></tr>
  <tr><td><img class="icon" src="images/icons/resizebutton.png" alt=""> Resize</td><td>Makes the picture bigger or smaller. Your shapes and notes are resized with it.</td></tr>
  <tr><td><img class="icon" src="images/icons/rotateclockwisebutton.png" alt=""> <img class="icon" src="images/icons/rotatecounterclockwisebutton.png" alt=""> Rotate</td><td>Turns the whole picture or video a quarter turn right or left.</td></tr>
  <tr><td><img class="icon" src="images/icons/fliphorizontalbutton.png" alt=""> <img class="icon" src="images/icons/flipverticalbutton.png" alt=""> Flip</td><td>Mirrors the picture (in <span class="ui">Edit › Rotate Image or Video</span>; the buttons are hidden at first).</td></tr>
@@ -293,6 +306,10 @@
 </ol>
 <h3>Hiding something that stays still</h3>
 <p>For something that doesn't move (a name in a corner, a sign), tick <span class="ui">Enable Manual Redaction</span> in the small window before clicking <span class="ui">Start Redaction</span>. The box stays where you drew it. Play to the moment it should end, click the box and choose <span class="ui">Stop Redaction</span>.</p>
+<h3>Notes on a video</h3>
+<p>A note (text, arrow, outline…) starts on the frame where you add it and stays to the end. To end it sooner, play or step to the last frame it should show, click the note, and click the red <span class="ui">End Here</span> in its small window. The green <span class="ui">Begin Here</span> moves its start to the frame on screen.</p>
+<h3>Cropping a video</h3>
+<p>Click <img class="icon" src="images/icons/croptool.png" alt="Crop"> <span class="ui">Crop</span>, drag the area to keep and click <span class="ui">Confirm Crop</span>. The whole video is cut to that area when you export. You can trim, crop, redact and add notes, then export once.</p>
 <h3>The coloured lines</h3>
 <p>Each redaction and note has a coloured line above the timeline, showing when it is on screen. Point at a line to see what it is.</p>
 <table>
@@ -417,6 +434,8 @@
  <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd></td><td>Paste a picture onto this one</td></tr>
  <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd></td><td>Undo / redo</td></tr>
  <tr><td><kbd>Delete</kbd></td><td>Delete the selected shape</td></tr>
+ <tr><td><kbd>Ctrl</kbd>+<kbd>]</kbd> / <kbd>Ctrl</kbd>+<kbd>[</kbd></td><td>Move the selected shape or note up / down a layer</td></tr>
+ <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>Duplicate the selected shape or note</td></tr>
  <tr><td><kbd>Enter</kbd></td><td>Finish a polygon, or confirm a crop</td></tr>
  <tr><td><kbd>Esc</kbd></td><td>Cancel what you are doing (a polygon, a crop, the colour picker, a slideshow)</td></tr>
  <tr><td><kbd>Shift</kbd> while drawing</td><td>Squares and circles; straight or 45° polygon lines</td></tr>

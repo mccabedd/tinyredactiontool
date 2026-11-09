@@ -333,7 +333,7 @@ public partial class MainWindow : Window
     private void Refresh()
     {
         var selected = Preview.Selected;
-        updating = true; Regions.ItemsSource = null; Regions.ItemsSource = Project.Regions; Regions.SelectedItem = selected; updating = false;
+        updating = true; Regions.ItemsSource = null; Regions.ItemsSource = Layers.RegionsTopFirst(Project); Regions.SelectedItem = selected; updating = false;
         if (selected != null)
         {
             RegionName.Text = selected.Name; RegionColor.Text = selected.Color; Decorations.IsChecked = selected.ShowDecorations;
@@ -372,8 +372,14 @@ public partial class MainWindow : Window
         UpdateCropControls();
         PositionRegionPopup();
     }
-    // Still-image crop (inherited Crop Image tool). Video crop is not supported.
+    // Crop (inherited Crop Image tool). 3.0.0 (David): videos too, every frame the same, with an even size.
     private bool updatingCrop;
+    // The whole-pixel crop a draft gives (even-sized on a video), or null.
+    private MediaRect? CropFor(MediaRect draft)
+    {
+        var rect = ImageCrop.PixelRect(draft, ImageCrop.Bounds(Project));
+        return rect is { } r && Project.Media is { IsVideo: true } ? ImageCrop.EvenSize(r) : rect;
+    }
     private void UpdateCropControls()
     {
         UpdateOptionsBar();
@@ -384,15 +390,14 @@ public partial class MainWindow : Window
     }
     private void UpdateCropControlsCore()
     {
-        var still = Project.Media is { IsVideo: false };
+        var still = Project.Media != null; // 3.0.0: pictures and videos.
         CropTool.IsEnabled = !busy && still;
-        CropTool.ToolTip = Project.Media is { IsVideo: true } ? "Crop Works on Pictures Only" : "Crop";
         if (!CropTool.IsEnabled && Preview.Tool == "Crop") { Preview.Tool = "Rectangle"; Preview.Cursor = null; Preview.CropDraft = null; }
         var cropping = Preview.Tool == "Crop";
         CropTool.SetResourceReference(BackgroundProperty, cropping ? "ToolSelected" : "Surface");
         CropTool.SetResourceReference(ForegroundProperty, cropping ? "ToolSelectedText" : "Foreground");
         ConfirmCropButton.Visibility = cropping ? Visibility.Visible : Visibility.Collapsed;
-        ConfirmCropButton.IsEnabled = !busy && cropping && Preview.CropDraft is { } d && ImageCrop.PixelRect(d, ImageCrop.Bounds(Project)) != null;
+        ConfirmCropButton.IsEnabled = !busy && cropping && Preview.CropDraft is { } d && CropFor(d) != null;
         RemoveCropButton.Visibility = still && Project.Crop != null ? Visibility.Visible : Visibility.Collapsed;
         RemoveCropButton.IsEnabled = !busy;
         RemoveCropMenuItem.IsEnabled = !busy && still && Project.Crop != null;
@@ -401,20 +406,21 @@ public partial class MainWindow : Window
     private void ConfirmCrop(object sender, RoutedEventArgs e) => ConfirmCropDraft();
     internal void ConfirmCropDraft()
     {
-        if (busy || Preview.Tool != "Crop" || Project.Media is not { IsVideo: false } || Preview.CropDraft is not { } draft) return;
-        if (ImageCrop.PixelRect(draft, ImageCrop.Bounds(Project)) is not { } rect) return;
+        if (busy || Preview.Tool != "Crop" || Project.Media is not { } media || Preview.CropDraft is not { } draft) return;
+        if (CropFor(draft) is not { } rect) return;
         history.Checkpoint(Project);
         Project.Crop = rect;
         Preview.CropDraft = null; Preview.Tool = "Rectangle"; Preview.Cursor = null; Preview.ResetViewport();
         Refresh();
-        Status.Text = $"Image cropped to {rect.Width:0} × {rect.Height:0}. Original unchanged. Undo or Remove crop restores it.";
+        Status.Text = media.IsVideo ? $"Video cropped to {rect.Width:0} × {rect.Height:0}, every frame. Export makes the cropped video; the original is unchanged. Undo or Remove Crop restores it."
+            : $"Image cropped to {rect.Width:0} × {rect.Height:0}. Original unchanged. Undo or Remove crop restores it.";
     }
     private void RemoveCrop(object sender, RoutedEventArgs e)
     {
         if (busy || Project.Crop == null) return;
         history.Checkpoint(Project);
         Project.Crop = null; Preview.CropDraft = null; Preview.ResetViewport(); Refresh();
-        Status.Text = "Crop removed. The whole image is shown and exported again.";
+        Status.Text = Project.Media is { IsVideo: true } ? "Crop removed. The whole video is shown and exported again." : "Crop removed. The whole image is shown and exported again.";
     }
     // The swatch shows the selected Coloured box's colour, otherwise the colour for new boxes.
     private string ActiveColor => Preview.Selected is { Effect: RedactionEffect.Opaque } r ? r.Color : Preview.DrawingColor;
@@ -606,7 +612,8 @@ public partial class MainWindow : Window
     {
         if (busy) return;
         var tool = (string)((Button)sender).Tag;
-        if (tool == "Crop" && Project.Media is not { IsVideo: false }) { Status.Text = Project.Media == null ? "Open a still image to crop it." : "Video crop is not supported."; return; }
+        if (tool == "Crop" && Project.Media == null) { Status.Text = "Open an image or video to crop it."; return; }
+        if (tool == "Crop" && (playing || Preview.UsePlayer)) Pause(); // A video is cropped on a still frame.
         Preview.EyedropperActive = false; Preview.CropDraft = null; Preview.ClearMultiSelection(); Preview.Tool = tool; Preview.Cursor = tool == "Pan" ? CustomCursors.OpenHand : null;
         Hint(tool switch
         {
@@ -755,7 +762,7 @@ public partial class MainWindow : Window
         {
             Filter = video ? "MP4 video|*.mp4|MOV video|*.mov|M4V video|*.m4v|AVI video|*.avi|MKV video|*.mkv|WebM video|*.webm" : "PNG image|*.png|JPG image|*.jpg;*.jpeg|GIF image|*.gif|WebP image|*.webp",
             FilterIndex = video ? 1 : (int)imageFormat + 1, AddExtension = true,
-            FileName = (!video && Project.Crop != null && Project.Regions.Count == 0 ? "CROPPED_" : "REDACTED_") + $"{DateTime.Now:yyyyMMdd_HHmmss}" + (video ? ".mp4" : StillImageFormats.Extension(imageFormat)), AddToRecent = false
+            FileName = (Project.Crop != null && Project.Regions.Count == 0 ? "CROPPED_" : "REDACTED_") + $"{DateTime.Now:yyyyMMdd_HHmmss}" + (video ? ".mp4" : StillImageFormats.Extension(imageFormat)), AddToRecent = false
         };
         if (dialog.ShowDialog(this) != true) return;
         if (!video && StillImageFormats.FromPath(dialog.FileName) == null) { ThemedMessage.Show(this, "Choose a .png, .jpg, .gif or .webp file name.", "Image Format"); return; }
@@ -968,6 +975,9 @@ public partial class MainWindow : Window
         else if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.O) { AddPictureFiles(sender, e); e.Handled = true; }
         else if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && e.Key == Key.Z) { Undo(sender, e); e.Handled = true; }
         else if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && e.Key == Key.Y) { Redo(sender, e); e.Handled = true; }
+        // 3.0.0 (David): layers, as in image editors: Ctrl+] up, Ctrl+[ down, Ctrl+D duplicate.
+        else if (Keyboard.Modifiers == ModifierKeys.Control && e.Key is Key.OemCloseBrackets or Key.OemOpenBrackets) { MoveSelectedLayer(e.Key == Key.OemCloseBrackets, null); e.Handled = true; }
+        else if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.D) { DuplicateSelectedLayer(null); e.Handled = true; }
         else if (e.Key is Key.Left or Key.Right) { await Step(e.Key == Key.Left ? -1 : 1); e.Handled = true; }
         else if (e.Key == Key.Delete) DeleteRegion(sender, e);
         else if (e.Key == Key.Escape && Preview.EyedropperActive) { Preview.EyedropperActive = false; Status.Text = "Eyedropper cancelled."; e.Handled = true; }
@@ -1036,5 +1046,5 @@ public partial class MainWindow : Window
     private void About(object sender, RoutedEventArgs e) => AboutWindow.Open(this, VersionText);
     private void OpenHelp(object sender, RoutedEventArgs e) => HelpManual.Open(this); // 3.0.0 (David)
     // 0.27.1 (David): the About box is the simple one (AboutWindow); this text is its version and description.
-    internal static string AboutText => "TinyRedactionTool 3.0.0\n" + AboutWindow.Description;
+    internal static string AboutText => "TinyRedactionTool 3.1.0\n" + AboutWindow.Description;
 }

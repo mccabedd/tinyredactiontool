@@ -37,7 +37,10 @@ internal static class CropChecks
         Rejects(p => p.Crop = new MediaRect(10.5, 20, 50, 30), "fractional crop is rejected");
         Rejects(p => p.Crop = new MediaRect(100, 20, 50, 30), "crop beyond the image is rejected");
         Rejects(p => p.Crop = new MediaRect(10, 20, 0, 30), "empty crop is rejected");
-        Rejects(p => p.Media = p.Media! with { IsVideo = true, Duration = 1 }, "video crop is rejected");
+        // 3.0.0 (David): videos can be cropped too.
+        var videoCrop = ProjectStore.Deserialize(ProjectStore.Serialize(project)); videoCrop.Media = videoCrop.Media! with { IsVideo = true, Duration = 1 };
+        try { ProjectStore.Validate(videoCrop); check(true, "a video crop is accepted (3.0.0)"); } catch (InvalidDataException) { check(false, "a video crop is accepted (3.0.0)"); }
+        Rejects(p => { p.Media = p.Media! with { IsVideo = true, Duration = 1 }; p.Crop = new MediaRect(width - 20, 20, 50, 30); }, "a video crop beyond the frame is rejected");
         Rejects(p => p.CoordinateSpace = "legacy-autorotated-pixels", "crop requires current square-pixel coordinates");
         var withCrop = ProjectStore.Serialize(project);
         check(ProjectStore.Deserialize(withCrop).Crop == project.Crop, "project saves and restores the confirmed crop");

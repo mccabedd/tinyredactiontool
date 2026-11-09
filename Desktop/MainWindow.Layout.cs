@@ -87,7 +87,7 @@ public partial class MainWindow
     {
         if (CropPopup == null) return;
         var draft = Preview.Tool == "Crop" ? Preview.CropDraft : null;
-        if (Preview.Tool != "Crop" || busy || Project.Media is not { IsVideo: false } || draft == null && Project.Crop == null)
+        if (Preview.Tool != "Crop" || busy || Project.Media == null || draft == null && Project.Crop == null)
         { CropPopup.Visibility = Visibility.Collapsed; return; }
         CropPopup.Visibility = Visibility.Visible;
         CropPopup.UpdateLayout();
@@ -128,10 +128,14 @@ public partial class MainWindow
     {
         if (LinePopup == null) return;
         var a = SelectedAnnotation;
-        if (a is null || a.Kind == AnnotationKind.Text || busy || playing || Preview.UsePlayer || regionGestureActive ||
+        var video = Project.Media?.IsVideo == true && Preview.Timeline != null;
+        // A text has its own window for editing; on a video it gets this one too, for Begin Here and End Here (3.0.0).
+        if (a is null || a.Kind == AnnotationKind.Text && !video || busy || playing || Preview.UsePlayer || regionGestureActive ||
             TextEditorPanel.Visibility == Visibility.Visible || !Preview.IsShown(a))
         { LinePopup.Visibility = Visibility.Collapsed; return; }
         LinePopupTitle.Text = KindName(a.Kind);
+        LinePopupStyle.Visibility = a.Kind is AnnotationKind.Text or AnnotationKind.Picture ? Visibility.Collapsed : Visibility.Visible;
+        LinePopupTiming.Visibility = video ? Visibility.Visible : Visibility.Collapsed;
         LinePopup.Visibility = Visibility.Visible;
         LinePopup.UpdateLayout();
         var bounds = Preview.ScreenRect(a.Bounds());

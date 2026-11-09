@@ -15,6 +15,11 @@ internal static class EffectVideoEncoder
         FrameTimeline map, IProgress<double>? progress, CancellationToken cancellation)
     {
         var source = project.Media!;
+        // 3.0.0: a crop cuts every finished frame (after redactions and annotations) to the crop box.
+        var crop = project.Crop;
+        var outWidth = crop is { } c ? (int)c.Width : source.Width; var outHeight = crop is { } d ? (int)d.Height : source.Height;
+        if (crop is { } box && (!ImageCrop.IsPixelRect(box) || box.X < 0 || box.Y < 0 || box.X + box.Width > source.Width || box.Y + box.Height > source.Height || outWidth < 1 || outHeight < 1))
+            throw new InvalidDataException("Invalid video crop.");
         var stamps = map.Frames.Select(f => checked((long)Math.Round(f.Time * 1_000_000))).ToArray();
         if (stamps.Zip(stamps.Skip(1)).Any(p => p.Second <= p.First)) throw new InvalidDataException("Frame timestamps are too close for effect export.");
         var webm = Path.GetExtension(destination).Equals(".webm", StringComparison.OrdinalIgnoreCase);
@@ -22,7 +27,7 @@ internal static class EffectVideoEncoder
         if (project.Export.KeepAudio) encoding.AddRange(["-itsoffset", (-map.OriginTime).ToString("0.000000", CultureInfo.InvariantCulture), "-i", source.Path]);
         encoding.AddRange(["-map", "0:v:0", "-map_metadata", "-1", "-map_chapters", "-1", "-map_metadata:s:v", "-1", "-sn", "-dn"]);
         if (project.Export.KeepAudio) encoding.AddRange(["-map", "1:a:0?", "-map_metadata:s:a", "-1", "-c:a", webm ? "libopus" : "aac"]); else encoding.Add("-an");
-        encoding.AddRange(["-c:v", webm ? "libvpx-vp9" : "libx264", "-pix_fmt", source.Width % 2 == 0 && source.Height % 2 == 0 ? "yuv420p" : "yuv444p", "-crf", project.Export.Quality == "High" ? "16" : project.Export.Quality == "Smaller" ? "28" : "21"]);
+        encoding.AddRange(["-c:v", webm ? "libvpx-vp9" : "libx264", "-pix_fmt", outWidth % 2 == 0 && outHeight % 2 == 0 ? "yuv420p" : "yuv444p", "-crf", project.Export.Quality == "High" ? "16" : project.Export.Quality == "Smaller" ? "28" : "21"]);
         if (webm) encoding.AddRange(["-b:v", "0"]); else encoding.AddRange(["-preset", "medium"]);
         if (Path.GetExtension(destination).Equals(".avi", StringComparison.OrdinalIgnoreCase)) encoding.AddRange(["-bf", "0", "-avoid_negative_ts", "disabled"]);
         encoding.AddRange(["-fps_mode", "passthrough", "-enc_time_base:v:0", "demux", "-metadata", "title=", "-metadata", "comment=", "-metadata", "description=", destination]);
@@ -39,14 +44,15 @@ internal static class EffectVideoEncoder
         {
             var annotations = AnnotationRaster.Create(project, source.Width, source.Height);
             var transport = new TimestampedPngStream(encoder.StandardInput.BaseStream);
-            await transport.BeginAsync(source.Width, source.Height, source.Duration, map.Frames[^1].Duration, cancellation);
+            await transport.BeginAsync(outWidth, outHeight, source.Duration, map.Frames[^1].Duration, cancellation);
             for (var i = 0; i < map.Frames.Count; i++)
             {
                 cancellation.ThrowIfCancellationRequested();
                 using var png = await TrackingAnalysis.ReadPngAsync(decoder.StandardOutput.BaseStream, cancellation, Math.Min(256L * 1024 * 1024, (long)source.Width * source.Height * 5 + 1024 * 1024));
                 var image = new BitmapImage(); image.BeginInit(); image.CacheOption = BitmapCacheOption.OnLoad; image.StreamSource = png; image.EndInit(); image.Freeze();
                 if (image.PixelWidth != source.Width || image.PixelHeight != source.Height) throw new InvalidDataException("Decoded effect frame dimensions changed.");
-                var result = EffectRenderer.Render(image, project, map.Frames[i].Time, map, cancellation, annotations);
+                BitmapSource result = EffectRenderer.Render(image, project, map.Frames[i].Time, map, cancellation, annotations);
+                if (crop is { } cut) { result = new CroppedBitmap(result, new System.Windows.Int32Rect((int)cut.X, (int)cut.Y, outWidth, outHeight)); result.Freeze(); }
                 var output = new PngBitmapEncoder(); output.Frames.Add(BitmapFrame.Create(result));
                 using var encoded = new MemoryStream(); output.Save(encoded); encoded.Position = 0;
                 await transport.FrameAsync(encoded.GetBuffer().AsMemory(0, checked((int)encoded.Length)), stamps[i], Math.Max(1, (long)Math.Round(map.Frames[i].Duration * 1_000_000)), cancellation);

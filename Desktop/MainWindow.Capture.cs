@@ -313,7 +313,7 @@ public partial class MainWindow
         var width = converted.PixelWidth; var height = converted.PixelHeight;
         var pixels = new byte[checked(width * height * 4)];
         converted.CopyPixels(pixels, width * 4, 0);
-        if (!media.IsVideo && project.Crop is { } crop)
+        if (project.Crop is { } crop) // 3.0.0: a video's frame too.
         {
             pixels = ImageCrop.CropBgra(pixels, width, height, crop);
             width = (int)crop.Width; height = (int)crop.Height;

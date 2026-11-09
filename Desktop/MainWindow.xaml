@@ -1,5 +1,5 @@
 <Window x:Class="TinyRedaction.Desktop.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:TinyRedaction.Desktop"
- Title="TinyRedactionTool 3.0.0" Icon="Assets/icon.ico" Width="1240" Height="800" MinWidth="900" MinHeight="580" WindowState="Maximized" Background="{DynamicResource Background}" Foreground="{DynamicResource Foreground}" PreviewKeyDown="WindowKeyDown" AllowDrop="True" DragOver="MediaDragOver" DragEnter="MediaDragOver" Drop="MediaDropped">
+ Title="TinyRedactionTool 3.1.0" Icon="Assets/icon.ico" Width="1240" Height="800" MinWidth="900" MinHeight="580" WindowState="Maximized" Background="{DynamicResource Background}" Foreground="{DynamicResource Foreground}" PreviewKeyDown="WindowKeyDown" AllowDrop="True" DragOver="MediaDragOver" DragEnter="MediaDragOver" Drop="MediaDropped">
  <!-- Editor layout: menu bar, one row of icon buttons, options bar, workspace, status bar. -->
  <Grid>
  <DockPanel>
@@ -58,6 +58,15 @@
     <MenuItem Header="Paste _onto Image" InputGestureText="Ctrl+Shift+V" Click="PasteOntoPicture" ToolTip="Paste onto This Image, to Move and Size"/>
     <Separator/>
     <MenuItem Header="_Delete Selected Shape" InputGestureText="Del" Click="DeleteRegion"/>
+    <!-- 3.0.0 (David): layers, for the selected redaction or annotation. -->
+    <MenuItem x:Name="LayersMenu" Header="La_yers">
+     <MenuItem x:Name="MoveUpMenuItem" Header="Move _Up" InputGestureText="Ctrl+]" Click="MoveLayerUp"/>
+     <MenuItem x:Name="MoveDownMenuItem" Header="Move _Down" InputGestureText="Ctrl+[" Click="MoveLayerDown"/>
+     <MenuItem x:Name="DuplicateMenuItem" Header="Du_plicate Layer" InputGestureText="Ctrl+D" Click="DuplicateLayer"/>
+     <MenuItem Header="Delete _Layer" InputGestureText="Del" Click="DeleteRegion"/>
+     <Separator/>
+     <MenuItem Header="_Flatten Image" Click="FlattenImage" IsEnabled="{Binding IsEnabled, ElementName=FlattenImageButton}"/>
+    </MenuItem>
     <MenuItem Header="Clear _All Redactions" Click="ClearRegions"/>
     <!-- 0.27.0 (David): every toolbar button has a menu item. -->
     <MenuItem Header="Clear All A_nnotations" Click="ClearAnnotations" IsEnabled="{Binding IsEnabled, ElementName=ToolClearAnnotations}"/>
@@ -79,7 +88,7 @@
     <MenuItem Header="_Ellipse Outline" Tag="DrawOvalTool" Click="MenuTool"/>
     <MenuItem Header="Pe_n (Freehand)" Tag="FreehandTool" Click="MenuTool"/>
     <Separator/>
-    <MenuItem Header="_Crop Image" Tag="CropTool" Click="MenuTool" IsEnabled="{Binding IsEnabled, ElementName=CropTool}"/>
+    <MenuItem Header="_Crop" Tag="CropTool" Click="MenuTool" IsEnabled="{Binding IsEnabled, ElementName=CropTool}"/>
     <MenuItem Header="Co_nfirm Crop" InputGestureText="Enter" Click="ConfirmCrop" IsEnabled="{Binding IsEnabled, ElementName=ConfirmCropButton}"/>
     <MenuItem x:Name="RemoveCropMenuItem" Header="R_emove Crop" Click="RemoveCrop" IsEnabled="False"/>
    </MenuItem>
@@ -343,7 +352,9 @@
         <TextBlock x:Name="LinePopupTitle" Text="Line" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"/>
         <Button x:Name="LinePopupClose" Style="{StaticResource EditorFlatButton}" HorizontalAlignment="Right" Content="✕" Click="LinePopupDone" ToolTip="Done"/>
        </Grid>
-       <StackPanel Orientation="Horizontal" Margin="6,2,6,6">
+       <StackPanel Orientation="Horizontal" Margin="6,2,6,6" HorizontalAlignment="Center">
+        <!-- 3.0.0: the style controls hide for a text or pasted image (which have none); Delete stays. -->
+        <StackPanel x:Name="LinePopupStyle" Orientation="Horizontal">
         <Button x:Name="LinePopupColor" Padding="3" Margin="0,0,6,0" Click="ChooseAnnotationColor" ToolTip="Line Colour"><Border Width="22" Height="16" Background="{Binding Background, ElementName=AnnotationColorFill}" BorderBrush="#9AA3B2" BorderThickness="1"/></Button>
         <Rectangle Width="1" Height="20" Margin="2,0,6,0" Fill="{DynamicResource ChromeLine}"/>
         <local:NumberSpinner x:Name="LinePopupWidth" Minimum="1" Maximum="20" Margin="0,0,6,0" Value="{Binding Value, ElementName=AnnotationWidth, Mode=TwoWay}" ToolTip="Line Width"/>
@@ -351,7 +362,13 @@
         <ComboBox x:Name="LinePopupEnds" Width="92" Margin="0,0,4,0" Visibility="{Binding Visibility, ElementName=EndsOptions}" ItemTemplate="{StaticResource LineStyleTemplate}" ItemsSource="{Binding ItemsSource, ElementName=AnnotationEnds}" SelectedIndex="{Binding SelectedIndex, ElementName=AnnotationEnds, Mode=TwoWay}" ToolTip="Line Ends"/>
         <ComboBox x:Name="LinePopupJoin" Width="74" Margin="0,0,4,0" SelectedIndex="{Binding SelectedIndex, ElementName=AnnotationJoin, Mode=TwoWay}" Visibility="{Binding Visibility, ElementName=JoinOptions}" ToolTip="Corners"><ComboBoxItem Content="Miter"/><ComboBoxItem Content="Round"/></ComboBox>
         <Rectangle Width="1" Height="20" Margin="2,0,4,0" Fill="{DynamicResource ChromeLine}"/>
+        </StackPanel>
         <Button x:Name="LinePopupDelete" Style="{StaticResource EditorFlatButton}" Click="DeleteAnnotation" ToolTip="Delete This Annotation (Del)"><Path Data="{StaticResource IconTrash}" Width="20" Height="20" Stroke="{DynamicResource Foreground}" StrokeThickness="1.4"/></Button>
+       </StackPanel>
+       <!-- 3.0.0 (David): on a video, when the annotation starts and ends, right here. -->
+       <StackPanel x:Name="LinePopupTiming" Orientation="Horizontal" HorizontalAlignment="Center" Margin="6,0,6,6" Visibility="Collapsed">
+        <Button x:Name="LinePopupBegin" Content="Begin Here" Click="AnnotationBeginHere" Background="#2E7D32" Foreground="White" BorderBrush="#1B5E20" FontWeight="SemiBold" Padding="14,5" Margin="2" ToolTip="Show It from This Frame"/>
+        <Button x:Name="LinePopupEnd" Content="End Here" Click="AnnotationEndHere" Background="#B3261E" Foreground="White" BorderBrush="#7F1A15" FontWeight="SemiBold" Padding="14,5" Margin="4,2,2,2" ToolTip="Show It Up to This Frame"/>
        </StackPanel>
       </StackPanel>
      </Border>
@@ -411,16 +428,42 @@
    </Grid>
    <Border x:Name="PropertiesPanel" Grid.Column="1" Visibility="Collapsed" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource ChromeLine}" BorderThickness="1,0,0,0" Padding="8,0,8,8">
     <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+     <StackPanel.Resources>
+      <!-- 3.0.0 (David): layers. The arrows beside each list move the selected item up or down. -->
+      <Style x:Key="LayerArrow" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+       <Setter Property="Padding" Value="7,5"/><Setter Property="Margin" Value="4,1,0,1"/><Setter Property="Focusable" Value="False"/>
+      </Style>
+      <Style x:Key="LayerArrowPath" TargetType="Path">
+       <Setter Property="Width" Value="10"/><Setter Property="Height" Value="6"/><Setter Property="StrokeThickness" Value="1.8"/>
+       <Setter Property="Stroke" Value="{DynamicResource Foreground}"/><Setter Property="StrokeLineJoin" Value="Round"/>
+       <Style.Triggers><DataTrigger Binding="{Binding IsEnabled, RelativeSource={RelativeSource AncestorType=Button}}" Value="False"><Setter Property="Opacity" Value="0.3"/></DataTrigger></Style.Triggers>
+      </Style>
+     </StackPanel.Resources>
      <TextBlock Text="Regions" Style="{StaticResource PanelHeading}"/>
-     <ListBox x:Name="Regions" Height="100" SelectionChanged="RegionSelected"/>
-     <WrapPanel><Button Content="Delete" Click="DeleteRegion"/><Button Content="Clear All" Click="ClearRegions"/></WrapPanel>
+     <Grid>
+      <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <ListBox x:Name="Regions" Height="100" SelectionChanged="RegionSelected" ToolTip="Top Layer First"/>
+      <StackPanel Grid.Column="1" VerticalAlignment="Center">
+       <Button x:Name="RegionUpButton" Style="{StaticResource LayerArrow}" Tag="Region" Click="MoveLayerUp" ToolTip="Move Up"><Path Style="{StaticResource LayerArrowPath}" Data="M0,6 L5,1 L10,6"/></Button>
+       <Button x:Name="RegionDownButton" Style="{StaticResource LayerArrow}" Tag="Region" Click="MoveLayerDown" ToolTip="Move Down"><Path Style="{StaticResource LayerArrowPath}" Data="M0,0 L5,5 L10,0"/></Button>
+      </StackPanel>
+     </Grid>
+     <WrapPanel><Button Content="Delete" Click="DeleteRegion"/><Button x:Name="DuplicateRegionButton" Content="Duplicate" Tag="Region" Click="DuplicateLayer" ToolTip="Duplicate Layer"/><Button Content="Clear All" Click="ClearRegions"/></WrapPanel>
      <TextBox x:Name="RegionName" ToolTip="Name (Press Apply Details to Save)"/>
      <TextBlock Text="Annotations" Style="{StaticResource PanelHeading}" Margin="2,14,2,4"/>
-     <ListBox x:Name="AnnotationsList" Height="72" SelectionChanged="AnnotationListSelected"/>
+     <Grid>
+      <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <ListBox x:Name="AnnotationsList" Height="72" SelectionChanged="AnnotationListSelected" ToolTip="Top Layer First"/>
+      <StackPanel Grid.Column="1" VerticalAlignment="Center">
+       <Button x:Name="AnnotationUpButton" Style="{StaticResource LayerArrow}" Tag="Annotation" Click="MoveLayerUp" ToolTip="Move Up"><Path Style="{StaticResource LayerArrowPath}" Data="M0,6 L5,1 L10,6"/></Button>
+       <Button x:Name="AnnotationDownButton" Style="{StaticResource LayerArrow}" Tag="Annotation" Click="MoveLayerDown" ToolTip="Move Down"><Path Style="{StaticResource LayerArrowPath}" Data="M0,0 L5,5 L10,0"/></Button>
+      </StackPanel>
+     </Grid>
      <WrapPanel>
-      <Button x:Name="DeleteAnnotationButton" Content="Delete" Click="DeleteAnnotation"/><Button Content="Clear All" Click="ClearAnnotations"/>
+      <Button x:Name="DeleteAnnotationButton" Content="Delete" Click="DeleteAnnotation"/><Button x:Name="DuplicateAnnotationButton" Content="Duplicate" Tag="Annotation" Click="DuplicateLayer" ToolTip="Duplicate Layer"/><Button Content="Clear All" Click="ClearAnnotations"/>
       <Button x:Name="EditAnnotationTextButton" Content="Edit Text" Click="EditAnnotationText"/>
      </WrapPanel>
+     <Button x:Name="FlattenImageButton" Content="Flatten Image" Click="FlattenImage" HorizontalAlignment="Left" ToolTip="Make the Layers Part of the Image"/>
      <StackPanel x:Name="AnnotationTiming">
       <TextBlock x:Name="AnnotationTimingText" TextWrapping="Wrap" Margin="4,2" FontSize="12"/>
       <WrapPanel><Button x:Name="AnnotationBeginButton" Content="Begin Here" Click="AnnotationBeginHere" ToolTip="Show It from This Frame"/><Button x:Name="AnnotationEndButton" Content="End Here" Click="AnnotationEndHere" ToolTip="Show It Up to This Frame"/></WrapPanel>

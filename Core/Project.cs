@@ -126,7 +126,7 @@ public sealed class RedactionProject
     public ExportSettings Export { get; set; } = new();
     // Confirmed still-image crop in whole source pixels (0.7.0). Omitted when absent so
     // projects without a crop stay readable by 0.6.0. Applied after redaction at export;
-    // the source file is never changed. Video crop is not supported.
+    // the source file is never changed. 3.0.0: videos can be cropped too (every frame, at export).
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public MediaRect? Crop { get; set; }
     // Text/Line/Polyline annotations (0.9.0). Written only when present, so projects
@@ -160,7 +160,7 @@ public static class ProjectStore
         if (p.Media is not { } media || media.Width < 1 || media.Height < 1 || !double.IsFinite(media.Duration) || media.Duration < 0 ||
             media.Length < 1 || media.Sha256.Length != 64 || !media.Sha256.All(Uri.IsHexDigit)) throw new InvalidDataException("Invalid source reference.");
         if (p.Regions.Select(r => r.Id).Distinct().Count() != p.Regions.Count) throw new InvalidDataException("Duplicate region identity.");
-        if (p.Crop is { } crop && (media.IsVideo || p.CoordinateSpace != "autorotated-square-pixels-v1" || !ImageCrop.IsPixelRect(crop) ||
+        if (p.Crop is { } crop && (p.CoordinateSpace != "autorotated-square-pixels-v1" || !ImageCrop.IsPixelRect(crop) ||
             crop.Width < 1 || crop.Height < 1 || crop.X < 0 || crop.Y < 0 || crop.X + crop.Width > media.Width || crop.Y + crop.Height > media.Height))
             throw new InvalidDataException("Invalid image crop.");
         foreach (var r in p.Regions)

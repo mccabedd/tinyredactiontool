@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.1.0 (November 2026)
+
+### Layers
+- The side panel lists redactions and annotations top layer first, with Move Up and Move Down arrows beside each list (Ctrl+] and Ctrl+[).
+- Duplicate Layer (Ctrl+D) makes a copy on top, a little to the right; Delete Layer as before.
+- Flatten Image (pictures) makes the redactions and annotations part of the picture; Undo separates them again.
+- All of these are also in Edit › Layers. A redaction always hides the picture under it, whatever the order.
+
+### Video
+- Crop a video: every frame is cut to the same area at export (an even width and height). Trim, crop, redact, annotate and export in one pass.
+- Annotations start and end on chosen frames: green Begin Here and red End Here in the annotation's own window (and in the side panel). A text on a video gets this window too.
+
 ## 3.0.0 (November 2026)
 
 A complete rewrite of TinyRedactionTool in C# and WPF (.NET 10). It keeps v2.5.1's local-only, fail-closed approach to redaction and export, and adds a full editor, screen capture tools and a Help manual. The v2.5.1 source and changelog are in `history/v2.5.1`.
@@ -17,7 +29,6 @@ A complete rewrite of TinyRedactionTool in C# and WPF (.NET 10). It keeps v2.5.1
 - Frame-accurate timeline with play, frame steps, speed and hover previews. Coloured lanes show redactions, box positions, tracked and lost ranges, and annotations.
 - Tracking: Start Redaction follows the subject. Where tracking is lost, TRT stops and asks: continue, end the redaction there, or adjust the box. Enable Manual Redaction keeps a box in place until Stop Redaction.
 - Trim (keep or delete between A and B), Append another video at the start or end, and Capture Frame. Undo covers these too.
-
 ### Capture
 - A compact capture bar and a notification-area icon: rectangular region, freehand, active window, window or object, full screen, scrolling window (including long web pages), a screen recorder (area, window or screen) and a screen ruler. Global shortcuts.
 - Output to the editor, the clipboard or a file. Captures stay in a private temporary folder until saved or exported, and are overwritten and deleted afterwards.

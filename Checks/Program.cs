@@ -51,6 +51,12 @@ internal static class Program
                 new App { ShutdownMode = ShutdownMode.OnExplicitShutdown, StartDesktopWindow = false }.InitializeComponent();
                 Release300EditChecks.Run(output, Check); Console.WriteLine($"{passed} checks passed."); return 0;
             }
+            if (args.Contains("--layers-only"))
+            {
+                new App { ShutdownMode = ShutdownMode.OnExplicitShutdown, StartDesktopWindow = false }.InitializeComponent();
+                using (var layerTools = new MediaTools()) Release300LayerChecks.Run(layerTools, output, Check);
+                Console.WriteLine($"{passed} checks passed."); return 0;
+            }
             if (args.Contains("--release-300-only")) { Release300Checks.Run(Check); Console.WriteLine($"{passed} checks passed."); return 0; }
             if (args.Contains("--release-028-only"))
             {
@@ -134,6 +140,7 @@ internal static class Program
             using (var release028Tools = new MediaTools()) Release028Checks.Run(release028Tools, output, Check);
             Release300Checks.Run(Check);
             Release300EditChecks.Run(output, Check);
+            using (var layerTools = new MediaTools()) Release300LayerChecks.Run(layerTools, output, Check);
             if (args.Contains("--still-only"))
             {
                 EyedropperUiChecks.Run(output, Check);

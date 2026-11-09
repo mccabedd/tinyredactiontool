@@ -20,6 +20,13 @@ public static class ImageCrop
         var bottom = Math.Min(Math.Ceiling(Snap(bounds.Y + bounds.Height)), Math.Ceiling(Snap(draft.Y + draft.Height)));
         return right <= left || bottom <= top ? null : new MediaRect(left, top, right - left, bottom - top);
     }
+    // 3.0.0: a video crop has an even width and height (one pixel less where needed), so the export stays in the
+    // usual 4:2:0 colour format that every player shows. Null when less than 2 × 2 pixels would remain.
+    public static MediaRect? EvenSize(MediaRect r)
+    {
+        var w = r.Width - r.Width % 2; var h = r.Height - r.Height % 2;
+        return w < 2 || h < 2 ? null : r with { Width = w, Height = h };
+    }
     public static MediaRect Bounds(RedactionProject project) =>
         project.Crop ?? (project.Media is { } m ? new MediaRect(0, 0, m.Width, m.Height) : default);
     // Copies the crop rectangle out of a full-size BGRA buffer.

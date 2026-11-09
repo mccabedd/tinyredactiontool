@@ -32,11 +32,12 @@ public sealed class VideoExport(MediaTools tools)
         try
         {
             phase?.Report(ExportPhase.Exporting);
-            if (project.Regions.Any(r => r.Effect != RedactionEffect.Opaque))
+            // Blur, Pixelate and (3.0.0) a crop: TRT draws every frame itself, then each is cut to the crop.
+            if (project.Regions.Any(r => r.Effect != RedactionEffect.Opaque) || project.Crop != null)
             {
                 await Task.Run(() => EffectVideoEncoder.EncodeAsync(temporary, project, map, progress, cancellation), cancellation);
                 phase?.Report(ExportPhase.Validating);
-                await ValidateAsync(temporary, source, map, project.Export.KeepAudio, cancellation);
+                await ValidateAsync(temporary, source, map, project.Export.KeepAudio, cancellation, project.Crop);
                 cancellation.ThrowIfCancellationRequested(); File.Move(temporary, destination, false); progress?.Report(1); return;
             }
             var concatPath = Path.Combine(root, "geometry.ffconcat");
@@ -145,8 +146,10 @@ public sealed class VideoExport(MediaTools tools)
             (a, x, y) => applied.Any(e => e.Region.Order > a.Order && EffectRenderer.Covers(e.Region, e.Bounds, e.Margin, x, y)));
         return pixels;
     }
-    private async Task ValidateAsync(string path, MediaReference source, FrameTimeline expected, bool keepAudio, CancellationToken cancellation)
+    // crop: the output must be exactly the crop's size (3.0.0); otherwise the source's.
+    private async Task ValidateAsync(string path, MediaReference source, FrameTimeline expected, bool keepAudio, CancellationToken cancellation, MediaRect? crop = null)
     {
+        var width = crop is { } c ? (int)c.Width : source.Width; var height = crop is { } d ? (int)d.Height : source.Height;
         var json = await tools.RunAsync("ffprobe.exe", ["-v", "error", "-show_streams", "-show_format", "-show_chapters", "-of", "json", path], source.Path, cancellation);
         using var doc = JsonDocument.Parse(json);
         var streams = doc.RootElement.GetProperty("streams").EnumerateArray().ToArray();
@@ -159,7 +162,7 @@ public sealed class VideoExport(MediaTools tools)
         var videos = streams.Where(s => s.GetProperty("codec_type").GetString() == "video").ToArray();
         var audios = streams.Count(s => s.GetProperty("codec_type").GetString() == "audio");
         if (videos.Length != 1 || audios > (keepAudio ? 1 : 0) || streams.Length != videos.Length + audios ||
-            videos[0].GetProperty("width").GetInt32() != source.Width || videos[0].GetProperty("height").GetInt32() != source.Height ||
+            videos[0].GetProperty("width").GetInt32() != width || videos[0].GetProperty("height").GetInt32() != height ||
             doc.RootElement.GetProperty("chapters").GetArrayLength() != 0) throw new InvalidDataException("Output stream, chapter or geometry validation failed.");
         var inputJson = await tools.RunAsync("ffprobe.exe", ["-v", "error", "-select_streams", "a:0", "-show_entries", "stream=index", "-of", "json", source.Path], source.Path, cancellation);
         using var input = JsonDocument.Parse(inputJson);

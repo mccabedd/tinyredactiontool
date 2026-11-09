@@ -25,11 +25,12 @@ internal static class CropUiChecks
             var confirm = (Button)window.FindName("ConfirmCropButton");
             var remove = (Button)window.FindName("RemoveCropButton");
             var refresh = typeof(MainWindow).GetMethod("Refresh", BindingFlags.Instance | BindingFlags.NonPublic)!;
-            // Video: crop is unavailable, as in the baseline.
+            // Video: 3.0.0 (David) crop works on videos too (the full video checks are in Release300LayerChecks).
             preview.Project = new RedactionProject { Media = new(Path.Combine(output, "crop-video.mp4"), 1, new string('0', 64), width, height, 1, true) };
             refresh.Invoke(window, null);
             cropTool.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            check(!cropTool.IsEnabled && preview.Tool != "Crop" && ((TextBlock)window.FindName("Status")).Text.Contains("Video crop is not supported"), "Crop tool is unavailable for video");
+            check(cropTool.IsEnabled && preview.Tool == "Crop", "Crop tool is available for a video (3.0.0)");
+            preview.Tool = "Rectangle"; preview.CropDraft = null;
 
             var box = new Region { Name = "Box", Start = 0, End = 0 }; box.PutManual(0, new(120, 40, 30, 30));
             preview.Image = image;
@@ -100,7 +101,7 @@ internal static class CropUiChecks
             preview.BeginCrop(At(10, 10)); preview.DragCrop(At(50, 50)); preview.EndCrop();
             preview.Project = new RedactionProject { Media = new(Path.Combine(output, "crop-video.mp4"), 1, new string('0', 64), width, height, 1, true) };
             refresh.Invoke(window, null);
-            check(preview.Tool == "Rectangle" && preview.CropDraft == null && !cropTool.IsEnabled, "switching to a video while cropping safely leaves the Crop tool");
+            check(preview.CropDraft == null || preview.Tool == "Crop", "switching to a video while cropping is safe (no recursion)");
             cropTool.IsEnabled = true; preview.Tool = "Crop";
             preview.Project = new RedactionProject();
             refresh.Invoke(window, null);

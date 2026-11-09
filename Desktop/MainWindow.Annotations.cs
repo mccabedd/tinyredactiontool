@@ -34,7 +34,8 @@ public partial class MainWindow
         try
         {
             var selected = SelectedAnnotation;
-            AnnotationsList.ItemsSource = null; AnnotationsList.ItemsSource = Project.Annotations.OrderBy(a => a.Order).ToArray(); AnnotationsList.SelectedItem = selected;
+            AnnotationsList.ItemsSource = null; AnnotationsList.ItemsSource = Layers.AnnotationsTopFirst(Project); AnnotationsList.SelectedItem = selected;
+            UpdateLayerButtons();
             AnnotationKind? kind = selected?.Kind ?? PreviewSurface.AnnotationKindFor(Preview.Tool);
             // A pasted picture (0.26.0) has no colour, width or font.
             if (kind == AnnotationKind.Picture) kind = null;

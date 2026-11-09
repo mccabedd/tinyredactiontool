@@ -254,3 +254,15 @@ tooltip in list items, so neither is listed separately.
 | 172 | Editor toolbar: New (0.26.0) | New picture | — |
 | 173 | Edit menu: Paste onto picture (0.26.0) | Paste onto this picture, to move and size | — |
 | 174 | New picture: colour swatch (0.26.0) | Background colour | — |
+
+## Added in 3.0.0 (layers, 9 November 2026)
+
+| Control | Tooltip |
+|---|---|
+| Regions / Annotations lists | Top Layer First |
+| Up arrow beside a list | Move Up |
+| Down arrow beside a list | Move Down |
+| Duplicate (side panel) | Duplicate Layer |
+| Flatten Image (side panel) | Make the Layers Part of the Image |
+| Begin Here (annotation window, videos) | Show It from This Frame |
+| End Here (annotation window, videos) | Show It Up to This Frame |
