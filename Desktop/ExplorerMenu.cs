@@ -49,6 +49,29 @@ internal static class ExplorerMenu
     {
         foreach (var extension in Extensions) Registry.CurrentUser.DeleteSubKeyTree(VerbKey(extension), false);
     }
+    // 3.1.1 (David: right-click gave "Application not found" after the 0.13.0 .exe was deleted): when the entry is
+    // there and this TRT runs from somewhere else, point every format at this .exe. True if changed.
+    public static bool Refresh()
+    {
+        if (Path.GetFileName(Environment.ProcessPath)?.Equals("dotnet.exe", StringComparison.OrdinalIgnoreCase) == true) return false; // A development run.
+        if (!IsStale) return false;
+        Install(); return true;
+    }
+    // The entry is there, but some format starts another program (an older or deleted TRT).
+    internal static bool IsStale
+    {
+        get
+        {
+            if (!IsInstalled) return false;
+            var command = Command;
+            foreach (var extension in Extensions)
+            {
+                using var key = Registry.CurrentUser.OpenSubKey(VerbKey(extension) + @"\command");
+                if (key?.GetValue("") as string != command) return true;
+            }
+            return false;
+        }
+    }
 }
 
 // The default app for pictures (0.25.0, David; pictures only, not videos). Ticking it in Settings registers TRT for

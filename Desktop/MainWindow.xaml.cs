@@ -1046,5 +1046,5 @@ public partial class MainWindow : Window
     private void About(object sender, RoutedEventArgs e) => AboutWindow.Open(this, VersionText);
     private void OpenHelp(object sender, RoutedEventArgs e) => HelpManual.Open(this); // 3.0.0 (David)
     // 0.27.1 (David): the About box is the simple one (AboutWindow); this text is its version and description.
-    internal static string AboutText => "TinyRedactionTool 3.1.0\n" + AboutWindow.Description;
+    internal static string AboutText => "TinyRedactionTool 3.1.1\n" + AboutWindow.Description;
 }

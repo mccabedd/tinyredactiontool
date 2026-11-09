@@ -10,10 +10,10 @@ Everything happens on your computer: no telemetry, no uploads, no online service
 
 ## Download
 
-Get **TinyRedactionTool-3.1.0.exe** from the [latest release](https://github.com/mccabedd/tinyredactiontool/releases/latest) and run it. It needs no installing.
+Get **TinyRedactionTool-3.1.1.exe** from the [latest release](https://github.com/mccabedd/tinyredactiontool/releases/latest) and run it. It needs no installing.
 
 - TRT 3.1 needs Microsoft's free **[.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)** (Windows x64). If it is missing, Windows says so when TRT starts and offers to open the download page.
-- The file is not signed, so Windows SmartScreen may warn the first time. Check the download against `SHA256SUMS-v3.1.0.txt` in the release.
+- The file is not signed, so Windows SmartScreen may warn the first time. Check the download against `SHA256SUMS-v3.1.1.txt` in the release.
 - TRT v2.5.1 (the previous, self-contained version) is still available from its own release, and its source is in [history/v2.5.1](history/v2.5.1).
 
 ## What it does

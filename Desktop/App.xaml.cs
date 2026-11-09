@@ -42,7 +42,8 @@ public partial class App : Application
             }
             var policy = ManagedPolicy.Load(policyPath);
             // 0.25.0: TRT is the default app for pictures and this copy runs from a new place: point Windows at it.
-            try { if (PictureApp.Refresh()) PictureApp.Announce(); StartupEntry.Refresh(); }
+            // 3.1.1: so does "Open with TRT" in the right-click menu.
+            try { if (PictureApp.Refresh() | ExplorerMenu.Refresh()) PictureApp.Announce(); StartupEntry.Refresh(); }
             catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException) { }
             // 0.12.0: TRT opens as the capture bar and keeps running in the notification area until
             // Quit, so closing the editor or hiding the bar does not end it.

@@ -32,7 +32,7 @@ internal static class Release300Checks
         check(Regex.Matches(html, "color-scheme: dark;").Count >= 2 && html.Contains("scrollbar-color"), "in Dark, the manual's scroll bars are dark too");
         // The name Windows shows ("Open with", Task Manager, file properties): TinyRedactionTool, not the internal name.
         var details = System.Diagnostics.FileVersionInfo.GetVersionInfo(typeof(MainWindow).Assembly.Location);
-        check(details.FileDescription == "TinyRedactionTool" && details.ProductName == "TinyRedactionTool" && details.CompanyName == "David McCabe" && details.ProductVersion?.StartsWith("3.1.0") == true,
+        check(details.FileDescription == "TinyRedactionTool" && details.ProductName == "TinyRedactionTool" && details.CompanyName == "David McCabe" && details.ProductVersion?.StartsWith("3.1.1") == true,
             $"Windows calls the program TinyRedactionTool (description {details.FileDescription}, product {details.ProductName})");
         var savedRoot = PictureApp.SoftwareRoot; PictureApp.SoftwareRoot = @"Software\TRT-Checks-300";
         try
@@ -59,6 +59,22 @@ internal static class Release300Checks
             check(!StartupEntry.Refresh() && StartupEntry.IsInstalled, "a development run never rewrites the Windows startup entry (a copied .exe does, on a throw-away key here)");
         }
         finally { Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(@"Software\TRT-Checks-300", false); StartupEntry.RunKey = savedRun; }
-        check(MainWindow.AboutText.StartsWith("TinyRedactionTool 3.1.0\n", StringComparison.Ordinal), "the version is 3.1.0 (3.0.0 is published; layers and video crop came after)");
+        // 3.1.1: "Open with TRT" left by an older (deleted) TRT is pointed at this one when TRT starts.
+        var savedClasses = ExplorerMenu.ClassesRoot; ExplorerMenu.ClassesRoot = @"Software\TRT-Checks-311\Classes";
+        try
+        {
+            ExplorerMenu.Install();
+            check(!ExplorerMenu.IsStale, "a fresh right-click entry starts this TRT");
+            using (var old = Microsoft.Win32.Registry.CurrentUser.CreateSubKey($@"{ExplorerMenu.ClassesRoot}\SystemFileAssociations\.mp4\shell\{ExplorerMenu.VerbName}\command"))
+                old.SetValue("", "\"C:\\Gone\\TinyRedactionTool-0.13.0.exe\" \"%1\"");
+            check(ExplorerMenu.IsStale, "a right-click entry that starts a deleted TRT is noticed (on a throw-away key)");
+            check(!ExplorerMenu.Refresh() && ExplorerMenu.IsStale, "a development run never rewrites the right-click entry (a copied .exe does)");
+            ExplorerMenu.Install();
+            check(!ExplorerMenu.IsStale, "rewriting the entry points every format at this TRT again");
+            ExplorerMenu.Remove();
+            check(!ExplorerMenu.IsStale && !ExplorerMenu.Refresh(), "with the setting cleared, starting TRT adds nothing to the right-click menu");
+        }
+        finally { ExplorerMenu.ClassesRoot = savedClasses; Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(@"Software\TRT-Checks-311", false); }
+        check(MainWindow.AboutText.StartsWith("TinyRedactionTool 3.1.1\n", StringComparison.Ordinal), "the version is 3.1.1 (3.1.0 is published; the right-click repair came after)");
     }
 }

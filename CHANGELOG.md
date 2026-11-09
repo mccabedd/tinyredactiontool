@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.1.1 (November 2026)
+- "Open with TRT" in the right-click menu follows TRT to a new .exe: an entry left by an older or deleted TRT ("Application not found") is fixed when TRT starts.
+
 ## 3.1.0 (November 2026)
 
 ### Layers
