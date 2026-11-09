@@ -4,7 +4,7 @@ A lightweight Windows tool for redacting and editing sensitive areas in videos a
 
 Everything happens on your computer: no telemetry, no uploads, no online services.
 
-![The TRT editor with a letter open: the account number is covered by a black box and the signature is blurred](docs/help/images/editor.png)
+![The TRT editor with a letter open: the account number is covered by a black box and the signature is blurred](docs/help/images/editor1.png)
 
 > **For anything that must not be read, use the black (coloured) box.** Blur and Pixelate hide appearance but are not guaranteed removal.
 
@@ -47,4 +47,20 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how it fits together.
 
 GPL-2.0-or-later. See [LICENSE](LICENSE) and [THIRD-PARTY.md](THIRD-PARTY.md) for the bundled components (libVLC, FFmpeg).
 
-Copyright (C) 2026 David McCabe
+
+## Project status and support
+
+TinyRedactionTool was created and security-reviewed with AI assistance.
+
+TinyRedactionTool’s own source code was written for this project and does not copy source code from other applications. It uses third-party components under their own licences (FFmpeg, libVLC, LibVLCSharp and .NET); see THIRD-PARTY.md. TRT draws its own icons and artwork.
+
+The repository and release files are provided **as is**.
+
+Issues and pull requests are not actively monitored, and individual troubleshooting/support cannot be guaranteed.
+
+Forks and adaptations are welcome. If you reuse the project, please retain attribution or otherwise acknowledge the original project.
+
+## Acknowledgements:
+
+FastStone and their amazing FSCapture tool for the inspiration.
+
