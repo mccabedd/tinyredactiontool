@@ -594,7 +594,7 @@ public sealed partial class PreviewSurface : FrameworkElement
     // inside the draft to move it. Everything stays inside the current bounds.
     internal bool BeginCrop(Point screen)
     {
-        if (Project.Media is not { IsVideo: false }) return false;
+        if (Project.Media == null) return false; // 3.1.0: pictures and videos.
         var s = Source(screen); var bounds = View; var kind = "New";
         if (CropDraft is { } draft)
         {

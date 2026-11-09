@@ -209,8 +209,14 @@ internal static class Release300LayerChecks
             var cropTool = Find<Button>("CropTool");
             check(cropTool.IsEnabled, "Crop is on for a video");
             Click(cropTool);
-            preview.CropDraft = new MediaRect(11, 7, 51, 41); Refresh();
-            check(Find<Button>("ConfirmCropButton").IsEnabled, "a crop box can be drawn on a video");
+            // Through the real mouse path (David found the box never appeared: the press was refused for videos).
+            preview.Fit(); preview.UpdateLayout();
+            Point On(double x, double y) { var r = preview.ScreenRect(new MediaRect(x, y, 0, 0)); return new(r.X, r.Y); }
+            preview.MouseDownAt(On(11, 7), System.Windows.Input.MouseButton.Left, 1); preview.PointerMove(On(40, 30)); preview.PointerMove(On(62, 48)); preview.PointerUp(); Refresh();
+            check(preview.CropDraft is { } dragged && Math.Abs(dragged.X - 11) < .01 && Math.Abs(dragged.Width - 51) < .01 && Math.Abs(dragged.Height - 41) < .01,
+                $"dragging with the Crop tool draws a crop box on a video ({preview.CropDraft})");
+            Shot("layers-video-crop.png");
+            check(Find<Button>("ConfirmCropButton").IsEnabled && Find<Border>("CropPopup").IsVisible, "the crop window with Confirm Crop shows under it");
             editor.ConfirmCropDraft();
             check(preview.Project.Crop == new MediaRect(11, 7, 50, 40), "a video crop is whole pixels with an even width and height");
             check(Find<TextBlock>("SizeText").Text.Contains("50 × 40"), "the size shown is the cropped size");
