@@ -4,7 +4,7 @@ A lightweight Windows tool for redacting and editing sensitive areas in videos a
 
 Everything happens on your computer: no telemetry, no uploads, no online services.
 
-![The TRT editor with a letter open: the account number is covered by a black box and the signature is blurred](docs/help/images/editor1.png)
+![The TRT editor with a photo of three people in a car: one face is pixelated, one person's eyes are covered by a black box, and one face is blurred, each labelled in red](docs/help/images/editor1.png)
 
 > **For anything that must not be read, use the black (coloured) box.** Blur and Pixelate hide appearance but are not guaranteed removal.
 
