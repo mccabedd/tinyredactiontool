@@ -1,5 +1,5 @@
 <Window x:Class="TinyRedaction.Desktop.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:TinyRedaction.Desktop"
- Title="TinyRedactionTool 3.1.1" Icon="Assets/icon.ico" Width="1240" Height="800" MinWidth="900" MinHeight="580" WindowState="Maximized" Background="{DynamicResource Background}" Foreground="{DynamicResource Foreground}" PreviewKeyDown="WindowKeyDown" AllowDrop="True" DragOver="MediaDragOver" DragEnter="MediaDragOver" Drop="MediaDropped">
+ Title="TinyRedactionTool 3.1.2" Icon="Assets/icon.ico" Width="1240" Height="800" MinWidth="900" MinHeight="580" WindowState="Maximized" Background="{DynamicResource Background}" Foreground="{DynamicResource Foreground}" PreviewKeyDown="WindowKeyDown" AllowDrop="True" DragOver="MediaDragOver" DragEnter="MediaDragOver" Drop="MediaDropped">
  <!-- Editor layout: menu bar, one row of icon buttons, options bar, workspace, status bar. -->
  <Grid>
  <DockPanel>
@@ -12,14 +12,15 @@
    <MenuItem Header="_File">
     <!-- 0.26.0 (David): a blank picture to draw on and paste onto. -->
     <MenuItem Header="_New Image…" InputGestureText="Ctrl+N" Click="NewPicture"/>
-    <MenuItem Header="_Open Media…" Click="OpenMedia"/>
+    <!-- 3.1.2 (David): this order, with Ctrl+O, Ctrl+E and Ctrl+Shift+S. -->
+    <MenuItem Header="_Open Media…" InputGestureText="Ctrl+O" Click="OpenMedia"/>
+    <MenuItem Header="_Export…" InputGestureText="Ctrl+E" Click="ExportImage" IsEnabled="{Binding IsEnabled, ElementName=ExportButton}"/>
+    <!-- 0.18.0 (David): the file as it is. -->
+    <MenuItem x:Name="SaveMediaMenuItem" Header="Save _Media As…" InputGestureText="Ctrl+Shift+S" Click="SaveMediaAs" IsEnabled="False" ToolTip="Save a Copy as It Is, Without Redactions or Edits"/>
     <!-- 0.26.1 (David): pictures onto the open one, without closing it. 0.27.0: "Add Image". -->
     <MenuItem Header="A_dd Image…" InputGestureText="Ctrl+Shift+O" Click="AddPictureFiles" IsEnabled="{Binding IsEnabled, ElementName=AddImageButton}" ToolTip="Put Images onto This One, to Move and Size"/>
     <MenuItem Header="Open _Project…" Click="OpenProject"/>
     <MenuItem x:Name="SaveProjectMenuItem" Header="_Save Project…" Click="SaveProject" IsEnabled="False"/>
-    <MenuItem Header="_Export…" Click="ExportImage" IsEnabled="{Binding IsEnabled, ElementName=ExportButton}"/>
-    <!-- 0.18.0 (David): the file as it is. -->
-    <MenuItem x:Name="SaveMediaMenuItem" Header="Save _Media As…" Click="SaveMediaAs" IsEnabled="False" ToolTip="Save a Copy as It Is, Without Redactions or Edits"/>
     <!-- 0.23.0: what is written inside the file besides the picture, and what Export removes. -->
     <MenuItem Header="File _Info…" InputGestureText="Ctrl+I" Click="ShowFileInfo"/>
     <Separator/>

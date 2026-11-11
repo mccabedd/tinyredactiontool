@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.1.2 (November 2026)
+- File menu in a new order: New Image, Open Media (Ctrl+O), Export (Ctrl+E), Save Media As (Ctrl+Shift+S), Add Image, Open Project, Save Project, File Info.
+
 ## 3.1.1 (November 2026)
 - "Open with TRT" in the right-click menu follows TRT to a new .exe: an entry left by an older or deleted TRT ("Application not found") is fixed when TRT starts.
 

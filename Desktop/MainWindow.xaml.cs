@@ -973,6 +973,10 @@ public partial class MainWindow : Window
         else if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.N) { NewPicture(sender, e); e.Handled = true; }
         else if (Keyboard.Modifiers == ModifierKeys.None && e.Key == Key.F1) { HelpManual.Open(this); e.Handled = true; }
         else if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.O) { AddPictureFiles(sender, e); e.Handled = true; }
+        // 3.1.2 (David): Ctrl+O open, Ctrl+E export, Ctrl+Shift+S save media as; only when the menu item is on.
+        else if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.O) { OpenMedia(sender, e); e.Handled = true; }
+        else if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.E) { if (ExportButton.IsEnabled) ExportImage(sender, e); e.Handled = true; }
+        else if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.S) { if (SaveMediaMenuItem.IsEnabled) SaveMediaAs(sender, e); e.Handled = true; }
         else if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && e.Key == Key.Z) { Undo(sender, e); e.Handled = true; }
         else if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && e.Key == Key.Y) { Redo(sender, e); e.Handled = true; }
         // 3.0.0 (David): layers, as in image editors: Ctrl+] up, Ctrl+[ down, Ctrl+D duplicate.
@@ -1046,5 +1050,5 @@ public partial class MainWindow : Window
     private void About(object sender, RoutedEventArgs e) => AboutWindow.Open(this, VersionText);
     private void OpenHelp(object sender, RoutedEventArgs e) => HelpManual.Open(this); // 3.0.0 (David)
     // 0.27.1 (David): the About box is the simple one (AboutWindow); this text is its version and description.
-    internal static string AboutText => "TinyRedactionTool 3.1.1\n" + AboutWindow.Description;
+    internal static string AboutText => "TinyRedactionTool 3.1.2\n" + AboutWindow.Description;
 }
