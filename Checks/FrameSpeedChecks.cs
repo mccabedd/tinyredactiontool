@@ -113,13 +113,13 @@ internal static class FrameSpeedChecks
                 "followed ranges no longer hold up Export");
             var names = Find<WrapPanel>("ToolButtons").Children.OfType<Button>().Select(b => ((string)b.Content).Replace("\n", " ")).ToList();
             int At(string name) => names.IndexOf(name);
-            check(At("Copy") == At("Export") + 1 && At("Original") < 0 && At("Paste") == At("Copy") + 1 && At("Undo") == At("Paste") + 1,
-                "Copy and Paste sit on the toolbar just before Undo (after Export; 0.27.0: David's defaults hide Original)");
+            check(At("Save Media") == At("Export") + 1 && At("Copy") == At("Save Media") + 1 && At("Original") < 0 && At("Paste") == At("Copy") + 1 && At("Undo") == At("Paste") + 1,
+                "Copy and Paste sit on the toolbar just before Undo (after Export and Save Media; 3.1.3: David's defaults; Original hidden)");
             // 0.21.0: the video-only Trim and Append follow Crop; 0.23.0: Resize sits between them, beside Crop;
             // 0.24.0: and the picture's turn and flip buttons after Resize.
             check(At("Trim") == At("Polygon") + 1 && At("Append") == At("Trim") + 1 && At("Box") == At("Append") + 1 && At("Blur") == At("Box") + 1 && At("Pixelate") == At("Blur") + 1 && At("Text") == At("Pixelate") + 1
-                  && At("Crop") == At("Pen") + 1 && At("Resize") == At("Crop") + 1 && At("Rotate Right") == At("Resize") + 1 && At("Rotate Left") == At("Rotate Right") + 1,
-                "0.27.0 (David's order): Trim and Append after Polygon, then Box, Blur, Pixelate and the drawing tools, then Crop, Resize and the turn buttons");
+                  && At("Crop") == At("Pen") + 1 && At("Resize") == At("Crop") + 1 && At("Rotate Right") < 0 && At("Fit") == At("Resize") + 1,
+                "0.27.0 (David's order): Trim and Append after Polygon, then Box, Blur, Pixelate and the drawing tools, then Crop and Resize (3.1.3: the turn buttons hidden by default)");
             // 0.18.0 (David): the Clear buttons sit at the far right beside Panel, after a separator; none at the bottom right.
             var right = Find<StackPanel>("RightTools").Children.Cast<UIElement>().Select(c => c is Button b ? ((string)b.Content).Replace("\n", " ") : "|").ToList();
             check(right.SequenceEqual(["File Info", "|", "Clear Redactions", "Clear Annotations", "Clear Editor", "|", "Panel"]) && At("Clear Editor") < 0 && At("Panel") < 0,

@@ -194,8 +194,8 @@ internal static class Release018Checks
 
         // Leftover captures from a crash: pasted pictures and captured frames are wiped too.
         var abandoned = Path.Combine(output, "release018-abandoned"); if (Directory.Exists(abandoned)) Directory.Delete(abandoned, true); Directory.CreateDirectory(abandoned);
-        foreach (var name in new[] { "PASTED_1.png", "FRAME_1.png", "keep.txt" }) File.WriteAllBytes(Path.Combine(abandoned, name), [1, 2, 3]);
-        check(CaptureStore.WipeAbandoned(abandoned) == 2 && File.Exists(Path.Combine(abandoned, "keep.txt")), "leftover pasted pictures and captured frames are wiped after a crash; other files are left alone");
+        foreach (var name in new[] { "PASTED_1.png", "FRAME_1.png", "CAPTURE_1.png", "keep.txt" }) File.WriteAllBytes(Path.Combine(abandoned, name), [1, 2, 3]);
+        check(CaptureStore.WipeAbandoned(abandoned) == 3 && File.Exists(Path.Combine(abandoned, "keep.txt")), "leftover pasted pictures, captured frames and 3.1.3 CAPTURE_ files are wiped after a crash; other files are left alone");
     }
     [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode, SetLastError = true)]
     [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]

@@ -78,8 +78,8 @@ internal static class Release025Checks
         finally { Registry.CurrentUser.DeleteSubKeyTree(PictureApp.SoftwareRoot, false); PictureApp.SoftwareRoot = savedRoot; }
 
         // ---- Settings ----
-        check(AppSettings.Parse("{\"NavBarThumbnailSize\": 13}").NavBarThumbnailSize == 72 && new AppSettings() is { NavBarInEditor: false, NavBarInSlideshow: true, NavBarPinnedInSlideshow: true },
-            "the navigation bar settings start as: not in the editor, pinned in the slideshow; an unknown picture size goes back to Medium");
+        check(AppSettings.Parse("{\"NavBarThumbnailSize\": 13}").NavBarThumbnailSize == 48 && new AppSettings() is { NavBarInEditor: true, NavBarInSlideshow: true, NavBarPinnedInSlideshow: true },
+            "the navigation bar settings start as (3.1.3, David): in the editor, pinned in the slideshow; an unknown picture size goes back to 48");
         {
             var settings = new SettingsWindow(new AppSettings { NavBarInEditor = true, NavBarPinnedInSlideshow = false, NavBarThumbnailSize = 96 });
             T Box<T>(string name) where T : class => (T)settings.FindName(name);
@@ -148,7 +148,8 @@ internal static class Release025Checks
             // ---- The navigation bar in the editor ----
             foreach (var (name, colour) in new[] { ("a.png", Colors.Teal), ("b.png", Colors.Orange), ("c.png", Colors.Purple) }) Png(Path.Combine(folder, name), colour);
             check(Wait(() => editor.OpenPathAsync(Path.Combine(folder, "a.png"))), "a picture opens for the navigation bar");
-            check(AppSettings.DefaultEditorToolbar.Contains("NavBarButton") && !editor.NavBarShown, "the Nav Bar button is on the toolbar, and the bar starts hidden");
+            { var hidden = editor.Settings.Copy(); hidden.NavBarInEditor = false; editor.ApplySettings(hidden); } // 3.1.3: shown by default now; start these checks with it off.
+            check(AppSettings.DefaultEditorToolbar.Contains("NavBarButton") && !editor.NavBarShown, "the Nav Bar button is on the toolbar, and the bar can start hidden");
             Click((Button)editor.FindName("NavBarButton"));
             var nav = editor.NavBar ?? throw new InvalidOperationException("The Nav Bar button made no navigation bar.");
             check(editor.NavBarShown && nav.Items.Count == 4 && nav.Items[nav.SelectedIndex].Name == "a.png" && editor.Settings.NavBarInEditor,

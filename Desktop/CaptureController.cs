@@ -473,7 +473,7 @@ internal sealed class CaptureController : IDisposable
                 SaveImageAs(image);
                 break;
             default:
-                var path = store.NewFile("SCREENSHOT", ".png");
+                var path = store.NewFile("CAPTURE", ".png");
                 WritePng(image, path);
                 await OpenInEditorAsync(path);
                 break;
@@ -500,7 +500,7 @@ internal sealed class CaptureController : IDisposable
     private void SaveImageAs(BitmapSource image)
     {
         var folder = Settings.LastSaveFolder is { } last && Directory.Exists(last) ? last : Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
-        var dialog = new SaveFileDialog { Filter = "PNG image|*.png|JPG image|*.jpg", AddExtension = true, AddToRecent = false, InitialDirectory = folder, FileName = $"SCREENSHOT_{DateTime.Now:yyyyMMdd_HHmmss}.png" };
+        var dialog = new SaveFileDialog { Filter = "PNG image|*.png|JPG image|*.jpg", AddExtension = true, AddToRecent = false, InitialDirectory = folder, FileName = $"CAPTURE_{DateTime.Now:yyyyMMdd_HHmmss}.png" };
         if (dialog.ShowDialog(DialogOwner()) != true) return;
         if (!AllowDestination(dialog.FileName)) return;
         var jpg = Path.GetExtension(dialog.FileName).Equals(".jpg", StringComparison.OrdinalIgnoreCase);
@@ -697,7 +697,7 @@ internal sealed class CaptureController : IDisposable
             var region = Drawing.Rectangle.Intersect(picked, ScreenCapture.VirtualScreen);
             region = ScreenCapture.EvenSize(region);
             if (region.Width < 16 || region.Height < 16) throw new InvalidOperationException("The area is too small to record.");
-            path = store.NewFile("RECORDING", ".mp4");
+            path = store.NewFile("CAPTURE", ".mp4");
             using (new ScreenCapture.DpiScope())
             {
                 recordingBorder = new RecordingBorder(region); recordingBorder.Show();

@@ -110,7 +110,7 @@ internal static class Release021Checks
             editor.FrameQuestion = () => (MainWindow.FrameUse.Edit, false);
             check(Wait(() => editor.CaptureFrameAsync()) && controller.OtherEditors.Count == 1, "Capture frame › Edit opens another editor window");
             var other = controller.OtherEditors[0]; var otherPreview = (PreviewSurface)other.FindName("Preview");
-            check(otherPreview.Project.Media is { IsVideo: false } frame && Path.GetFileName(frame.Path).StartsWith("FRAME_") && frame.Width == preview.Project.Media!.Width,
+            check(otherPreview.Project.Media is { IsVideo: false } frame && Path.GetFileName(frame.Path).StartsWith("CAPTURE_") && frame.Width == preview.Project.Media!.Width,
                 "the new window has the frame as a picture");
             check(controller.Editor == editor && preview.Project.Media is { IsVideo: true } && preview.Project.Media.Path == original, "the video stays open in the first window");
             other.UpdateLayout();

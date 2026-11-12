@@ -148,9 +148,9 @@ public partial class MainWindow
         {
             var (segments, audio) = await makeSegments(token, store); made.AddRange(segments);
             droppedSound = !audio && await HasAudioAsync(media.Path, token);
-            var list = store.NewFile("EDITED", ".txt"); made.Add(list);
+            var list = store.NewFile("CAPTURE", ".txt"); made.Add(list);
             File.WriteAllText(list, string.Concat(segments.Select(s => $"file '{Path.GetFileName(s)}'\n")), new UTF8Encoding(false));
-            result = store.NewFile("EDITED", ".mp4");
+            result = store.NewFile("CAPTURE", ".mp4");
             ReportWork(0.9, "Joining the Pieces");
             await tools.RunAsync("ffmpeg.exe", ["-v", "error", "-y", "-f", "concat", "-i", list, "-map", "0", "-c", "copy", "-fps_mode", "passthrough", "-map_metadata", "-1", result], media.Path, token);
             var project = ProjectStore.Deserialize(ProjectStore.Serialize(Project));
@@ -179,7 +179,7 @@ public partial class MainWindow
     private async Task<string> EncodeSegmentAsync(string source, FrameTimeline map, int first, int last, double offset, bool audio, (int Width, int Height)? size, CaptureStore store, CancellationToken token)
     {
         var span = map.Frames[last].Time + Math.Max(map.Frames[last].Duration, 0.001) - map.Frames[first].Time;
-        var segment = store.NewFile("EDITED", ".mp4");
+        var segment = store.NewFile("CAPTURE", ".mp4");
         var args = new List<string> { "-v", "error", "-y", "-i", source };
         // Always start at the piece's first frame (0.22.0): David's MKVs start their sound 0.12 s before the
         // picture, and without a start the length (-t) counted from the sound cut the last 3 frames off.

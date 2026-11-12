@@ -60,7 +60,7 @@ internal static class Release020Checks
             check(editor.MarkerA == 4 && editor.MarkerB == 6 && ((System.Windows.Controls.Button)editor.FindName("DeleteSelectionButton")).IsEnabled, "Set A and Set B mark frames; Delete A–B becomes available");
             check(Wait(() => editor.TrimAsync(false)), "Delete A–B trims the video");
             var trimmed = preview.Project.Media!; var newMap = preview.Timeline!;
-            check(newMap.Frames.Count == 7 && Path.GetFileName(trimmed.Path).StartsWith("EDITED_") && controller.Store.Owns(trimmed.Path), "the three marked frames are gone (10 → 7), in a working copy");
+            check(newMap.Frames.Count == 7 && Path.GetFileName(trimmed.Path).StartsWith("CAPTURE_") && controller.Store.Owns(trimmed.Path), "the three marked frames are gone (10 → 7), in a working copy");
             check(Same(FrameBrightness(trimmed.Path, newMap, 4), originalFrame7), "the frame after the cut is the old frame 8 (the cut is frame-exact)");
             check(newMap.Frames.Zip(newMap.Frames.Skip(1)).All(p => Math.Abs(p.Second.Time - p.First.Time - 0.1) < 0.002), "the frames run on evenly: no gap where the cut was");
             var soundJson = System.Text.Encoding.UTF8.GetString(Wait(() => tools.RunAsync("ffprobe.exe", ["-v", "error", "-show_entries", "stream=codec_type,duration", "-of", "csv=p=0", trimmed.Path], trimmed.Path, CancellationToken.None)));

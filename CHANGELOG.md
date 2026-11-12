@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.1.3 (November 2026)
+- Toolbar spacer: Settings › Toolbar › Add Spacer puts a blank, button-sized gap anywhere on the editor's toolbar.
+- New first-start defaults from David's settings file: Save Media before Save Project, Copy and Paste in their own group; Save Media, Delete, Fit Width, Slideshow and Nav Bar shown, New, Add Image and Rotate hidden; the navigation bar shows in the editor at 48 pixels; the red tab is 30 pixels wide.
+- The Save Copy button is now Save Media, with the tooltip "Save Media As… (No Redactions)".
+- The red tab the capture bar hides in has no tooltip.
+- Edit menu: Copy Image, Paste Image and Paste onto Image come before Transform, Rotate and Resize.
+- File names: every export is REDACTED_ (no more CROPPED_); everything TRT makes before export (screenshots, recordings, frames, pasted and new images, edited working copies) is CAPTURE_. Save Media As adds _COPY once, never _COPY_COPY.
+
 ## 3.1.2 (November 2026)
 - File menu in a new order: New Image, Open Media (Ctrl+O), Export (Ctrl+E), Save Media As (Ctrl+Shift+S), Add Image, Open Project, Save Project, File Info.
 

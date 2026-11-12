@@ -84,7 +84,7 @@ public partial class MainWindow
             var whole = ProjectStore.Deserialize(before); whole.Crop = null; whole.Export.KeepAudio = false; whole.Export.DeleteOriginal = false;
             ExportGate.Check(whole, policy); // The same rules as Export (a policy that allows only boxes, and so on).
             var picture = await Task.Run(() => RenderForCopy(image, whole, 0, null, token), token);
-            made = captures!.Store.NewFile("EDITED", ".png");
+            made = captures!.Store.NewFile("CAPTURE", ".png");
             CaptureController.WritePng(picture, made);
             token.ThrowIfCancellationRequested();
             var project = ProjectStore.Deserialize(before);

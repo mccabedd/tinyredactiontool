@@ -64,7 +64,7 @@ public partial class MainWindow
             if (Preview.Image is not { } image) throw new InvalidOperationException("The picture is not loaded.");
             var project = ProjectStore.Deserialize(ProjectStore.Serialize(Project));
             ScaleProjectGeometry(project, width, height);
-            made = captures.Store.NewFile("EDITED", ".png");
+            made = captures.Store.NewFile("CAPTURE", ".png");
             CaptureController.WritePng(ScaleBitmap(image, width, height), made);
             token.ThrowIfCancellationRequested();
             var hash = await ProjectStore.HashAsync(made, token);

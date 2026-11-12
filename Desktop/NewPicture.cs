@@ -147,7 +147,7 @@ public partial class MainWindow
         var dialog = new NewPictureWindow(clipboard, current) { Owner = IsLoaded ? this : null };
         var answered = AnswerNewPicture != null ? AnswerNewPicture(dialog) : dialog.ShowDialog() == true;
         if (!answered || dialog.Result is not { } chosen) return false;
-        var path = captures.Store.NewFile("NEW", ".png");
+        var path = captures.Store.NewFile("CAPTURE", ".png");
         CaptureController.WritePng(NewPictureWindow.Blank(chosen.Width, chosen.Height, chosen.Background), path);
         // Carried over, nothing is lost, so the "unsaved screenshot" question isn't asked.
         var carried = chosen.Carry && current != null;

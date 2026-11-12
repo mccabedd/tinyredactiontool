@@ -123,7 +123,8 @@ internal sealed class CaptureStore : IDisposable
         return result;
     }
     // 0.28.0: also NEW_ (New pictures, 0.26.0), which leftover cleanup had missed.
-    internal static readonly string[] OwnPrefixes = ["SCREENSHOT_", "RECORDING_", "PASTED_", "FRAME_", "EDITED_", "NEW_"];
+    // 3.1.3 (David): everything TRT makes is CAPTURE_; the older names stay so Remove History still clears them.
+    internal static readonly string[] OwnPrefixes = ["CAPTURE_", "SCREENSHOT_", "RECORDING_", "PASTED_", "FRAME_", "EDITED_", "NEW_"];
     // Wipes the captures TRT made in an abandoned folder (only its own file names) and removes it.
     public static int WipeAbandoned(string dir)
     {

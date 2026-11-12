@@ -70,9 +70,9 @@ internal static class CaptureChecks
         var temp = Path.Combine(output, "capture-store"); if (Directory.Exists(temp)) Directory.Delete(temp, true); Directory.CreateDirectory(temp);
         using (var store = new CaptureStore(temp))
         {
-            var first = store.NewFile("SCREENSHOT", ".png"); var second = store.NewFile("SCREENSHOT", ".png");
+            var first = store.NewFile("CAPTURE", ".png"); var second = store.NewFile("CAPTURE", ".png");
             File.WriteAllBytes(first, [1, 2, 3]); File.WriteAllBytes(second, [4, 5, 6]);
-            check(first != second && Path.GetDirectoryName(first) == store.Root && Path.GetFileName(store.Root!).StartsWith(CaptureStore.FolderPrefix) && Path.GetFileName(first).StartsWith("SCREENSHOT_") && store.Owns(first),
+            check(first != second && Path.GetDirectoryName(first) == store.Root && Path.GetFileName(store.Root!).StartsWith(CaptureStore.FolderPrefix) && Path.GetFileName(first).StartsWith("CAPTURE_") && store.Owns(first),
                 "captures get their own names in a private TRT folder in the temporary folder");
             check(CaptureStore.AbandonedFolders(temp).Count == 0, "a running session's capture folder is not taken for a leftover");
             var outsider = Path.Combine(temp, "not-a-capture.png"); File.WriteAllBytes(outsider, [9]);
@@ -153,7 +153,7 @@ internal static class CaptureChecks
             T E<T>(string name) => (T)editor.FindName(name);
             var preview = E<PreviewSurface>("Preview");
             var firstCapture = preview.Project.Media?.Path;
-            check(firstCapture != null && controller.Store.Owns(firstCapture) && File.Exists(firstCapture) && preview.Image?.PixelWidth == 80 && Path.GetFileName(firstCapture).StartsWith("SCREENSHOT_"),
+            check(firstCapture != null && controller.Store.Owns(firstCapture) && File.Exists(firstCapture) && preview.Image?.PixelWidth == 80 && Path.GetFileName(firstCapture).StartsWith("CAPTURE_"),
                 "To Editor opens the screenshot in the editor from TRT's capture folder");
             check(E<MenuItem>("OriginalMenuItem").IsEnabled && E<MenuItem>("CaptureMenu").IsVisible && E<MenuItem>("QuitMenuItem").Visibility == Visibility.Visible && ((string)E<Button>("OriginalButton").ToolTip).Contains("as Captured, Without Edits"),
                 "the editor shows Original and a Capture menu for a capture");

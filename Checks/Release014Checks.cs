@@ -185,7 +185,7 @@ internal static class Release014Checks
             var before = preview.Project.Media!.Path;
             Wait(() => editor.PastePictureAsync());
             var pasted = preview.Project.Media;
-            check(pasted != null && pasted.Width == 40 && pasted.Height == 30 && controller.Store.Owns(pasted.Path) && Path.GetFileName(pasted.Path).StartsWith("PASTED_") && !File.Exists(before),
+            check(pasted != null && pasted.Width == 40 && pasted.Height == 30 && controller.Store.Owns(pasted.Path) && Path.GetFileName(pasted.Path).StartsWith("CAPTURE_") && !File.Exists(before),
                 "Paste opens the clipboard picture as a new capture (and wipes the screenshot it replaced)");
             ((Button)editor.FindName("ClearScreenButton")).RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent)); Pump();
             check(preview.Project.Media == null && !File.Exists(pasted!.Path), "Clear Editor clears the editor, like Clear on the toolbar");

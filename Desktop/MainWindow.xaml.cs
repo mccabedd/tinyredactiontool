@@ -762,7 +762,8 @@ public partial class MainWindow : Window
         {
             Filter = video ? "MP4 video|*.mp4|MOV video|*.mov|M4V video|*.m4v|AVI video|*.avi|MKV video|*.mkv|WebM video|*.webm" : "PNG image|*.png|JPG image|*.jpg;*.jpeg|GIF image|*.gif|WebP image|*.webp",
             FilterIndex = video ? 1 : (int)imageFormat + 1, AddExtension = true,
-            FileName = (Project.Crop != null && Project.Regions.Count == 0 ? "CROPPED_" : "REDACTED_") + $"{DateTime.Now:yyyyMMdd_HHmmss}" + (video ? ".mp4" : StillImageFormats.Extension(imageFormat)), AddToRecent = false
+            // 3.1.3 (David): every export is REDACTED_ (no more CROPPED_ for a crop alone).
+            FileName = "REDACTED_" + $"{DateTime.Now:yyyyMMdd_HHmmss}" + (video ? ".mp4" : StillImageFormats.Extension(imageFormat)), AddToRecent = false
         };
         if (dialog.ShowDialog(this) != true) return;
         if (!video && StillImageFormats.FromPath(dialog.FileName) == null) { ThemedMessage.Show(this, "Choose a .png, .jpg, .gif or .webp file name.", "Image Format"); return; }
@@ -1050,5 +1051,5 @@ public partial class MainWindow : Window
     private void About(object sender, RoutedEventArgs e) => AboutWindow.Open(this, VersionText);
     private void OpenHelp(object sender, RoutedEventArgs e) => HelpManual.Open(this); // 3.0.0 (David)
     // 0.27.1 (David): the About box is the simple one (AboutWindow); this text is its version and description.
-    internal static string AboutText => "TinyRedactionTool 3.1.2\n" + AboutWindow.Description;
+    internal static string AboutText => "TinyRedactionTool 3.1.3\n" + AboutWindow.Description;
 }

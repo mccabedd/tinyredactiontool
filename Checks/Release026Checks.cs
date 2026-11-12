@@ -66,7 +66,7 @@ internal static class Release026Checks
 
             // ---- Navigation bar: drag to resize; not with a video ----
             foreach (var (name, colour) in new[] { ("a.png", Colors.Teal), ("b.png", Colors.Orange) }) WriteImage(Path.Combine(folder, name), NewPictureWindow.Blank(120, 80, colour));
-            editor.ApplySettings(new AppSettings { NavBarInEditor = true });
+            editor.ApplySettings(new AppSettings { NavBarInEditor = true, NavBarThumbnailSize = 72 }); // 3.1.3: the default is 48 now; these drags start from 72.
             check(Wait(() => editor.OpenPathAsync(Path.Combine(folder, "a.png"))) && editor.NavBarShown, $"a picture opens with the navigation bar{Failure()}");
             var nav = editor.NavBar ?? throw new InvalidOperationException("No navigation bar.");
             nav.UpdateLayout(); Pump();
@@ -129,8 +129,8 @@ internal static class Release026Checks
             check(Wait(() => editor.NewPictureAsync()) && preview.Project.Media is { Width: 400, Height: 300, IsVideo: false } && editor.IsNewPicture && preview.Image is { } blank && Alpha(blank, 200, 150) == 0,
                 $"New makes a transparent 400 × 300 picture (Portrait turned Full HD on its side first){Failure()}");
             check(asked != null && asked.Presets.SelectedItem is NewPictureWindow.Preset { Name: "Custom" } && asked.Landscape.IsChecked == true, "a typed size counts as Custom, and 400 × 300 as Landscape");
-            check(((Button)editor.FindName("OriginalButton")).Visibility != Visibility.Visible && editor.OnToolbar("NewButton") && AppSettings.DefaultEditorToolbar[0] == "NewButton",
-                "a New picture has no Original button; New is first on the toolbar");
+            check(((Button)editor.FindName("OriginalButton")).Visibility != Visibility.Visible && editor.OnToolbar("NewButton") != AppSettings.DefaultHiddenEditorButtons.Contains("NewButton") && AppSettings.DefaultEditorToolbar[0] == "NewButton",
+                "a New picture has no Original button; New is first in the toolbar's order (unticked by David's 3.1.3 defaults)");
             editor.AnswerNewPicture = dialog => { dialog.Carry.IsChecked = false; dialog.WidthBox.Value = 200; dialog.HeightBox.Value = 100; dialog.Coloured.IsChecked = true; dialog.Chosen = Color.FromRgb(10, 120, 200); dialog.Accept(); return true; };
             check(Wait(() => editor.NewPictureAsync()) && preview.Image is { } coloured && Pixel(coloured, 100, 50) == Color.FromArgb(255, 10, 120, 200), "or one in a chosen colour");
 

@@ -32,7 +32,7 @@ internal static class Release300Checks
         check(Regex.Matches(html, "color-scheme: dark;").Count >= 2 && html.Contains("scrollbar-color"), "in Dark, the manual's scroll bars are dark too");
         // The name Windows shows ("Open with", Task Manager, file properties): TinyRedactionTool, not the internal name.
         var details = System.Diagnostics.FileVersionInfo.GetVersionInfo(typeof(MainWindow).Assembly.Location);
-        check(details.FileDescription == "TinyRedactionTool" && details.ProductName == "TinyRedactionTool" && details.CompanyName == "David McCabe" && details.ProductVersion?.StartsWith("3.1.2") == true,
+        check(details.FileDescription == "TinyRedactionTool" && details.ProductName == "TinyRedactionTool" && details.CompanyName == "David McCabe" && details.ProductVersion?.StartsWith("3.1.3") == true,
             $"Windows calls the program TinyRedactionTool (description {details.FileDescription}, product {details.ProductName})");
         var savedRoot = PictureApp.SoftwareRoot; PictureApp.SoftwareRoot = @"Software\TRT-Checks-300";
         try
@@ -76,6 +76,6 @@ internal static class Release300Checks
         }
         finally { ExplorerMenu.ClassesRoot = savedClasses; Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(@"Software\TRT-Checks-311", false); }
         // 3.1.2: the File menu's order is checked in Release027Checks (with the other menu wording).
-        check(MainWindow.AboutText.StartsWith("TinyRedactionTool 3.1.2\n", StringComparison.Ordinal), "the version is 3.1.2 (3.1.1 is published; the File menu order came after)");
+        check(MainWindow.AboutText.StartsWith("TinyRedactionTool 3.1.3\n", StringComparison.Ordinal), "the version is 3.1.3 (3.1.2 is published; spacer, defaults and file names came after)");
     }
 }

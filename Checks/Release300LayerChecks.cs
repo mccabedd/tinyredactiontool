@@ -170,7 +170,7 @@ internal static class Release300LayerChecks
             check(flatten.IsEnabled, "Flatten Image is on for a picture with layers");
             check(Wait(() => editor.FlattenImageAsync()), "Flatten Image runs");
             var flat = preview.Image!;
-            check(preview.Project.Regions.Count == 0 && preview.Project.Annotations.Count == 0 && preview.Project.Media!.Path != before.Path && Path.GetFileName(preview.Project.Media.Path).StartsWith("EDITED_") &&
+            check(preview.Project.Regions.Count == 0 && preview.Project.Annotations.Count == 0 && preview.Project.Media!.Path != before.Path && Path.GetFileName(preview.Project.Media.Path).StartsWith("CAPTURE_") &&
                   controller.Store.Owns(preview.Project.Media.Path) && File.Exists(before.Path), "after Flatten the lists are empty and the picture is a working copy (the original is kept)");
             check(At(flat, 30, 20) == (0, 0, 0) && At(flat, 80, 20) == (0, 0, 255) && At(flat, 70, 80) == (255, 0, 0) && At(flat, 5, 95) == (200, 200, 200),
                 "the redactions and annotations are now part of the picture");

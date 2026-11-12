@@ -147,6 +147,13 @@ public partial class MainWindow
 
     // ---- Save media as… (0.18.0, David): the open picture or video exactly as it is on disk, without any
     // redactions or edits. The copy is checked against the file's fingerprint before it replaces anything.
+    // 3.1.3 (David): the suggested name ends in _COPY once (saving a copy of a copy doesn't give _COPY_COPY).
+    internal static string CopyName(string path)
+    {
+        var stem = Path.GetFileNameWithoutExtension(path);
+        while (stem.EndsWith("_COPY", StringComparison.OrdinalIgnoreCase)) stem = stem[..^5];
+        return stem + "_COPY" + Path.GetExtension(path);
+    }
     private async void SaveMediaAs(object sender, RoutedEventArgs e)
     {
         if (busy || Project.Media is not { } media) return;
@@ -154,7 +161,7 @@ public partial class MainWindow
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
             Filter = $"Same format as the original (*{extension})|*{extension}", AddExtension = true, AddToRecent = false,
-            FileName = Path.GetFileNameWithoutExtension(media.Path) + "_COPY" + extension,
+            FileName = CopyName(media.Path), // 3.1.3: _COPY once, never _COPY_COPY.
             InitialDirectory = captures?.Settings.LastSaveFolder is { } last && Directory.Exists(last) ? last : Path.GetDirectoryName(media.Path),
         };
         if (dialog.ShowDialog(this) != true) return;
@@ -211,7 +218,7 @@ public partial class MainWindow
                 var path = saveTo;
                 if (path == null)
                 {
-                    var dialog = new Microsoft.Win32.SaveFileDialog { Filter = "PNG image|*.png|JPG image|*.jpg", AddExtension = true, AddToRecent = false, FileName = $"FRAME_{frameNumber}_{DateTime.Now:yyyyMMdd_HHmmss}.png" };
+                    var dialog = new Microsoft.Win32.SaveFileDialog { Filter = "PNG image|*.png|JPG image|*.jpg", AddExtension = true, AddToRecent = false, FileName = $"CAPTURE_{DateTime.Now:yyyyMMdd_HHmmss}.png" };
                     if (dialog.ShowDialog(this) != true) return false;
                     path = dialog.FileName;
                 }
@@ -223,7 +230,7 @@ public partial class MainWindow
             default:
                 if (captures == null) { Status.Text = "Editing a frame needs the capture part of TRT, which is not running."; return false; }
                 // 0.21.0 (David): in another editor window; the video stays open in this one.
-                var capture = captures.Store.NewFile("FRAME", ".png");
+                var capture = captures.Store.NewFile("CAPTURE", ".png");
                 CaptureController.WritePng(picture, capture);
                 var other = captures.OpenAnotherEditor();
                 var opened = await other.OpenCaptureAsync(capture);
@@ -335,7 +342,7 @@ public partial class MainWindow
             // A PNG on the clipboard keeps its transparency (0.22.1); otherwise the ordinary picture.
             if ((Transparency.ClipboardPng() ?? (Clipboard.ContainsImage() ? Clipboard.GetImage() : null)) is not { } image) { Status.Text = "There is no picture on the clipboard to paste."; return false; }
             if (captures == null) { Status.Text = "Paste needs the capture part of TRT, which is not running."; return false; }
-            var path = captures.Store.NewFile("PASTED", ".png");
+            var path = captures.Store.NewFile("CAPTURE", ".png");
             CaptureController.WritePng(image, path);
             var opened = await OpenCaptureAsync(path);
             if (!opened) ReleaseCapture(path);

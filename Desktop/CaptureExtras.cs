@@ -55,7 +55,7 @@ internal sealed class MinimizedStrip : Window
         WindowStyle = WindowStyle.None; ResizeMode = ResizeMode.NoResize; Topmost = true; ShowInTaskbar = false; ShowActivated = false;
         // 0.22.0 (David): half as thick as before (6 → 3).
         Background = new SolidColorBrush(Color.FromRgb(214, 48, 48)); Height = StripThickness; Width = AppSettings.DefaultStripWidth; Title = "TinyRedactionTool";
-        ToolTip = "Point Here to Show the Capture Bar";
+        // 3.1.3 (David): no tooltip ("Point Here to Show the Capture Bar" removed); pointing at it brings the bar back.
         Cursor = Cursors.Hand;
         MouseEnter += (_, _) => Restore?.Invoke(this, EventArgs.Empty);
         MouseLeftButtonDown += (_, _) => Restore?.Invoke(this, EventArgs.Empty);

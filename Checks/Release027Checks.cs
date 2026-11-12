@@ -47,8 +47,9 @@ internal static class Release027Checks
         // ---- David's settings file is the first-start default (with Add Image after Open) ----
         string[] davidToolbar =
         [
-            "NewButton", "OpenButton", "AddImageButton", "OpenProjectButton", "PreviousPictureButton", "NextPictureButton", "ExportButton", "SaveProjectButton", "SaveMediaButton", "OriginalButton", "CopyButton", "PasteButton", "|",
-            "UndoButton", "RedoButton", "DeleteButton", "|", "SelectToolButton", "RectangleTool", "OvalTool", "PolygonTool", "|", "TrimToolButton", "AppendToolButton", "|",
+            // 3.1.3: David's "TRT Default Settings.json".
+            "NewButton", "OpenButton", "AddImageButton", "OpenProjectButton", "PreviousPictureButton", "NextPictureButton", "ExportButton", "SaveMediaButton", "SaveProjectButton", "OriginalButton", "|",
+            "CopyButton", "PasteButton", "|", "UndoButton", "RedoButton", "DeleteButton", "|", "SelectToolButton", "RectangleTool", "OvalTool", "PolygonTool", "|", "TrimToolButton", "AppendToolButton", "|",
             "OpaqueTool", "BlurTool", "PixelateTool", "|", "TextTool", "DrawRectangleTool", "DrawOvalTool", "LineTool", "PolylineTool", "FreehandTool", "|",
             "CropTool", "ResizeButton", "RotateClockwiseButton", "RotateCounterClockwiseButton", "FlipHorizontalButton", "FlipVerticalButton", "|",
             "ZoomInButton", "ZoomOutButton", "FitButton", "FitWidthButton", "ActualSizeButton", "FullScreenButton", "PanTool", "SlideshowButton", "NavBarButton", "|",
@@ -57,14 +58,14 @@ internal static class Release027Checks
         var fresh = new AppSettings();
         check(fresh.EditorToolbar.SequenceEqual(davidToolbar) && AppSettings.CleanToolbar(fresh.EditorToolbar).SequenceEqual(davidToolbar),
             "the toolbar starts in David's order, with Add Image between Open and Open Project");
-        check(fresh.EditorHiddenButtons.ToHashSet().SetEquals(["OpenProjectButton", "PreviousPictureButton", "NextPictureButton", "SaveProjectButton", "SaveMediaButton", "OriginalButton", "DeleteButton",
-                "FlipHorizontalButton", "FlipVerticalButton", "ZoomInButton", "ZoomOutButton", "FitWidthButton", "SlideshowButton", "NavBarButton", "SettingsButton"]) && !fresh.EditorHiddenButtons.Contains("AddImageButton"),
-            "the hidden buttons are David's, and Add Image is shown (ticked)");
-        check(fresh.BarButtons.SequenceEqual(["Region", "Freehand", "ActiveWindow", "WindowObject", "FullScreen", "Scrolling", "Recorder", "Editor", "Output"]) && fresh.StripWidth == 60 && fresh.HideOptionsBar
-              && fresh.SlideshowSeconds == 5 && fresh.SlideshowRepeat && !fresh.NavBarInEditor && fresh.NavBarInSlideshow && fresh.NavBarPinnedInSlideshow && fresh.NavBarThumbnailSize == 72
+        check(fresh.EditorHiddenButtons.ToHashSet().SetEquals(["NewButton", "AddImageButton", "OpenProjectButton", "PreviousPictureButton", "NextPictureButton", "SaveProjectButton", "OriginalButton",
+                "RotateClockwiseButton", "RotateCounterClockwiseButton", "FlipHorizontalButton", "FlipVerticalButton", "ZoomInButton", "ZoomOutButton", "SettingsButton"]),
+            "the hidden buttons are David's 3.1.3 ones (Save Media, Delete, Fit Width, Slideshow and Nav Bar shown; New, Add Image and Rotate hidden)");
+        check(fresh.BarButtons.SequenceEqual(["Region", "Freehand", "ActiveWindow", "WindowObject", "FullScreen", "Scrolling", "Recorder", "Editor", "Output"]) && fresh.StripWidth == 30 && fresh.HideOptionsBar
+              && fresh.SlideshowSeconds == 5 && fresh.SlideshowRepeat && fresh.NavBarInEditor && fresh.NavBarInSlideshow && fresh.NavBarPinnedInSlideshow && fresh.NavBarThumbnailSize == 48
               && fresh.ScreenshotShortcut == "Ctrl+PrintScreen" && fresh.RecordingShortcut == "Ctrl+Shift+PrintScreen" && fresh.BarShortcut == "Ctrl+Alt+B" && fresh.EditorShortcut == "Ctrl+Alt+E"
               && fresh.Output == CaptureOutput.Editor && fresh.RecordingFramesPerSecond == 15 && fresh.RecordMousePointer && fresh.RecordMouseClicks && !fresh.CaptureMousePointer && !fresh.CloseButtonQuits && fresh.ShowCaptureBar,
-            "the other first-start settings are David's (capture bar buttons without the Ruler, 60-pixel red tab, options bar hidden, shortcuts...)");
+            "the other first-start settings are David's (capture bar buttons without the Ruler, 30-pixel red tab, nav bar in the editor at 48 pixels, options bar hidden, shortcuts...)");
         var olderToolbar = AppSettings.Parse("{\"EditorToolbar\":[\"NewButton\",\"OpenButton\",\"ExportButton\",\">\",\"PanelButton\"],\"EditorHiddenButtons\":[]}");
         check(olderToolbar.EditorToolbar.IndexOf("AddImageButton") == olderToolbar.EditorToolbar.IndexOf("OpenButton") + 1 && !olderToolbar.EditorHiddenButtons.Contains("AddImageButton"),
             "settings saved by an older TRT get Add Image right after Open, shown");
@@ -118,6 +119,40 @@ internal static class Release027Checks
             var lower = items.Where(m => m.Header is string h && LowerWords(h).Any()).Select(Header).ToList();
             check(lower.Count == 0, $"every menu item is in Title Case ({string.Join(", ", lower)})");
 
+            // ---- 3.1.3 (David): Edit menu order, Save Media wording, red tab without a tooltip, file names, toolbar spacer ----
+            var edit = menu.Items.OfType<MenuItem>().First(m => Header(m) == "Edit");
+            var editOrder = edit.Items.Cast<object>().Take(10).Select(o => o is MenuItem m ? Header(m) : "|").ToArray();
+            check(editOrder.SequenceEqual(["Undo", "Redo", "|", "Copy Image", "Paste Image", "Paste onto Image", "|", "Transform", "Rotate Image or Video", "Resize Image…"]),
+                "the Edit menu has Copy, Paste and Paste onto Image before Transform, Rotate and Resize: " + string.Join(" | ", editOrder));
+            var saveMedia = (Button)editor.FindName("SaveMediaButton");
+            check(saveMedia.Content as string == "Save Media" && saveMedia.ToolTip as string == "Save Media As… (No Redactions)" && SettingsWindow.ToolbarLabel("SaveMediaButton") == "Save Media",
+                "the Save Media button says Save Media, with the tooltip Save Media As… (No Redactions)");
+            var redTab = new MinimizedStrip();
+            check(redTab.ToolTip == null, "the red tab the capture bar hides in has no tooltip");
+            redTab.Close();
+            check(MainWindow.CopyName(@"C:\x\CAPTURE_20261112_101500.png") == "CAPTURE_20261112_101500_COPY.png" && MainWindow.CopyName(@"C:\x\SCREENSHOT_1_COPY_COPY.jpg") == "SCREENSHOT_1_COPY.jpg",
+                "Save Media As suggests the name with _COPY once, never _COPY_COPY");
+            var before = editor.Settings.Copy(); var spaced = editor.Settings.Copy();
+            var spacedLayout = AppSettings.CleanToolbar(spaced.EditorToolbar);
+            spacedLayout.Insert(spacedLayout.IndexOf("ExportButton"), AppSettings.ToolbarSpacer); spacedLayout.Insert(spacedLayout.IndexOf("ExportButton"), AppSettings.ToolbarSpacer);
+            spaced.EditorToolbar = spacedLayout; editor.ApplySettings(spaced); editor.UpdateLayout();
+            var gaps = Descendants<Border>((Panel)editor.FindName("ToolButtons")).Where(b => b.Tag as string == AppSettings.ToolbarSpacer).ToList();
+            var openForSize = (Button)editor.FindName("OpenButton");
+            check(editor.SpacerCount == 2 && gaps.All(g => g.ActualWidth == 36) && gaps.All(g => g.IsVisible) && openForSize.ActualWidth >= 36,
+                $"two spacers on the toolbar make two blank gaps the width of a button ({string.Join(", ", gaps.Select(g => g.ActualWidth))} px)");
+            check(AppSettings.Parse("{\"EditorToolbar\":[\"OpenButton\",\"_\",\"_\",\"ExportButton\",\">\",\"PanelButton\"]}").EditorToolbar.Count(id => id == AppSettings.ToolbarSpacer) == 2,
+                "spacers are kept when the settings are saved and read back");
+            var spacerSettings = new SettingsWindow(spaced);
+            var toolbarList = (ListBox)spacerSettings.FindName("ToolbarList");
+            check(toolbarList.Items.Cast<FrameworkElement>().Count(i => i.Tag as string == AppSettings.ToolbarSpacer) == 2, "Settings › Toolbar lists the two spacers");
+            toolbarList.SelectedIndex = 0; spacerSettings.AddToolbarSpacer(spacerSettings, new RoutedEventArgs());
+            var added = spacerSettings.Collect().EditorToolbar.Count(id => id == AppSettings.ToolbarSpacer);
+            var removable = ((Button)spacerSettings.FindName("ToolbarRemoveSeparator")).IsEnabled;
+            spacerSettings.RemoveToolbarSeparator(spacerSettings, new RoutedEventArgs());
+            check(added == 3 && removable && spacerSettings.Collect().EditorToolbar.Count(id => id == AppSettings.ToolbarSpacer) == 2,
+                "Add Spacer adds one after the chosen item, and Remove takes it away again");
+            spacerSettings.Close(); editor.ApplySettings(before); editor.UpdateLayout();
+
             static string[] Clicks(UIElement element, RoutedEvent click)
             {
                 var store = typeof(UIElement).GetProperty("EventHandlersStore", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(element);
@@ -156,6 +191,8 @@ internal static class Release027Checks
             check(barTips.Count == 0, $"capture bar tooltips are in Title Case, as David asked (Capture Active Window) ({string.Join(" | ", barTips)})");
 
             // ---- Add Image: off without a picture, on with one, off for a video ----
+            // 3.1.3: David's defaults untick Add Image; tick it for these checks.
+            { var shown = editor.Settings.Copy(); shown.EditorHiddenButtons.Remove("AddImageButton"); editor.ApplySettings(shown); editor.UpdateLayout(); }
             var add = (Button)editor.FindName("AddImageButton"); var open = (Button)editor.FindName("OpenButton");
             var strip = (Panel)editor.FindName("ToolButtons");
             check(add.IsVisible && strip.Children.IndexOf(add) == strip.Children.IndexOf(open) + 1 && !add.IsEnabled && (string)add.Content == "Add Image",

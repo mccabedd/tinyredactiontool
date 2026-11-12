@@ -171,7 +171,8 @@
       <Button x:Name="ToolbarUp" Content="Up" MinWidth="96" Margin="0,0,0,4" Padding="8,3" Click="MoveToolbarItem" Tag="-1" ToolTip="Move Left"/>
       <Button x:Name="ToolbarDown" Content="Down" MinWidth="96" Margin="0,0,0,4" Padding="8,3" Click="MoveToolbarItem" Tag="1" ToolTip="Move Right"/>
       <Button x:Name="ToolbarAddSeparator" Content="Add Separator" MinWidth="96" Margin="0,8,0,4" Padding="8,3" Click="AddToolbarSeparator" ToolTip="Add a Separator Line"/>
-      <Button x:Name="ToolbarRemoveSeparator" Content="Remove" MinWidth="96" Margin="0,0,0,4" Padding="8,3" Click="RemoveToolbarSeparator" ToolTip="Remove the Separator"/>
+      <Button x:Name="ToolbarAddSpacer" Content="Add Spacer" MinWidth="96" Margin="0,0,0,4" Padding="8,3" Click="AddToolbarSpacer" ToolTip="Add a Blank Space the Size of a Button"/>
+      <Button x:Name="ToolbarRemoveSeparator" Content="Remove" MinWidth="96" Margin="0,0,0,4" Padding="8,3" Click="RemoveToolbarSeparator" ToolTip="Remove the Separator or Spacer"/>
       <Button x:Name="ToolbarReset" Content="Reset" MinWidth="96" Margin="0,8,0,0" Padding="8,3" Click="ResetToolbar" ToolTip="The Usual Buttons and Order"/>
      </StackPanel>
      <ListBox x:Name="ToolbarList" SelectionChanged="ToolbarSelected"/>

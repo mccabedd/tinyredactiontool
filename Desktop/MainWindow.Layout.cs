@@ -62,6 +62,12 @@ public partial class MainWindow
                 separator.Height = vertical ? 1 : small ? 22 : 36;
                 separator.Margin = vertical ? new Thickness(2, 4, 2, 4) : new Thickness(4, 0, 4, 0);
             }
+            else if (child is Border { Tag: AppSettings.ToolbarSpacer } spacer)
+            {
+                // 3.1.3: as wide (or, upright, as tall) as a button with no caption.
+                spacer.Width = vertical ? 1 : small ? 24 : 36;
+                spacer.Height = vertical ? small ? 24 : 36 : 1;
+            }
         }
         RightTools.Orientation = vertical ? Orientation.Vertical : Orientation.Horizontal;
         DockPanel.SetDock(RightTools, vertical ? Dock.Bottom : Dock.Right);

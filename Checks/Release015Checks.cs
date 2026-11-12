@@ -40,7 +40,7 @@ internal static class Release015Checks
             var names = Find<WrapPanel>("ToolButtons").Children.OfType<Button>().Select(b => ((string)b.Content).Replace("\n", " ")).ToList();
             var text = names.IndexOf("Text");
             check(names.Skip(text).Take(6).SequenceEqual(["Text", "Outline", "Ellipse", "Line", "Polyline", "Pen"]), "drawing tools read Text, Outline, Ellipse, Line, Polyline, Pen");
-            check(names.IndexOf("Actual Size") == names.IndexOf("Fit") + 1, "Actual Size sits just after Fit");
+            check(names.IndexOf("Actual Size") == names.IndexOf("Fit") + (names.Contains("Fit Width") ? 2 : 1), "Actual Size sits just after Fit (and Fit Width, shown by David's 3.1.3 defaults)");
             preview.Fit(); Click("ActualSizeButton");
             check(Find<TextBlock>("ZoomText").Text == "100%", "Actual Size shows the picture at 100%");
 

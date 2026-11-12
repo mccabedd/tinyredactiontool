@@ -23,10 +23,14 @@ public sealed class AppSettings
     // side starts (the bottom when the toolbar is vertical). Buttons in EditorHiddenButtons keep their place but
     // aren't shown. The names are the buttons' names in MainWindow.xaml.
     public const string ToolbarSeparator = "|", ToolbarRightSide = ">";
+    // 3.1.3 (David): a blank gap the size of one button, as many as wanted, anywhere.
+    public const string ToolbarSpacer = "_";
     // 0.27.0 (David's "TRT settings.json"): his order and hidden buttons are the defaults, with Add Image after Open.
+    // 3.1.3 (David's "TRT Default Settings.json"): Save Media before Save Project, Copy and Paste in their own group.
     public static readonly string[] DefaultEditorToolbar =
     [
-        "NewButton", "OpenButton", "AddImageButton", "OpenProjectButton", "PreviousPictureButton", "NextPictureButton", "ExportButton", "SaveProjectButton", "SaveMediaButton", "OriginalButton", "CopyButton", "PasteButton", "|",
+        "NewButton", "OpenButton", "AddImageButton", "OpenProjectButton", "PreviousPictureButton", "NextPictureButton", "ExportButton", "SaveMediaButton", "SaveProjectButton", "OriginalButton", "|",
+        "CopyButton", "PasteButton", "|",
         "UndoButton", "RedoButton", "DeleteButton", "|",
         "SelectToolButton", "RectangleTool", "OvalTool", "PolygonTool", "|",
         "TrimToolButton", "AppendToolButton", "|",
@@ -37,9 +41,9 @@ public sealed class AppSettings
         ">", "FileInfoButton", "|", "ToolClearRedactions", "ToolClearAnnotations", "ClearScreenButton", "|", "SettingsButton", "PanelButton",
     ];
     public static readonly string[] DefaultHiddenEditorButtons =
-        ["OpenProjectButton", "PreviousPictureButton", "NextPictureButton", "SaveProjectButton", "SaveMediaButton", "OriginalButton", "DeleteButton",
-         "FlipHorizontalButton", "FlipVerticalButton", "ZoomInButton", "ZoomOutButton", "FitWidthButton", "SlideshowButton", "NavBarButton", "SettingsButton"];
-    public static IEnumerable<string> EditorButtonIds => DefaultEditorToolbar.Where(id => id is not (ToolbarSeparator or ToolbarRightSide));
+        ["NewButton", "AddImageButton", "OpenProjectButton", "PreviousPictureButton", "NextPictureButton", "SaveProjectButton", "OriginalButton",
+         "RotateClockwiseButton", "RotateCounterClockwiseButton", "FlipHorizontalButton", "FlipVerticalButton", "ZoomInButton", "ZoomOutButton", "SettingsButton"];
+    public static IEnumerable<string> EditorButtonIds => DefaultEditorToolbar.Where(id => id is not (ToolbarSeparator or ToolbarRightSide or ToolbarSpacer));
     public List<string> EditorToolbar { get; set; } = [.. DefaultEditorToolbar];
     public List<string> EditorHiddenButtons { get; set; } = [.. DefaultHiddenEditorButtons];
     // Keys for the previous and next picture (0.24.0, David), in the editor and the slideshow; Left and Right work too.
@@ -72,7 +76,7 @@ public sealed class AppSettings
         var result = new List<string>(); var seen = new HashSet<string>();
         foreach (var id in saved ?? DefaultEditorToolbar)
         {
-            if (id == ToolbarSeparator) { result.Add(id); continue; }
+            if (id is ToolbarSeparator or ToolbarSpacer) { result.Add(id); continue; }
             if (id == ToolbarRightSide ? seen.Add(id) : known.Contains(id) && seen.Add(id)) result.Add(id);
         }
         if (!seen.Contains(ToolbarRightSide)) result.Add(ToolbarRightSide);
@@ -92,10 +96,11 @@ public sealed class AppSettings
     // slideshow. Always pinned in the editor; in the slideshow it can be unpinned (it then hides like the capture bar).
     public static readonly int[] NavBarSizes = [48, 72, 96];
     public const int MinNavBarSize = 32, MaxNavBarSize = 256;
-    public bool NavBarInEditor { get; set; }
+    public bool NavBarInEditor { get; set; } = true; // 3.1.3: David's default.
     public bool NavBarInSlideshow { get; set; } = true;
     public bool NavBarPinnedInSlideshow { get; set; } = true;
-    public int NavBarThumbnailSize { get; set; } = 72;
+    public const int DefaultNavBarSize = 48; // 3.1.3: David's default (was 72).
+    public int NavBarThumbnailSize { get; set; } = DefaultNavBarSize;
     public bool SmallIcons { get; set; }
     public bool VerticalToolbar { get; set; }
     public string ScreenshotShortcut { get; set; } = DefaultScreenshotShortcut;
@@ -121,7 +126,7 @@ public sealed class AppSettings
     // 0.14.0: which capture bar buttons show, in their order (the Menu button always shows, last), and
     // the width of the red tab the bar hides into at the top of the screen.
     public static readonly string[] BarButtonIds = ["ActiveWindow", "WindowObject", "Region", "Freehand", "FullScreen", "Scrolling", "Recorder", "Ruler", "Editor", "Output"];
-    public const int MinStripWidth = 30, MaxStripWidth = 600, DefaultStripWidth = 60;
+    public const int MinStripWidth = 30, MaxStripWidth = 600, DefaultStripWidth = 30; // 3.1.3: David's default (was 60).
     // 0.27.0 (David's settings file): his order, without the Ruler (Settings › Capture bar shows it again).
     public static readonly string[] DefaultBarButtons = ["Region", "Freehand", "ActiveWindow", "WindowObject", "FullScreen", "Scrolling", "Recorder", "Editor", "Output"];
     public List<string> BarButtons { get; set; } = [.. DefaultBarButtons];
@@ -165,7 +170,7 @@ public sealed class AppSettings
             if (!FrameRates.Contains(loaded.RecordingFramesPerSecond)) loaded.RecordingFramesPerSecond = 15;
             if (!SlideshowTimes.Contains(loaded.SlideshowSeconds)) loaded.SlideshowSeconds = 5;
             // 0.26.0: any height the bar was dragged to, within NavigationBar's limits.
-            if (loaded.NavBarThumbnailSize is < MinNavBarSize or > MaxNavBarSize) loaded.NavBarThumbnailSize = 72;
+            if (loaded.NavBarThumbnailSize is < MinNavBarSize or > MaxNavBarSize) loaded.NavBarThumbnailSize = DefaultNavBarSize;
             loaded.EditorToolbar = CleanToolbar(loaded.EditorToolbar);
             loaded.EditorHiddenButtons = (loaded.EditorHiddenButtons ?? [.. DefaultHiddenEditorButtons]).Where(EditorButtonIds.Contains).Distinct().ToList();
             if (ParseKey(loaded.PreviousPictureKey) == null) loaded.PreviousPictureKey = DefaultPreviousKey;

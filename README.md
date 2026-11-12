@@ -10,10 +10,10 @@ Everything happens on your computer: no telemetry, no uploads, no online service
 
 ## Download
 
-Get **TinyRedactionTool-3.1.2.exe** from the [latest release](https://github.com/mccabedd/tinyredactiontool/releases/latest) and run it. It needs no installing.
+Get **TinyRedactionTool-3.1.3.exe** from the [latest release](https://github.com/mccabedd/tinyredactiontool/releases/latest) and run it. It needs no installing.
 
 - TRT 3.1 needs Microsoft's free **[.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)** (Windows x64). If it is missing, Windows says so when TRT starts and offers to open the download page.
-- The file is not signed, so Windows SmartScreen may warn the first time. Check the download against `SHA256SUMS-v3.1.2.txt` in the release.
+- The file is not signed, so Windows SmartScreen may warn the first time. Check the download against `SHA256SUMS-v3.1.3.txt` in the release.
 - TRT v2.5.1 (the previous, self-contained version) is still available from its own release, and its source is in [history/v2.5.1](history/v2.5.1).
 
 ## What it does
@@ -38,7 +38,7 @@ Windows x64 and Windows PowerShell 5.1 are needed. Nothing is installed machine-
 
 1. `Bootstrap-Dev.ps1` downloads only the pinned .NET SDK and packages and checks their hashes.
 2. Put the approved FFmpeg and FFprobe binaries (hashes in [THIRD-PARTY.md](THIRD-PARTY.md)) in `tools/`.
-3. `Build-Dev.ps1` builds offline and runs the 1,390 checks.
+3. `Build-Dev.ps1` builds offline and runs the 1,410 checks.
 4. `Package-Standalone.ps1` makes the single `.exe` in `standalone/<version>/`.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how it fits together.

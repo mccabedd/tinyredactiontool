@@ -105,12 +105,12 @@ public partial class MainWindow
             if (!media.IsVideo)
             {
                 if (Preview.Image is not { } image) throw new InvalidOperationException("The picture is not loaded.");
-                made = captures.Store.NewFile("EDITED", ".png");
+                made = captures.Store.NewFile("CAPTURE", ".png");
                 CaptureController.WritePng(TurnBitmap(image, op), made);
             }
             else
             {
-                made = captures.Store.NewFile("EDITED", ".mp4");
+                made = captures.Store.NewFile("CAPTURE", ".mp4");
                 ReportWork(0, "Turning the Video (This Can Take a While)");
                 List<string> Args(bool copyAudio) =>
                 [

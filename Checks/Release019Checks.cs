@@ -108,7 +108,7 @@ internal static class Release019Checks
             var before = preview.Project.Media!.Path;
             check(Wait(() => editor.RotateMediaAsync(TurnOp.Clockwise)), "Edit › Rotate turns a picture");
             var after = preview.Project.Media!;
-            check(after.Width == 100 && after.Height == 200 && Path.GetFileName(after.Path).StartsWith("EDITED_") && controller.Store.Owns(after.Path) && File.Exists(before),
+            check(after.Width == 100 && after.Height == 200 && Path.GetFileName(after.Path).StartsWith("CAPTURE_") && controller.Store.Owns(after.Path) && File.Exists(before),
                 "the turned picture is a working copy in TRT's private folder (the screenshot is kept for Undo)");
             check(Blue(preview.Image!, 95, 5) < 50 && Blue(preview.Image!, 5, 5) > 150 && preview.Project.Regions.Single().GetHashCode() != 0 && preview.Project.Regions[0].GeometryAt(0) == new MediaRect(40, 10, 40, 30),
                 "the picture turned clockwise (its dark corner moved to the top right) and the redaction moved with it");

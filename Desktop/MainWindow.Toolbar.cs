@@ -29,6 +29,8 @@ public partial class MainWindow
         foreach (var id in AppSettings.CleanToolbar(settings.EditorToolbar))
         {
             if (id == AppSettings.ToolbarSeparator) { Separator(); continue; }
+            // 3.1.3: a blank gap the size of a button (sized in ApplySettings).
+            if (id == AppSettings.ToolbarSpacer) { panel.Children.Add(new Border { Tag = AppSettings.ToolbarSpacer, Background = System.Windows.Media.Brushes.Transparent, IsHitTestVisible = false }); continue; }
             if (id == AppSettings.ToolbarRightSide) { TrimSeparator(panel); panel = RightTools; continue; }
             if (settings.EditorHiddenButtons.Contains(id) || !buttons.TryGetValue(id, out var button)) continue;
             panel.Children.Add(button);
@@ -38,5 +40,6 @@ public partial class MainWindow
     }
     // Whether a button is on the toolbar (checks).
     internal bool OnToolbar(string id) => ToolbarButtons.TryGetValue(id, out var b) && (ToolButtons.Children.Contains(b) || RightTools.Children.Contains(b));
+    internal int SpacerCount => ToolButtons.Children.Cast<UIElement>().Concat(RightTools.Children.Cast<UIElement>()).Count(c => c is Border { Tag: AppSettings.ToolbarSpacer });
     internal bool OnRightSide(string id) => ToolbarButtons.TryGetValue(id, out var b) && RightTools.Children.Contains(b);
 }

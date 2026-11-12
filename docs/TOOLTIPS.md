@@ -7,6 +7,8 @@ sentence capitals. The tables below keep the wording in its 0.21.3 sentence case
 Add Image toolbar button "Add Images onto This One"; File › Add Image "Put Images onto This One, to Move and Size";
 New "New Image". The DEVELOPMENT BUILD label (#22) is gone.
 
+**3.1.3 (David):** the red tab (#18) has no tooltip; the Save Copy button is now Save Media, tooltip "Save Media As… (No Redactions)" (#158); Settings › Toolbar has Add Spacer, tooltip "Add a Blank Space the Size of a Button", and Remove says "Remove the Separator or Spacer".
+
 Every tooltip in the app, grouped by where it appears. **Now** is the current text. **Suggested** is a
 wording David chose ("—" means kept as it was). All Suggested wordings were applied in 0.21.3.
 
@@ -33,7 +35,7 @@ Some tooltips change with the situation; those show each variant. `{…}` stands
 | 15  | Menu                      | Settings, editor and quit                                                                                                                                | —                                                                              |
 | 16  | Close (quits)             | Quit TinyRedactionTool                                                                                                                                   | —                                                                              |
 | 17  | Close (hides)             | Close the capture bar (TRT keeps running in the notification area; right-click its icon to quit)                                                         | Hide the bar (TRT keeps running in the notification area)                      |
-| 18  | Red tab                   | TinyRedactionTool: point here to show the capture bar                                                                                                    | Point here to show the capture bar                                             |
+| 18  | Red tab                   | (none since 3.1.3, David)                                                                                                                                | (none: tooltip removed)                                                        |
 
 ## Editor menus
 
@@ -237,7 +239,7 @@ tooltip in list items, so neither is listed separately.
 | 155 | Editor toolbar: File Info | File info (Ctrl+I) | — |
 | 156 | Editor toolbar: Open Project | Open a project | — |
 | 157 | Editor toolbar: Save Project | Save the project | — |
-| 158 | Editor toolbar: Save Copy | Save a copy as it is | — |
+| 158 | Editor toolbar: Save Media (was Save Copy, 3.1.3) | Save Media As… (No Redactions) | — |
 | 159 | Editor toolbar: Fit Width | Fit width | — |
 | 160 | Editor toolbar: Delete | Delete the selected shape (Del) | — |
 | 161 | Editor toolbar: Settings | Settings | — |

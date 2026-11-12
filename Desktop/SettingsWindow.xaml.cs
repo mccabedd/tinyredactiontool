@@ -132,7 +132,7 @@ public partial class SettingsWindow : Window
     internal static string ToolbarLabel(string id) => id switch
     {
         "OpenButton" => "Open", "AddImageButton" => "Add Image", "OpenProjectButton" => "Open Project", "PreviousPictureButton" => "Previous Image", "NextPictureButton" => "Next Image",
-        "ExportButton" => "Export", "SaveProjectButton" => "Save Project", "SaveMediaButton" => "Save Copy (Save Media As)", "OriginalButton" => "Original (Captures Only)",
+        "ExportButton" => "Export", "SaveProjectButton" => "Save Project", "SaveMediaButton" => "Save Media", "OriginalButton" => "Original (Captures Only)",
         "CopyButton" => "Copy", "PasteButton" => "Paste", "UndoButton" => "Undo", "RedoButton" => "Redo", "DeleteButton" => "Delete the Selected Shape",
         "SelectToolButton" => "Select", "RectangleTool" => "Rectangle", "OvalTool" => "Oval", "PolygonTool" => "Polygon", "PanTool" => "Pan", "CropTool" => "Crop", "ResizeButton" => "Resize",
         "RotateClockwiseButton" => "Rotate Right (Clockwise)", "RotateCounterClockwiseButton" => "Rotate Left (Anti-Clockwise)",
@@ -146,7 +146,8 @@ public partial class SettingsWindow : Window
         "SettingsButton" => "Settings", "PanelButton" => "Panel",
         _ => id,
     };
-    private const string SeparatorLabel = "──────  Separator  ──────", RightSideLabel = "▶  Right Side Starts Here";
+    private const string SeparatorLabel = "──────  Separator  ──────", RightSideLabel = "▶  Right Side Starts Here", SpacerLabel = "(Spacer)";
+    private static ListBoxItem SpacerItem() => new() { Content = SpacerLabel, Tag = AppSettings.ToolbarSpacer, Opacity = 0.75, FontStyle = FontStyles.Italic, Padding = new Thickness(6, 1, 2, 1) };
     private void ShowToolbar(IEnumerable<string> layout, ICollection<string> hidden)
     {
         ToolbarList.Items.Clear();
@@ -154,6 +155,7 @@ public partial class SettingsWindow : Window
             ToolbarList.Items.Add(id switch
             {
                 AppSettings.ToolbarSeparator => new ListBoxItem { Content = SeparatorLabel, Tag = id, Opacity = 0.75, Padding = new Thickness(6, 1, 2, 1) },
+                AppSettings.ToolbarSpacer => SpacerItem(),
                 AppSettings.ToolbarRightSide => new ListBoxItem { Content = RightSideLabel, Tag = id, FontWeight = FontWeights.SemiBold, Padding = new Thickness(4, 3, 2, 3) },
                 _ => new CheckBox { Content = ToolbarLabel(id), Tag = id, IsChecked = !hidden.Contains(id), Margin = new Thickness(2) },
             });
@@ -165,7 +167,7 @@ public partial class SettingsWindow : Window
     {
         var index = ToolbarList.SelectedIndex;
         ToolbarUp.IsEnabled = index > 0; ToolbarDown.IsEnabled = index >= 0 && index < ToolbarList.Items.Count - 1;
-        ToolbarRemoveSeparator.IsEnabled = index >= 0 && (string?)((FrameworkElement)ToolbarList.Items[index]).Tag == AppSettings.ToolbarSeparator;
+        ToolbarRemoveSeparator.IsEnabled = index >= 0 && (string?)((FrameworkElement)ToolbarList.Items[index]).Tag is AppSettings.ToolbarSeparator or AppSettings.ToolbarSpacer;
     }
     internal void MoveToolbarItem(object sender, RoutedEventArgs e) => MoveToolbarItem(int.Parse((string)((Button)sender).Tag));
     internal void MoveToolbarItem(int step)
@@ -182,10 +184,17 @@ public partial class SettingsWindow : Window
         var item = new ListBoxItem { Content = SeparatorLabel, Tag = AppSettings.ToolbarSeparator, Opacity = 0.75, Padding = new Thickness(6, 1, 2, 1) };
         ToolbarList.Items.Insert(at, item); ToolbarList.SelectedIndex = at; ToolbarList.ScrollIntoView(item);
     }
+    // 3.1.3 (David): a blank space the size of a button.
+    internal void AddToolbarSpacer(object sender, RoutedEventArgs e)
+    {
+        var at = ToolbarList.SelectedIndex < 0 ? ToolbarList.Items.Count : ToolbarList.SelectedIndex + 1;
+        var item = SpacerItem();
+        ToolbarList.Items.Insert(at, item); ToolbarList.SelectedIndex = at; ToolbarList.ScrollIntoView(item);
+    }
     internal void RemoveToolbarSeparator(object sender, RoutedEventArgs e)
     {
         var index = ToolbarList.SelectedIndex;
-        if (index >= 0 && (string?)((FrameworkElement)ToolbarList.Items[index]).Tag == AppSettings.ToolbarSeparator) ToolbarList.Items.RemoveAt(index);
+        if (index >= 0 && (string?)((FrameworkElement)ToolbarList.Items[index]).Tag is AppSettings.ToolbarSeparator or AppSettings.ToolbarSpacer) ToolbarList.Items.RemoveAt(index);
         UpdateToolbarButtons();
     }
     private void ResetToolbar(object sender, RoutedEventArgs e) => ShowToolbar(AppSettings.DefaultEditorToolbar, AppSettings.DefaultHiddenEditorButtons);
