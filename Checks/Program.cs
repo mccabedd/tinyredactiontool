@@ -28,6 +28,7 @@ internal static class Program
             if (args.Contains("--scroll-diag")) { await ScrollProbe.Diagnose(args.Skip(Array.IndexOf(args, "--scroll-diag") + 1).ToArray()); return 0; }
             if (args.Contains("--overlay-panes")) { ScrollProbe.OverlayPanes(args.Skip(Array.IndexOf(args, "--overlay-panes") + 1).ToArray()); return 0; }
             if (args.Contains("--web-panes")) { ScrollProbe.WebPanesAt(args.Skip(Array.IndexOf(args, "--web-panes") + 1).ToArray()); return 0; }
+            if (args.Contains("--keep")) { ScrollProbe.Keep(args.Skip(Array.IndexOf(args, "--keep") + 1).ToArray()); return 0; }
             if (args.Contains("--pane-probe")) { ScrollProbe.Pane(args.Skip(Array.IndexOf(args, "--pane-probe") + 1).ToArray()); return 0; }
             if (args.Contains("--scroll-probe")) { await ScrollProbe.Run(args.Skip(Array.IndexOf(args, "--scroll-probe") + 1).ToArray()); return 0; }
             if (args.Contains("--media-probe"))

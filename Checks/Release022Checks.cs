@@ -337,5 +337,97 @@ internal static class Release022Checks
         }
         using (var plain = Picture(600, 300, (x, y) => y % 20 is > 5 and < 12 && (x / 5) % 3 != 0 && x > 10 && x < 580 ? 0x505860 : 0x0F1418))
             check(!WebPanes.Dividers(plain, new(0, 0, 600, 300)).Any(), "a page of text alone has no divider");
+        // 3.2.1: a last step that ends on part of a pixel (text drawn a little differently)
+        // still joins when one step size clearly wins; and with the click in an empty part of a pane, the band of rows
+        // that changed is used.
+        {
+            // Lines of different shades, as a real page has (names, links, quoted text), so only the true step lines up.
+            var long_ = Page(300, 900, 31); for (var i = 0; i < long_.Length; i++) if (long_[i] != 0xF4F4F4) long_[i] = 0x1C1C1C * ((i / 300 / 20) % 7);
+            using var whole = Picture(300, 300, (x, y) => long_[(y + 400) * 300 + x]);
+            // 88 pixels further, with about one row in ten drawn a little differently (a step ending on part of a pixel).
+            using var half = Picture(300, 300, (x, y) => { var v = long_[(y + 488) * 300 + x]; return y % 10 == 3 && v != 0xF4F4F4 ? v + 0x404040 : v; });
+            var trace = new List<string>(); ScrollingCapture.PaneTrace = trace.Add;
+            var halfShift = ScrollingCapture.FindShift(whole, half, 0, 0); ScrollingCapture.PaneTrace = null;
+            check(halfShift == 88, $"a step whose text is drawn a little differently in some rows (it ended on part of a pixel) still joins when one step size clearly wins ({halfShift}; {string.Join("; ", trace)})");
+            using var screenBefore = Picture(400, 500, (x, y) => y < 120 ? 0x202428 : y >= 380 ? 0x2A1B17 : x > 200 ? 0x1D2228 : long_[(y - 120 + 100) * 300 + x]);
+            using var screenAfter = Picture(400, 500, (x, y) => y < 120 ? 0x202428 : y >= 380 ? 0x2A1B17 : x > 200 ? 0x1D2228 : long_[(y - 120 + 200) * 300 + x]);
+            var band = ScrollingCapture.ChangedBand(screenBefore, screenAfter);
+            check(band is { Y: >= 120, Bottom: <= 380, Height: >= 200, X: 0, Width: 400 }, $"clicked where nothing moves, the band of rows that changed is kept, full width ({band})");
+        }
+        // 3.2.1 (David: the end of a short scrolling area and its left and right margins were cut off): a picked web pane
+        // keeps its full width (an avatar column that doesn't move with the text in the first screens) and every row of the
+        // band that scrolls, even rows that happen to look the same in the first two screens.
+        {
+            const int W = 320, Band = 240, Top = 60;
+            var convo = Page(W, 900, 41);
+            for (var y = 0; y < 900; y++)
+                for (var x = 0; x < W; x++)
+                {
+                    if (x < 44) convo[y * W + x] = y % 150 is >= 20 and < 50 && x is >= 8 and < 38 ? 0x3366AA : 0xF4F4F4; // Avatars.
+                    if (y is (>= 180 and < 240) or (>= 280 and < 340)) convo[y * W + x] = 0xF4F4F4; // Gaps between paragraphs: the band's bottom is blank in the first two screens.
+                    if (y >= 860 && x is >= 60 and < 200) convo[y * W + x] = 0xAA2222; // The last line.
+                }
+            static int Grain(int x, int y) => (int)((uint)(x * 73856093 ^ y * 19349663) % 5) * 0x0C0C0C; // Still, irregular texture.
+            int Screen(int x, int y, int offset) => y < Top ? 0x202428 + Grain(x, y) : y >= Top + Band ? (y == Top + Band ? 0x8090A0 : 0x2A1B17 + Grain(x, y)) : convo[(y - Top + offset) * W + x];
+            var offsets = new List<int>(); for (var o = 0; o < 900 - Band; o += 100) offsets.Add(o); offsets.Add(900 - Band);
+            var shots = offsets.Select(o => Picture(W, 600, (x, y) => Screen(x, y, o))).ToList(); // A tall fixed box under it.
+            var keep = ScrollingCapture.PartToKeep(shots[0], shots[1], new(200, 150), true);
+            check(keep is { X: 0, Y: Top, Height: Band, Width: W }, $"a picked web pane keeps its full width and the whole band that scrolls, blank rows at its bottom included ({keep})");
+            if (keep is { } k)
+            {
+                var cut = shots.Select(s => ScreenCapture.Crop(s, k)).ToList();
+                using var long_ = ScrollingCapture.Stitch(cut);
+                bool HasLastLine() { for (var y = 0; y < long_.Height; y++) if (long_.GetPixel(100, y).ToArgb() == unchecked((int)0xFFAA2222)) return true; return false; }
+                var avatars = Enumerable.Range(0, long_.Height).Count(y => long_.GetPixel(20, y).ToArgb() == unchecked((int)0xFF3366AA));
+                // Every avatar row on the page: 180, less 40 in the gaps.
+                check(long_.Height == 900 && HasLastLine() && avatars == 140, $"so the long picture ends with the last line and keeps the avatar column ({long_.Width}×{long_.Height}, {avatars} avatar rows)");
+                foreach (var c in cut) c.Dispose();
+            }
+            foreach (var s in shots) s.Dispose();
+        }
+        // 3.2.1: a Shift still held makes the wheel scroll sideways in a browser:
+        // scrolling waits until Shift, Ctrl and Alt are let go.
+        {
+            var normal = ScrollingCapture.ModifierHeld; var held = 4;
+            ScrollingCapture.ModifierHeld = () => held-- > 0;
+            try
+            {
+                var waited = Task.Run(() => ScrollingCapture.KeysReleasedAsync(() => false)).GetAwaiter().GetResult(); // Off the window thread (it would wait on itself).
+                ScrollingCapture.ModifierHeld = () => false;
+                var none = Task.Run(() => ScrollingCapture.KeysReleasedAsync(() => false)).GetAwaiter().GetResult();
+                check(waited >= 100 && held < 0 && none == 0, $"scrolling waits until Shift, Ctrl and Alt are let go ({waited} ms), and doesn't wait when none is held");
+            }
+            finally { ScrollingCapture.ModifierHeld = normal; }
+        }
+        // 3.2.1: a button that floats over the page
+        // in the same place while the page scrolls under it is left out; the page under it comes from the next picture.
+        {
+            var floatingPage = Page(300, 1200, 21);
+            bool Button(int x, int y) => x is >= 100 and < 200 && y is >= 250 and < 276;
+            var screens = new List<Drawing.Bitmap>();
+            foreach (var at in new[] { 0, 120, 240, 360, 480, 600, 720, 840, 900 })
+            {
+                var shade = at / 120 * 0x030303; // 3.2.1: the button fades a little from screen to screen.
+                screens.Add(Picture(300, 300, (x, y) => Button(x, y) ? 0x1F6FD1 + shade : floatingPage[(y + at) * 300 + x]));
+            }
+            using (var joined = ScrollingCapture.Stitch(screens))
+            {
+                var data = joined.LockBits(new(0, 0, joined.Width, joined.Height), Drawing.Imaging.ImageLockMode.ReadOnly, Drawing.Imaging.PixelFormat.Format32bppRgb);
+                var got = new int[joined.Width * joined.Height];
+                for (var y = 0; y < joined.Height; y++) System.Runtime.InteropServices.Marshal.Copy(data.Scan0 + y * data.Stride, got, y * joined.Width, joined.Width);
+                joined.UnlockBits(data);
+                int wrong = 0, buttons = 0;
+                for (var y = 0; y < Math.Min(joined.Height, 1200); y++)
+                    for (var x = 0; x < 300; x++)
+                    {
+                        var v = got[y * 300 + x] & 0xFFFFFF;
+                        if ((v & 0xFF) > 0xC0 && (v >> 16 & 0xFF) < 0x60) buttons++;
+                        else if (v != (floatingPage[y * 300 + x] & 0xFFFFFF)) wrong++;
+                    }
+                check(joined.Height == 1200 && wrong == 0 && buttons == 100 * 26,
+                    $"a floating button is joined in once (at the end), not on every screen, and the page under it is whole ({joined.Width}×{joined.Height}, {buttons / 2600.0:0.#} buttons, {wrong} wrong pixels; shifts {string.Join(",", Enumerable.Range(1, screens.Count - 1).Select(i => ScrollingCapture.FindShift(screens[i - 1], screens[i], 0, 0)))}; margins {ScrollingCapture.Margins(screens[0], screens[1])})");
+            }
+            foreach (var screen in screens) screen.Dispose();
+        }
     }
 }

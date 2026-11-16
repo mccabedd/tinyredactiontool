@@ -439,7 +439,7 @@ internal sealed class CaptureController : IDisposable
     // Scrolling window (0.13.0): pick the window or panel, then TRT scrolls it and joins the pictures.
     private async Task<Drawing.Bitmap?> TakeScrollingPictureAsync()
     {
-        Drawing.Rectangle area; Drawing.Point clicked;
+        Drawing.Rectangle area; Drawing.Point clicked; bool webPane;
         using (new ScreenCapture.DpiScope())
         {
             var screen = ScreenCapture.VirtualScreen;
@@ -447,12 +447,12 @@ internal sealed class CaptureController : IDisposable
             // 0.22.2 (David: no choice of pane): the click also says which part to scroll, such as one pane of a web page.
             using var overlay = new CaptureOverlay(desktop, screen, SelectionKind.Object, ScreenCapture.VisibleWindows(), "Click inside the part to scroll (a window, panel or page pane). Esc or right-click cancels.") { FindWebPanes = true };
             if (overlay.ShowDialog() != Forms.DialogResult.OK) return null;
-            area = Drawing.Rectangle.Intersect(overlay.SelectedRegion, screen); clicked = overlay.ClickedPoint;
+            area = Drawing.Rectangle.Intersect(overlay.SelectedRegion, screen); clicked = overlay.ClickedPoint; webPane = overlay.SelectedWebPane;
         }
         if (area.Width < 16 || area.Height < 32) throw new InvalidOperationException("That area is too small to scroll.");
         await Task.Delay(150);
         CaptureToast.Show("Scrolling… press Esc to stop", 60);
-        try { return await ScrollingCapture.RunAsync(area, ScrollingCapture.EscapePressed, scrollAt: area.Contains(clicked) ? clicked : null); }
+        try { return await ScrollingCapture.RunAsync(area, ScrollingCapture.EscapePressed, scrollAt: area.Contains(clicked) ? clicked : null, keepPaneTop: webPane); }
         finally { CaptureToast.Show("Scrolling Capture Finished", 0.8); }
     }
     // Hides TRT's own windows so they are not in the picture; RestoreOwnWindows shows them again.

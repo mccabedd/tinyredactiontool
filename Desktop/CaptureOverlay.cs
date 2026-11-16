@@ -28,6 +28,9 @@ internal sealed class CaptureOverlay : Forms.Form
     private float scale = 1;
     private Drawing.Font? font;
     public Drawing.Rectangle SelectedRegion { get; private set; }
+    // 3.2.1: the selection is one pane of a web page (from the browser's own layout), not a whole window.
+    public bool SelectedWebPane { get; private set; }
+    private bool hoverWebPane;
     public Drawing.Point ClickedPoint { get; private set; } // Screen pixels; scrolling capture scrolls the pane under it.
     // 0.22.3 (David): the panes of web pages are highlighted too, as an application's panes are (scrolling capture).
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
@@ -102,6 +105,7 @@ internal sealed class CaptureOverlay : Forms.Form
     private void Finish(Drawing.Rectangle client)
     {
         SelectedRegion = new(client.X + screen.X, client.Y + screen.Y, client.Width, client.Height);
+        SelectedWebPane = hoverWebPane && hover == client;
         DialogResult = Forms.DialogResult.OK;
     }
     private Drawing.Point Clamp(Drawing.Point p) => new(Math.Clamp(p.X, 0, screen.Width - 1), Math.Clamp(p.Y, 0, screen.Height - 1));
@@ -115,10 +119,10 @@ internal sealed class CaptureOverlay : Forms.Form
         if (kind is SelectionKind.Window or SelectionKind.Object)
         {
             var at = new Drawing.Point(p.X + screen.X, p.Y + screen.Y);
-            var picked = ScreenCapture.Pick(windows, at, kind == SelectionKind.Object);
+            var picked = ScreenCapture.Pick(windows, at, kind == SelectionKind.Object); hoverWebPane = false;
             if (FindWebPanes && windows.FirstOrDefault(w => w.Bounds.Contains(at)) is { } window && WebPanes.IsBrowser(window.Handle))
             {
-                if (webPanes.TryGetValue(window.Handle, out var panes)) picked = WebPanes.At(panes, at) is { } pane ? Drawing.Rectangle.Intersect(pane, window.Bounds) : picked;
+                if (webPanes.TryGetValue(window.Handle, out var panes) && WebPanes.At(panes, at) is { } pane) { picked = Drawing.Rectangle.Intersect(pane, window.Bounds); hoverWebPane = true; }
                 else ScanWebPanes(window.Handle);
             }
             hover = picked is { } r ? new Drawing.Rectangle(r.X - screen.X, r.Y - screen.Y, r.Width, r.Height) : null;

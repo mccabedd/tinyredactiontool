@@ -35,7 +35,7 @@ internal static class ScrollProbe
         var area = new Drawing.Rectangle(N(0), N(1), N(2), N(3));
         var timer = System.Diagnostics.Stopwatch.StartNew(); ScrollingCapture.KeepFailedPair = true;
         Drawing.Point? at = a.Length >= 7 ? new(N(5), N(6)) : null; // Optional scroll point (0.22.2: the pane to scroll).
-        using var joined = await ScrollingCapture.RunAsync(area, ScrollingCapture.EscapePressed, scrollAt: at);
+        using var joined = await ScrollingCapture.RunAsync(area, ScrollingCapture.EscapePressed, scrollAt: at, keepPaneTop: a.Length >= 8 && a[7] == "top"); // 3.2.1: "top" = a picked web pane.
         joined.Save(a[4], Drawing.Imaging.ImageFormat.Png);
         Console.WriteLine($"scrolling capture: {joined.Width} x {joined.Height} (area {area.Height} high) in {timer.ElapsedMilliseconds} ms; steps {ScrollingCapture.LastSteps}"); foreach (var line in ScrollingCapture.LastLog) Console.WriteLine(line);
         if (ScrollingCapture.FailedPair is var (p, n)) { p.Save(a[4] + "-prev.png"); n.Save(a[4] + "-next.png"); }
@@ -76,6 +76,13 @@ internal static class ScrollProbe
         }
     }
     // --pane-probe <before.png> <after.png> <x> <y>: how the pane around a point is judged (0.22.2).
+    // --keep <before> <after> <x> <y> [top]: what a scrolling capture keeps of each picture after the first scroll (3.2.1).
+    public static void Keep(string[] a)
+    {
+        using var before = new Drawing.Bitmap(a[0]); using var after = new Drawing.Bitmap(a[1]);
+        var at = new Drawing.Point(int.Parse(a[2]), int.Parse(a[3]));
+        Console.WriteLine($"picture {before.Width} x {before.Height}; moving pane {ScrollingCapture.MovingPane(before, after, at)}; changed rows {ScrollingCapture.ChangedBand(before, after)}; kept {ScrollingCapture.PartToKeep(before, after, at, a.Length > 4 && a[4] == "top")}");
+    }
     public static void Pane(string[] a)
     {
         int N(int i) => int.Parse(a[i], System.Globalization.CultureInfo.InvariantCulture);

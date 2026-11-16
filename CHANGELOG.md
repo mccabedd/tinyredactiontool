@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.2.1 (November 2026)
+- Scrolling capture of a short scrolling area (between a fixed header and a large fixed box) captured only the first screen: each wheel turn moved the area almost its whole height, leaving too little to join. The first turn is now one notch, and each later turn is sized to move about 45 % of the area (tall web pages keep their usual speed).
+- When a web page pane is picked, its own top (such as a title) is kept above the joined picture, with no side columns.
+- Floating buttons that stay in one place while the page scrolls under them are no longer joined in on every screen; the page under them is taken from the next screen (a button that fades or shifts a shade counts too).
+- A scroll of part of a notch that moves nothing is followed by a whole notch before TRT decides the end is reached.
+- A join that doesn't line up no longer ends the capture: TRT waits for late-loading pictures and takes the screen again, then steps back and takes a smaller step, before stopping.
+- Scrolling starts once Shift, Ctrl and Alt are let go (Shift + wheel scrolls sideways in a browser, Ctrl + wheel zooms).
+- A last step that ends on part of a pixel still joins when one step size clearly wins, and a click in an empty part of a pane uses the rows that changed.
+- A picked web pane keeps its full width (margins included) and the whole part that scrolls, including blank rows at its bottom, so the end of a short scrolling area is no longer cut off.
+
 ## 3.2.0 (November 2026)
 - **Auto redaction colour**: an **Auto** tick box between Redaction Colour and the Eyedropper (redaction window and options bar). A Solid Fill redaction then takes the most common colour along its edge (black text on light blue is covered with light blue), again whenever it is moved, sized or turned. Choosing a colour turns it off. Settings › Editor decides whether it starts ticked (off to start).
 - **Pictures open faster**: PNG, BMP and JPEG are read by Windows' own decoder instead of starting FFmpeg (phone photos still come out upright). Other formats still use FFmpeg.

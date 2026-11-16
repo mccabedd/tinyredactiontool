@@ -51,6 +51,11 @@ internal static class Release320Checks
         var all = new Region(); all.PutManual(0, new MediaRect(2, 2, 6, 6));
         check(AutoColour.Sample(clear, all, 0) == null, "on fully see-through pixels Auto has nothing to match and keeps the colour");
 
+        // ---- 3.2.1: scrolling capture sizes each wheel turn to the pane ----
+        check(ScrollingCapture.WheelFor(120, 300, 330) == 60 && ScrollingCapture.WheelFor(90, 150, 330) == 90 && ScrollingCapture.WheelFor(120, 150, 800) == 240
+              && ScrollingCapture.WheelFor(120, 0, 330) == 120 && ScrollingCapture.WheelFor(30, 400, 100) == 30,
+            "scrolling capture turns the wheel so a short pane moves about 45 % per step (tall pages keep two notches; never less than a quarter notch)");
+
         // ---- Settings ----
         var fresh = new AppSettings();
         check(!fresh.AutoRedactionColour && fresh.LineWidth == 4 && fresh.TrayClickOpensEditor, "new settings: Auto colour off, line width 4, a click on the tray icon opens the editor");

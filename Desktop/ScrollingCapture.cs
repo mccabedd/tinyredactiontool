@@ -1,3 +1,4 @@
+using System.IO;
 using System.Runtime.InteropServices;
 using Drawing = System.Drawing;
 using DrawingImaging = System.Drawing.Imaging;
@@ -16,7 +17,7 @@ internal static class ScrollingCapture
     internal static Action<string>? PaneTrace; internal static int DebugShift; // Diagnostics only: how MovingPane and FindShift judged.
     internal static int LastSteps { get; private set; } // Pictures joined by the last run (diagnostics).
 
-    public static async Task<Drawing.Bitmap> RunAsync(Drawing.Rectangle area, Func<bool> stopRequested, int settleMilliseconds = 280, Drawing.Point? scrollAt = null)
+    public static async Task<Drawing.Bitmap> RunAsync(Drawing.Rectangle area, Func<bool> stopRequested, int settleMilliseconds = 280, Drawing.Point? scrollAt = null, bool keepPaneTop = false)
     {
         var frames = new List<Drawing.Bitmap>(); Drawing.Bitmap? above = null; LastLog.Clear();
         var cursor = ScreenCapture.CursorPosition;
@@ -27,28 +28,42 @@ internal static class ScrollingCapture
         {
             using (new ScreenCapture.DpiScope()) SetCursorPos((park ?? at).X, (park ?? at).Y);
             await Task.Delay(park == null ? 120 : 250);
+            // 3.2.1: a Shift still held turns the wheel into a sideways scroll in a browser (and Ctrl zooms), so wait
+            // until Shift, Ctrl and Alt are let go.
+            if (await KeysReleasedAsync(stopRequested) is var waited and > 0) LastLog.Add($"waited {waited} ms for Shift, Ctrl and Alt to be let go");
             frames.Add(ScreenCapture.Grab(area, false));
             var height = area.Height;
+            // 3.2.1 (a short scrolling area between a fixed header and a large fixed box stopped after two pictures):
+            // a short pane moved almost its whole height per wheel turn, leaving too little to join on. The
+            // first turn is one notch; after it, each turn is sized to move about 45 % of the pane, never more than the
+            // two notches tall pages always used.
+            var wheel = 120;
             for (var step = 0; step < MaxSteps && height < MaxHeight && !stopRequested(); step++)
             {
                 // 0.22.0 (David: web pages stopped after one picture): a browser can miss the first wheel
                 // turn while it takes focus, and a heavy page starts moving late and glides. So wait until
                 // the page has moved and come to rest, and turn the wheel once more before deciding the
                 // end is reached. (Probed with a test page in a browser.)
-                var next = await ScrollAndSettleAsync(area, at, park, frames[^1], settleMilliseconds, stopRequested)
-                    ?? await ScrollAndSettleAsync(area, at, park, frames[^1], settleMilliseconds, stopRequested);
-                if (next == null) break;
+                var next = await ScrollAndSettleAsync(area, at, park, frames[^1], settleMilliseconds, stopRequested, wheel)
+                    ?? await ScrollAndSettleAsync(area, at, park, frames[^1], settleMilliseconds, stopRequested, Math.Max(wheel, 120));
+                // 3.2.1: a part of a notch moves nothing in some pages and browsers; a whole notch decides the end.
+                if (next == null && wheel < 120) { LastLog.Add($"step {step}: {wheel} moved nothing; a whole notch"); next = await ScrollAndSettleAsync(area, at, park, frames[^1], settleMilliseconds, stopRequested, 120); if (next != null) wheel = 120; }
+                if (next == null) { LastLog.Add($"step {step}: nothing moved: the end"); break; }
                 // 0.22.1 (David): only the page content, not the browser's tabs, address and bookmark bars or
                 // side bars. After the first scroll, keep just the part of the window that moved; everything
                 // that stayed still is left out from then on. (A fixed side bar also stopped the joining: its
                 // rows never lined up.) 0.22.2: just the pane that moved with the scroll point.
                 if (frames.Count == 1 && KeepFailedPair) { FirstPair?.Item1.Dispose(); FirstPair?.Item2.Dispose(); FirstPair = ((Drawing.Bitmap)frames[0].Clone(), (Drawing.Bitmap)next.Clone()); }
-                if (frames.Count == 1 && MovingPane(frames[0], next, new(at.X - area.X, at.Y - area.Y)) is { } moved && moved.Size != frames[0].Size)
+                // 3.2.1: when no pane is found from the click (a click in an empty part of it), the band of rows that
+                // changed, the full width.
+                if (frames.Count == 1 && PartToKeep(frames[0], next, new(at.X - area.X, at.Y - area.Y), keepPaneTop) is { } moved && moved.Size != frames[0].Size)
                 {
                     LastLog.Add($"content {moved}");
                     // The top of the page above the pane in the first picture (a code site's file bar covers it once
                     // scrolled) is kept, up to the browser's own bars: rows that look exactly the same after the scroll.
-                    var lead = PageAbove(frames[0], next, moved);
+                    // 3.2.1 (David): a web pane's own top (a title above the part that scrolls) is kept too; the picker
+                    // gave just the pane, so there are no browser bars in it.
+                    var lead = keepPaneTop ? moved.Y : PageAbove(frames[0], next, moved);
                     if (lead > 0) { above?.Dispose(); above = ScreenCapture.Crop(frames[0], new(moved.X, moved.Y - lead, moved.Width, lead)); LastLog.Add($"page above the pane: {lead} rows"); }
                     var first = ScreenCapture.Crop(frames[0], moved); frames[0].Dispose(); frames[0] = first;
                     var cropped = ScreenCapture.Crop(next, moved); next.Dispose(); next = cropped;
@@ -56,9 +71,33 @@ internal static class ScrollingCapture
                 }
                 var (header, footer) = Margins(frames[0], frames.Count > 1 ? frames[1] : next);
                 var shift = FindShift(frames[^1], next, header, footer);
-                LastLog.Add($"step {step}: header {header}, footer {footer}, shift {shift}");
-                if (shift <= 0) { if (KeepFailedPair) { FailedPair?.Item1.Dispose(); FailedPair?.Item2.Dispose(); FailedPair = ((Drawing.Bitmap)frames[^1].Clone(), (Drawing.Bitmap)next.Clone()); } next.Dispose(); break; }
+                LastLog.Add($"step {step}: wheel {wheel}, header {header}, footer {footer}, shift {shift}");
+                // 3.2.1 (a long page stopped part-way): one join that doesn't line up no longer ends the capture.
+                // A picture loading late or a message opening can change the page while it scrolls: wait and take the
+                // picture again; if the scroll went too far, go back and take a smaller step.
+                for (var retry = 1; shift <= 0 && retry <= 3 && !stopRequested(); retry++)
+                {
+                    if (retry == 3)
+                    {
+                        using (new ScreenCapture.DpiScope()) SetCursorPos(at.X, at.Y);
+                        Wheel(wheel); await Task.Delay(settleMilliseconds + 400); // Back where the last good picture was taken.
+                        var smaller = Math.Max(30, wheel / 2);
+                        var again = await ScrollAndSettleAsync(area, at, park, frames[^1], settleMilliseconds, stopRequested, smaller)
+                                    ?? await ScrollAndSettleAsync(area, at, park, frames[^1], settleMilliseconds, stopRequested, 120);
+                        if (again == null) break;
+                        next.Dispose(); next = again; wheel = smaller;
+                    }
+                    else
+                    {
+                        await Task.Delay(500 * retry);
+                        var again = ScreenCapture.Grab(area, false); next.Dispose(); next = again;
+                    }
+                    shift = FindShift(frames[^1], next, header, footer);
+                    LastLog.Add($"step {step}: try {retry + 1}, shift {shift}");
+                }
+                if (shift <= 0) { if (KeepFailedPair) { FailedPair?.Item1.Dispose(); FailedPair?.Item2.Dispose(); FailedPair = ((Drawing.Bitmap)frames[^1].Clone(), (Drawing.Bitmap)next.Clone()); } next.Dispose(); LastLog.Add($"step {step}: no join after retries: stopped"); break; }
                 frames.Add(next); height += shift;
+                wheel = WheelFor(wheel, shift, area.Height - header - footer);
             }
             LastSteps = frames.Count;
             var joined = Stitch(frames);
@@ -77,6 +116,51 @@ internal static class ScrollingCapture
     // rows (so a scroll bar's moving thumb doesn't count) and the rows between the first and last that changed in
     // those columns. Null when too little moved to tell.
     internal const int MinContentSize = 48;
+    // What to keep of each picture after the first scroll. 3.2.1 (David: the end of a short scrolling area and the left and
+    // right margins were cut off): for a picked web pane, its full width (the avatar column and the margins, which don't
+    // change while scrolling) and every row from the first to the last that changed (rows that happened to look the
+    // same before and after the first scroll are no longer cut off the bottom). Otherwise the pane that moved with the
+    // click, or the band of rows that changed.
+    internal static Drawing.Rectangle? PartToKeep(Drawing.Bitmap before, Drawing.Bitmap after, Drawing.Point at, bool webPane)
+    {
+        var moved = MovingPane(before, after, at) ?? ChangedBand(before, after);
+        if (!webPane || moved is not { } m) return moved;
+        var band = ChangedBand(before, after);
+        var top = Math.Min(m.Y, band?.Y ?? m.Y); var bottom = Math.Max(m.Bottom, band?.Bottom ?? m.Bottom);
+        // Blank rows of the pane's own background just above or below look the same in the first two pictures (a gap
+        // between messages) but are part of it: take them in, up to anything else (a box's border, a header line).
+        {
+            int w0 = before.Width, h0 = before.Height; var pa = Pixels(before); var pb = Pixels(after);
+            var background = pa[(bottom - 1) * w0 + Math.Min(2, w0 - 1)];
+            static bool Close(int p, int q) => Math.Abs((p & 0xFF) - (q & 0xFF)) <= 6 && Math.Abs((p >> 8 & 0xFF) - (q >> 8 & 0xFF)) <= 6 && Math.Abs((p >> 16 & 0xFF) - (q >> 16 & 0xFF)) <= 6;
+            bool Blank(int y) { for (var x = 0; x < w0 - ScrollbarMargin; x++) if (!Close(pa[y * w0 + x], background) || !Close(pb[y * w0 + x], background)) return false; return true; }
+            while (bottom < h0 && Blank(bottom)) bottom++;
+            background = pa[top * w0 + Math.Min(2, w0 - 1)];
+            while (top > 0 && Blank(top - 1)) top--;
+        }
+        // The pane's own scroll bar at the right edge (its handle moves) is left out: from the first of the last 24
+        // columns that changed in the band.
+        int w = before.Width, right = w; var a = Pixels(before); var b = Pixels(after);
+        for (var x = Math.Max(m.Right, w - ScrollbarMargin); x < w && right == w; x++)
+            for (var y = top; y < bottom; y++)
+                if (((a[y * w + x] ^ b[y * w + x]) & 0xFFFFFF) != 0) { right = Math.Max(m.Right, x - 1); break; }
+        return new(0, top, right, bottom - top);
+    }
+    // The rows from the first to the last that changed between two pictures, the full width; null when too few changed.
+    internal static Drawing.Rectangle? ChangedBand(Drawing.Bitmap before, Drawing.Bitmap after)
+    {
+        if (before.Size != after.Size) return null;
+        var w = before.Width; var h = before.Height; var a = Pixels(before); var b = Pixels(after);
+        int top = -1, bottom = -1;
+        for (var y = 0; y < h; y++)
+        {
+            var changed = 0;
+            for (var x = 0; x < w - ScrollbarMargin; x++) if (((a[y * w + x] ^ b[y * w + x]) & 0xFFFFFF) != 0) changed++;
+            if (changed == 0) continue;
+            if (top < 0) top = y; bottom = y;
+        }
+        return top < 0 || bottom - top + 1 < MinContentSize ? null : new(0, top, w, bottom - top + 1);
+    }
     internal static Drawing.Rectangle? MovingPart(Drawing.Bitmap before, Drawing.Bitmap after)
     {
         if (before.Size != after.Size) return null;
@@ -343,10 +427,29 @@ internal static class ScrollingCapture
     internal const int SettleLimitMilliseconds = 1500, SettlePollMilliseconds = 70;
     // One wheel turn, then pictures every 70 ms until the content has moved and two pictures in a row are
     // the same (at rest); null when nothing moved within the limit.
-    private static async Task<Drawing.Bitmap?> ScrollAndSettleAsync(Drawing.Rectangle area, Drawing.Point at, Drawing.Point? park, Drawing.Bitmap previous, int firstWait, Func<bool> stopRequested)
+    // The next wheel turn: the last one scaled so the content moves about 45 % of the pane, in 30-unit steps, 30 to 240
+    // (a quarter notch to two notches; a program that only moves on whole notches gets the second try in RunAsync).
+    internal static int WheelFor(int last, int shift, int pane)
     {
+        if (shift <= 0 || pane <= 0) return last;
+        var wanted = last * 0.45 * pane / shift;
+        return Math.Clamp((int)Math.Round(wanted / 30) * 30, 30, 240);
+    }
+    // Waits (up to 10 seconds) until no Shift, Ctrl or Alt key is held; the milliseconds waited.
+    internal static Func<bool> ModifierHeld = () => (GetAsyncKeyState(0x10) & 0x8000) != 0 || (GetAsyncKeyState(0x11) & 0x8000) != 0 || (GetAsyncKeyState(0x12) & 0x8000) != 0;
+    internal static async Task<int> KeysReleasedAsync(Func<bool> stopRequested)
+    {
+        if (!ModifierHeld()) return 0;
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        while (ModifierHeld() && clock.ElapsedMilliseconds < 10_000 && !stopRequested()) await Task.Delay(50);
+        await Task.Delay(100); // Let the browser see the key go up first.
+        return (int)clock.ElapsedMilliseconds;
+    }
+    private static async Task<Drawing.Bitmap?> ScrollAndSettleAsync(Drawing.Rectangle area, Drawing.Point at, Drawing.Point? park, Drawing.Bitmap previous, int firstWait, Func<bool> stopRequested, int wheel = 240)
+    {
+        await KeysReleasedAsync(stopRequested); // A held Shift would scroll sideways.
         using (new ScreenCapture.DpiScope()) SetCursorPos(at.X, at.Y);
-        Wheel(-240);
+        Wheel(-wheel);
         if (park is { } spot) { await Task.Delay(40); using (new ScreenCapture.DpiScope()) SetCursorPos(spot.X, spot.Y); }
         var before = Rows(previous); var clock = System.Diagnostics.Stopwatch.StartNew();
         await Task.Delay(Math.Min(firstWait, 120));
@@ -383,15 +486,64 @@ internal static class ScrollingCapture
         }
         pieces.Add((pieces[^1].Frame, h - footer, footer));
         var total = Math.Min(MaxHeight, pieces.Sum(p => p.Height));
-        var result = new Drawing.Bitmap(w, total, DrawingImaging.PixelFormat.Format32bppRgb);
-        using var g = Drawing.Graphics.FromImage(result);
-        var y = 0;
-        foreach (var (frame, top, rows) in pieces)
+        // 3.2.1 (a floating button was joined in again on every screen): pixels that stay put while the page
+        // scrolls under them (a floating button or badge) are taken from the next picture instead, where that part of the
+        // page has moved out from under the button. Only the last picture's floating things are left (at the very end).
+        var used = pieces.Count - 1; // Frames taking part, in order (the footer piece repeats the last).
+        var px = new List<int[]>(); var shifts = new List<int> { 0 };
+        for (var i = 0; i < used; i++) px.Add(Pixels(pieces[i].Frame));
+        for (var i = 1; i < used; i++) shifts.Add(pieces[i].Height);
+        // The spots a floating thing covers, in the picture's own frame (it floats in the same place on every screen): the
+        // same in the next picture although the page under it moved on.
+        // 3.2.1: "the same" allows small changes (a button that fades
+        // or is drawn a shade differently), and the covered spots are widened by 2 pixels to take in soft edges.
+        static bool Alike(int p, int q) => Math.Abs((p & 0xFF) - (q & 0xFF)) <= 24 && Math.Abs((p >> 8 & 0xFF) - (q >> 8 & 0xFF)) <= 24 && Math.Abs((p >> 16 & 0xFF) - (q >> 16 & 0xFF)) <= 24;
+        // Seen in at least two pairs of pictures (a floating button stays for several screens); a step that ends on part
+        // of a pixel makes text edges differ once, which is not a button (it left a smudge).
+        var found = new byte[w * h]; var needed = used >= 3 ? 2 : 1;
+        for (var i = 0; i + 1 < used; i++)
         {
-            var take = Math.Min(rows, total - y); if (take <= 0) break;
-            g.DrawImage(frame, new Drawing.Rectangle(0, y, w, take), new Drawing.Rectangle(0, top, w, take), Drawing.GraphicsUnit.Pixel);
-            y += take;
+            var s = shifts[i + 1];
+            for (var r = header; r < h - footer; r++)
+                for (var x = 0; x < w; x++)
+                {
+                    var v = px[i][r * w + x]; var below = r - s;
+                    if (Alike(px[i + 1][r * w + x], v) && (below < header || !Alike(px[i + 1][below * w + x], v)) && found[r * w + x] < 255) found[r * w + x]++;
+                }
         }
+        var covered = new bool[w * h];
+        for (var r = header; r < h - footer; r++)
+            for (var x = 0; x < w; x++)
+                if (found[r * w + x] >= needed)
+                    for (var dy = -2; dy <= 2; dy++)
+                        for (var dx = -2; dx <= 2; dx++)
+                        {
+                            int rr = r + dy, xx = x + dx;
+                            if (rr >= header && rr < h - footer && xx >= 0 && xx < w) covered[rr * w + xx] = true;
+                        }
+        var output = new int[w * total];
+        var y = 0;
+        for (var p = 0; p < pieces.Count && y < total; p++)
+        {
+            var (_, top, rows) = pieces[p]; var i = Math.Min(p, used - 1);
+            var take = Math.Min(rows, total - y);
+            for (var r = top; r < top + take; r++, y++)
+                for (var x = 0; x < w; x++)
+                {
+                    var v = px[i][r * w + x];
+                    if (p < used && covered[r * w + x])
+                        for (int j = i + 1, row = r; j < used; j++)
+                        {
+                            row -= shifts[j]; if (row < header) break;
+                            if (!covered[row * w + x]) { v = px[j][row * w + x]; break; }
+                        }
+                    output[y * w + x] = v;
+                }
+        }
+        var result = new Drawing.Bitmap(w, total, DrawingImaging.PixelFormat.Format32bppRgb);
+        var data = result.LockBits(new(0, 0, w, total), DrawingImaging.ImageLockMode.WriteOnly, DrawingImaging.PixelFormat.Format32bppRgb);
+        try { for (var r = 0; r < total; r++) Marshal.Copy(output, r * w, data.Scan0 + r * data.Stride, w); }
+        finally { result.UnlockBits(data); }
         return result;
     }
 
@@ -467,10 +619,32 @@ internal static class ScrollingCapture
             var score = matches / (double)(overlap - still);
             if (score > bestScore) { bestScore = score; best = s; }
         }
-        PaneTrace?.Invoke($"profiles: best shift {best} at {bestScore:P0}");
-        return bestScore >= 0.95 ? best : 0;
+        // 3.2.1 (the last step of a long page ended on part of a pixel and matched only 92-94 %):
+        // a lower match is taken too when it clearly beats every other step size (no look-alike rows elsewhere).
+        var runnerUp = 0.0;
+        for (var s = 1; s < content - 8; s++)
+        {
+            if (Math.Abs(s - best) <= 3) continue;
+            var overlap = content - s; var matches = 0; var still = 0;
+            for (var y = top; y < bottom - s; y++) if (pn[y].AsSpan().SequenceEqual(pp[y]) || Flat(pn[y])) still++; else if (Near(pn[y], pp[y + s])) matches++;
+            if (overlap - still < 12) continue;
+            runnerUp = Math.Max(runnerUp, matches / (double)(overlap - still));
+        }
+        PaneTrace?.Invoke($"profiles: best shift {best} at {bestScore:P0}, next best elsewhere {runnerUp:P0}");
+        if (bestScore >= 0.95) return best;
+        // The clear-winner test leaves out plain rows (blank lines match blank lines at any step).
+        var bestPlain = 0.0;
+        {
+            var overlap = content - best; var matches = 0; var still = 0;
+            for (var y = top; y < bottom - best; y++) if (pn[y].AsSpan().SequenceEqual(pp[y]) || Flat(pn[y])) still++; else if (Near(pn[y], pp[y + best])) matches++;
+            if (overlap - still >= 12) bestPlain = matches / (double)(overlap - still);
+        }
+        PaneTrace?.Invoke($"profiles without plain rows: {bestPlain:P0} against {runnerUp:P0}");
+        return best > 0 && bestPlain >= 0.85 && bestPlain - runnerUp >= 0.3 ? best : 0;
     }
     private const int ProfileBins = 48, ProfileTolerance = 8;
+    // A row with nothing on it: every slice within the tolerance of the first.
+    private static bool Flat(byte[] row) { for (var i = 1; i < row.Length; i++) if (Math.Abs(row[i] - row[0]) > ProfileTolerance) return false; return true; }
     // Each row as the average brightness of 48 slices (the scroll bar edge left out, as in Rows).
     internal static byte[][] Profiles(Drawing.Bitmap bitmap)
     {
