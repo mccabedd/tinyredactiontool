@@ -35,7 +35,7 @@ public sealed class AppSettings
         "SelectToolButton", "RectangleTool", "OvalTool", "PolygonTool", "|",
         "TrimToolButton", "AppendToolButton", "|",
         "OpaqueTool", "BlurTool", "PixelateTool", "|",
-        "TextTool", "DrawRectangleTool", "DrawOvalTool", "LineTool", "PolylineTool", "FreehandTool", "|",
+        "DrawRectangleTool", "DrawOvalTool", "TextTool", "LineTool", "PolylineTool", "FreehandTool", "|", // 3.2.0 (David): Outline, Ellipse, Text, Line, Polyline, Pen.
         "CropTool", "ResizeButton", "RotateClockwiseButton", "RotateCounterClockwiseButton", "FlipHorizontalButton", "FlipVerticalButton", "|",
         "ZoomInButton", "ZoomOutButton", "FitButton", "FitWidthButton", "ActualSizeButton", "FullScreenButton", "PanTool", "SlideshowButton", "NavBarButton", "|",
         ">", "FileInfoButton", "|", "ToolClearRedactions", "ToolClearAnnotations", "ClearScreenButton", "|", "SettingsButton", "PanelButton",

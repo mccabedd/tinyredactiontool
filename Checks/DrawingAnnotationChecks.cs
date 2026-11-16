@@ -66,8 +66,8 @@ internal static class DrawingAnnotationChecks
             void Drag(Point from, Point to) { preview.MouseDownAt(from, MouseButton.Left, 1); preview.PointerMove(to); preview.PointerUp(); Pump(); window.UpdateLayout(); }
             void Tool(string name) { Find<Button>(name).RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent)); Pump(); }
             var buttons = Find<WrapPanel>("ToolButtons").Children.OfType<Button>().ToList();
-            // 0.15.0 order (David): Text, Outline, Ellipse, Line, Polyline, Pen.
-            check(buttons.IndexOf(Find<Button>("DrawRectangleTool")) == buttons.IndexOf(Find<Button>("TextTool")) + 1 && buttons.IndexOf(Find<Button>("FreehandTool")) == buttons.IndexOf(Find<Button>("PolylineTool")) + 1,
+            // 3.2.0 order (David): Outline, Ellipse, Text, Line, Polyline, Pen.
+            check(buttons.IndexOf(Find<Button>("TextTool")) == buttons.IndexOf(Find<Button>("DrawOvalTool")) + 1 && buttons.IndexOf(Find<Button>("DrawOvalTool")) == buttons.IndexOf(Find<Button>("DrawRectangleTool")) + 1 && buttons.IndexOf(Find<Button>("FreehandTool")) == buttons.IndexOf(Find<Button>("PolylineTool")) + 1,
                 "Outline, Ellipse and Pen sit with Text, Line and Polyline on the toolbar");
 
             Tool("DrawRectangleTool");

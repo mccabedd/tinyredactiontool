@@ -113,11 +113,12 @@
     <MenuItem Header="_Polygon" Tag="PolygonTool" Click="MenuTool"/>
     <MenuItem Header="P_an" Tag="PanTool" Click="MenuTool"/>
     <Separator/>
+    <!-- 3.2.0 (David): the same order as the toolbar: Outline, Ellipse, Text, Line, Polyline, Pen. -->
+    <MenuItem Header="Rectangle _Outline" Tag="DrawRectangleTool" Click="MenuTool"/>
+    <MenuItem Header="_Ellipse Outline" Tag="DrawOvalTool" Click="MenuTool"/>
     <MenuItem Header="_Text Annotation" Tag="TextTool" Click="MenuTool"/>
     <MenuItem Header="_Line / Arrow Annotation" Tag="LineTool" Click="MenuTool"/>
     <MenuItem Header="Pol_yline Annotation" Tag="PolylineTool" Click="MenuTool"/>
-    <MenuItem Header="Rectangle _Outline" Tag="DrawRectangleTool" Click="MenuTool"/>
-    <MenuItem Header="_Ellipse Outline" Tag="DrawOvalTool" Click="MenuTool"/>
     <MenuItem Header="Pe_n (Freehand)" Tag="FreehandTool" Click="MenuTool"/>
     <Separator/>
     <MenuItem Header="_Crop" Tag="CropTool" Click="MenuTool" IsEnabled="{Binding IsEnabled, ElementName=CropTool}"/>
@@ -201,9 +202,9 @@
     <Button x:Name="BlurTool" Style="{StaticResource ToolButton}" Content="Blur Fill" Tag="Blur" Click="SelectEffectTool" ToolTip="Blur Fill" local:Toolbar.Accent="{StaticResource AccentBlur}" local:Toolbar.AccentBrush="{StaticResource AccentSoft}"/>
     <Button x:Name="PixelateTool" Style="{StaticResource ToolButton}" Content="Pixelate Fill" Tag="Pixelate" Click="SelectEffectTool" ToolTip="Pixelate Fill" local:Toolbar.Icon="{StaticResource IconPixelate}" local:Toolbar.Accent="{StaticResource AccentPixelate}" local:Toolbar.AccentBrush="{StaticResource AccentGrey}"/>
     <Rectangle Style="{StaticResource ToolSeparator}"/>
-    <Button x:Name="TextTool" Style="{StaticResource ToolButton}" Content="Text" Tag="Text" Click="SelectTool" ToolTip="Text: Drag a Box, Then Type (Double-Click a Text to Edit It)" local:Toolbar.Icon="{StaticResource IconText}"/>
     <Button x:Name="DrawRectangleTool" Style="{StaticResource ToolButton}" Content="Outline" Tag="DrawRectangle" Click="SelectTool" ToolTip="Rectangle Outline" local:Toolbar.Icon="{StaticResource IconDrawRectangle}" local:Toolbar.Accent="{StaticResource AccentPencil}" local:Toolbar.AccentBrush="{StaticResource AccentRed}"/>
     <Button x:Name="DrawOvalTool" Style="{StaticResource ToolButton}" Content="Ellipse" Tag="DrawOval" Click="SelectTool" ToolTip="Ellipse Outline" local:Toolbar.Icon="{StaticResource IconDrawOval}" local:Toolbar.Accent="{StaticResource AccentPencil}" local:Toolbar.AccentBrush="{StaticResource AccentRed}"/>
+    <Button x:Name="TextTool" Style="{StaticResource ToolButton}" Content="Text" Tag="Text" Click="SelectTool" ToolTip="Text: Drag a Box, Then Type (Double-Click a Text to Edit It)" local:Toolbar.Icon="{StaticResource IconText}"/>
     <Button x:Name="LineTool" Style="{StaticResource ToolButton}" Content="Line" Tag="Line" Click="SelectTool" ToolTip="Line or Arrow" local:Toolbar.Icon="{StaticResource IconLine}" local:Toolbar.Accent="{StaticResource AccentLine}" local:Toolbar.AccentBrush="{StaticResource AccentRed}"/>
     <Button x:Name="PolylineTool" Style="{StaticResource ToolButton}" Content="Polyline" Tag="Polyline" Click="SelectTool" ToolTip="Polyline: Drag; Turning Adds a Right-Angled Corner" local:Toolbar.Icon="{StaticResource IconPolyline}"/>
     <Button x:Name="FreehandTool" Style="{StaticResource ToolButton}" Content="Pen" Tag="Freehand" Click="SelectTool" ToolTip="Pen: Draw Freehand" local:Toolbar.Icon="{StaticResource IconFreehand}" local:Toolbar.Accent="{StaticResource AccentPencil}" local:Toolbar.AccentBrush="{StaticResource AccentRed}"/>

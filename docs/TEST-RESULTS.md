@@ -1,6 +1,6 @@
 # Verification: 3.2.0, 16 November 2026
 
-Status: **`Build-Dev.ps1` (build and all checks) passed: 1446 checks, none failed.** Build: 0 errors, 0 warnings. (The first full run stopped where an older check found the Draw menu by its position; the menu order changed, so it now finds menus by name. After David's video of 16 November the paste fix below was added and the full suite run again.)
+Status: **`Build-Dev.ps1` (build and all checks) passed: 1447 checks, none failed.** Build: 0 errors, 0 warnings. (The first full run stopped where an older check found the Draw menu by its position; the menu order changed, so it now finds menus by name. After David's video of 16 November the paste fix below was added and the full suite run again.)
 
 ## What changed
 - Auto redaction colour: Region.AutoColor; AutoColour.Sample takes the most common colour along a band 1.5 to 3 pixels either side of the shape's edge (turned shapes, ovals and polygons included) on the frame shown, after every draw, move, size or turn. The Auto tick box sits between Redaction Colour and the Eyedropper (redaction window and options bar). Choosing a colour turns it off. Settings › Editor › Auto Redaction Colour (off by default).
@@ -8,9 +8,10 @@ Status: **`Build-Dev.ps1` (build and all checks) passed: 1446 checks, none faile
 - New Image with the current picture: the picture is drawn into the new picture's pixels (NewPictureWindow.Compose) instead of a Picture item covering the canvas.
 - David's video (16 November): New Image at the clipboard's size, then Paste, still left a canvas-sized picture item that caught every click. Now a single picture pasted or added onto an empty New Image that fills it is flattened into it (FlattenImageAsync; Undo takes it back out), a picture that isn't selected is grabbed only by the Select tool (drawing tools draw over it), and Esc lets go of a selection.
 - Menus: File, Edit, View, Redact, Draw, Video, Capture, Help. Solid Fill / Blur Fill / Pixelate Fill; Redaction Colour…; Eyedropper; Solid in the redaction window. Paint-bucket icon; filled Rectangle, Oval and Polygon icons; larger Clear icons.
+- Drawing tools in David's order on the toolbar and in the Draw menu: Outline, Ellipse, Text, Line, Polyline, Pen (was Text first).
 - Settings › Editor: line width for new shapes (default 4, was 6); the tray click (default: click opens the editor, double-click shows the capture bar).
 
-## New checks (Release320Checks; `--release-320-only` runs these 36)
+## New checks (Release320Checks; `--release-320-only` runs these 37)
 - New Image the size of a picture, then that picture added: it becomes the image (no item), Save Media As saves it, and a redaction can be drawn on it at once. A smaller picture stays an item; let go of, the Rectangle tool draws over it; Select still moves it.
 - Auto colour finds the light blue around black text (not a dark average), the pink around a turned oval, the colour along a polygon's edge, and nothing on see-through pixels.
 - In the editor, through the real mouse path: with Auto on, a Solid Fill drawn over black text on light blue is light blue; moved onto pink it turns pink; choosing a colour turns Auto off; ticking Auto again matches at once; with Auto off a new box uses the chosen colour.
@@ -29,4 +30,4 @@ Status: **`Build-Dev.ps1` (build and all checks) passed: 1446 checks, none faile
 - Auto colour on video frames while playing (it samples the frame shown when the redaction is drawn or moved).
 
 ## Package
-- TinyRedactionTool-3.2.0.exe, 117 MB, SHA-256 47F8A88838898B199DEA9ABA372BADE2340FE1159B43E392DAA9A94C71C5DCFA (product version 3.2.0).
+- TinyRedactionTool-3.2.0.exe, 117 MB, SHA-256 0ACB2EC6196F71562B9C3A4BAB51A51128B19D1467416BA2CAD1C854A744D0A9 (product version 3.2.0).

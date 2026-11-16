@@ -50,7 +50,7 @@ internal static class Release027Checks
             // 3.1.3: David's "TRT Default Settings.json".
             "NewButton", "OpenButton", "AddImageButton", "OpenProjectButton", "PreviousPictureButton", "NextPictureButton", "ExportButton", "SaveMediaButton", "SaveProjectButton", "OriginalButton", "|",
             "CopyButton", "PasteButton", "|", "UndoButton", "RedoButton", "DeleteButton", "|", "SelectToolButton", "RectangleTool", "OvalTool", "PolygonTool", "|", "TrimToolButton", "AppendToolButton", "|",
-            "OpaqueTool", "BlurTool", "PixelateTool", "|", "TextTool", "DrawRectangleTool", "DrawOvalTool", "LineTool", "PolylineTool", "FreehandTool", "|",
+            "OpaqueTool", "BlurTool", "PixelateTool", "|", "DrawRectangleTool", "DrawOvalTool", "TextTool", "LineTool", "PolylineTool", "FreehandTool", "|",
             "CropTool", "ResizeButton", "RotateClockwiseButton", "RotateCounterClockwiseButton", "FlipHorizontalButton", "FlipVerticalButton", "|",
             "ZoomInButton", "ZoomOutButton", "FitButton", "FitWidthButton", "ActualSizeButton", "FullScreenButton", "PanTool", "SlideshowButton", "NavBarButton", "|",
             ">", "FileInfoButton", "|", "ToolClearRedactions", "ToolClearAnnotations", "ClearScreenButton", "|", "SettingsButton", "PanelButton",

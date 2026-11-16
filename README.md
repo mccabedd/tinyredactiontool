@@ -38,7 +38,7 @@ Windows x64 and Windows PowerShell 5.1 are needed. Nothing is installed machine-
 
 1. `Bootstrap-Dev.ps1` downloads only the pinned .NET SDK and packages and checks their hashes.
 2. Put the approved FFmpeg and FFprobe binaries (hashes in [THIRD-PARTY.md](THIRD-PARTY.md)) in `tools/`.
-3. `Build-Dev.ps1` builds offline and runs the 1,446 checks.
+3. `Build-Dev.ps1` builds offline and runs the 1,447 checks.
 4. `Package-Standalone.ps1` makes the single `.exe` in `standalone/<version>/`.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how it fits together.

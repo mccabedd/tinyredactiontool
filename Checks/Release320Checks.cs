@@ -103,6 +103,10 @@ internal static class Release320Checks
             string Header(MenuItem m) => (m.Header as string ?? "").Replace("_", "");
             var redact = menu.Items.OfType<MenuItem>().First(m => Header(m) == "Redact").Items.OfType<MenuItem>().Select(Header).ToArray();
             check(redact.SequenceEqual(["Solid Fill", "Blur Fill", "Pixelate Fill", "Redaction Colour…", "Eyedropper"]), "the Redact menu says Solid Fill, Blur Fill, Pixelate Fill, Redaction Colour, Eyedropper: " + string.Join(" | ", redact));
+            string[] drawing = ["DrawRectangleTool", "DrawOvalTool", "TextTool", "LineTool", "PolylineTool", "FreehandTool"];
+            var drawMenu = menu.Items.OfType<MenuItem>().First(m => Header(m) == "Draw").Items.OfType<MenuItem>().Select(m => m.Tag as string).Where(t => t != null && drawing.Contains(t)).ToArray();
+            check(AppSettings.DefaultEditorToolbar.Where(drawing.Contains).SequenceEqual(drawing) && drawMenu.SequenceEqual(drawing),
+                "the toolbar and the Draw menu both read Outline, Ellipse, Text, Line, Polyline, Pen: " + string.Join(", ", drawMenu));
             var tools3 = new[] { ("OpaqueTool", "Solid Fill"), ("BlurTool", "Blur Fill"), ("PixelateTool", "Pixelate Fill") };
             check(tools3.All(t => Find<Button>(t.Item1) is { } b && b.Content as string == t.Item2 && b.ToolTip as string == t.Item2), "the toolbar says Solid Fill, Blur Fill and Pixelate Fill (tooltips too)");
             check(Find<Button>("PopupOpaque") is { Content: "Solid", ToolTip: "Solid Fill" } && Find<Button>("PopupBlur").ToolTip as string == "Blur Fill" && Find<Button>("PopupPixelate").ToolTip as string == "Pixelate Fill",
