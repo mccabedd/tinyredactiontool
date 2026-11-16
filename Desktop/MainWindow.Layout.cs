@@ -48,6 +48,10 @@ public partial class MainWindow
     internal void ApplySettings(AppSettings settings)
     {
         Settings = settings;
+        // 3.2.0 (David): Settings › Editor: the line width and Auto colour new shapes start with.
+        Preview.AnnotationStyle.Width = settings.LineWidth; Preview.DrawingAutoColor = settings.AutoRedactionColour;
+        if (SelectedAnnotation == null && AnnotationWidth != null) { updatingAnnotationUi = true; AnnotationWidth.Value = settings.LineWidth; updatingAnnotationUi = false; }
+        UpdateColorControls();
         var vertical = settings.VerticalToolbar; var small = settings.SmallIcons;
         var style = (Style)FindResource(small ? "SmallToolButton" : "ToolButton");
         ArrangeToolbar(settings); // 0.24.0: the buttons, order and sides chosen in Settings.
@@ -125,7 +129,7 @@ public partial class MainWindow
         if (Project.Media == null) return "open an image or video first.";
         if (Project.Regions.Count == 0 && Project.Annotations.Count == 0 && Project.Crop == null) return "draw a redaction, annotation or crop first.";
         // 0.14.0 (David): no separate Review step any more; followed ranges no longer hold up export.
-        if (policy.DisableVisualObscuration && Project.Regions.Any(r => r.Effect != RedactionEffect.Opaque)) return "your organisation's policy allows only coloured boxes; change Blur or Pixelate redactions to Box.";
+        if (policy.DisableVisualObscuration && Project.Regions.Any(r => r.Effect != RedactionEffect.Opaque)) return "your organisation's policy allows only Solid Fill; change Blur Fill or Pixelate Fill redactions to Solid Fill.";
         return null;
     }
 

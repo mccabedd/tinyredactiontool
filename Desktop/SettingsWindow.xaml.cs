@@ -47,6 +47,8 @@ public partial class SettingsWindow : Window
         (current.StripAtSetPlace ? StripSetPlaceBox : StripUnderBarBox).IsChecked = true;
         StripPositionSlider.Value = current.StripPositionPercent;
         HideOptionsBarBox.IsChecked = current.HideOptionsBar;
+        LineWidthBox.Value = current.LineWidth; AutoColourSettingBox.IsChecked = current.AutoRedactionColour; // 3.2.0
+        (current.TrayClickOpensEditor ? TrayEditorBox : TrayBarBox).IsChecked = true;
         DelayChoice.SelectedItem = current.CaptureDelaySeconds;
         CapturePointerBox.IsChecked = current.CaptureMousePointer;
         FullScreenChoice.SelectedIndex = current.FullScreenAllMonitors ? 1 : 0;
@@ -138,7 +140,7 @@ public partial class SettingsWindow : Window
         "RotateClockwiseButton" => "Rotate Right (Clockwise)", "RotateCounterClockwiseButton" => "Rotate Left (Anti-Clockwise)",
         "FlipHorizontalButton" => "Flip Canvas Horizontally", "FlipVerticalButton" => "Flip Canvas Vertically",
         "TrimToolButton" => "Trim (Videos Only)", "AppendToolButton" => "Append (Videos Only)",
-        "OpaqueTool" => "Box", "BlurTool" => "Blur", "PixelateTool" => "Pixelate",
+        "OpaqueTool" => "Solid Fill", "BlurTool" => "Blur Fill", "PixelateTool" => "Pixelate Fill",
         "TextTool" => "Text", "DrawRectangleTool" => "Outline", "DrawOvalTool" => "Ellipse", "LineTool" => "Line", "PolylineTool" => "Polyline", "FreehandTool" => "Pen",
         "ZoomInButton" => "Zoom In", "ZoomOutButton" => "Zoom Out", "FitButton" => "Fit", "FitWidthButton" => "Fit Width", "ActualSizeButton" => "Actual Size",
         "FullScreenButton" => "Full Screen", "SlideshowButton" => "Slideshow", "NavBarButton" => "Nav Bar", "NewButton" => "New", "FileInfoButton" => "File Info",
@@ -260,6 +262,8 @@ public partial class SettingsWindow : Window
         Result.ShowCaptureBar = ShowBarBox.IsChecked == true;
         Result.StripAtSetPlace = StripSetPlaceBox.IsChecked == true; Result.StripPositionPercent = (int)Math.Round(StripPositionSlider.Value);
         Result.HideOptionsBar = HideOptionsBarBox.IsChecked == true;
+        Result.LineWidth = (int)Math.Clamp(Math.Round(LineWidthBox.Value), AppSettings.MinLineWidth, AppSettings.MaxLineWidth);
+        Result.AutoRedactionColour = AutoColourSettingBox.IsChecked == true; Result.TrayClickOpensEditor = TrayEditorBox.IsChecked == true;
         StartupChosen = StartupBox.IsChecked == true;
         ThemeChosen = ThemeShown;
         Result.CaptureDelaySeconds = DelayChoice.SelectedItem is int delay ? delay : 0;

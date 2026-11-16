@@ -375,6 +375,9 @@
   <Geometry x:Key="IconActualSize">M2,3 L18,3 L18,17 L2,17 Z M5.5,8 L7.5,6.5 L7.5,13.5 M10,8.6 L10,9.4 M10,11.6 L10,12.4 M12.5,8 L14.5,6.5 L14.5,13.5</Geometry>
   <Geometry x:Key="AccentFit">M5,5 L15,5 L15,15 L5,15 Z</Geometry>
   <Geometry x:Key="IconBox">M3,4 L17,4 L17,16 L3,16 Z</Geometry>
+  <!-- 3.2.0 (David): Solid Fill is a paint bucket pouring, so it is never mistaken for the (now filled) Rectangle redaction. -->
+  <Geometry x:Key="IconSolidFill">M3.2,10.2 L9.6,3.8 L16.4,10.6 L10,17 Z M9.6,3.8 C8.2,1.2 5,1.8 5.4,5 L6.8,9.4</Geometry>
+  <Geometry x:Key="AccentSolidFill">M3.2,10.2 L10,17 L15.6,11.4 L13.8,9.6 Z M17.2,11.6 C17.2,11.6 19.4,14.6 19.4,16 A2.2,2.2 0 1 1 15,16 C15,14.6 17.2,11.6 17.2,11.6 Z</Geometry>
   <Geometry x:Key="AccentBlur">M2,10 A8,8 0 1 1 18,10 A8,8 0 1 1 2,10 Z</Geometry>
   <Geometry x:Key="IconPixelate">M3,3 L17,3 L17,17 L3,17 Z</Geometry>
   <Geometry x:Key="AccentPixelate">M3,3 L8,3 L8,8 L3,8 Z M12,3 L17,3 L17,8 L12,8 Z M8,8 L12,8 L12,12 L8,12 Z M3,12 L8,12 L8,17 L3,17 Z M12,12 L17,12 L17,17 L12,17 Z</Geometry>
@@ -394,10 +397,11 @@
   <Geometry x:Key="AccentCopy">M8,7 L17,7 L17,18 L8,18 Z</Geometry>
   <Geometry x:Key="IconPaste">M6,4 L3,4 L3,18 L9,18 M12,4 L15,4 L15,8 M6,2.5 L12,2.5 L12,5.5 L6,5.5 Z M9,9 L18,9 L18,19 L9,19 Z M11,12 L16,12 M11,14.5 L16,14.5 M11,17 L14,17</Geometry>
   <Geometry x:Key="AccentPaste">M6,2.5 L12,2.5 L12,5.5 L6,5.5 Z</Geometry>
-  <Geometry x:Key="IconClearRedactions">M2,3 L12,3 L12,12 L2,12 Z M4,5 L10,5 L10,10 L4,10 Z</Geometry>
-  <Geometry x:Key="IconClearAnnotations">M2,13 L9,4 M5.5,3.8 L9.2,3.6 L9.6,7.3 M2,16.5 L8,16.5</Geometry>
+  <!-- 3.2.0 (David): as large as the other icons; the cross is drawn on the red dot. -->
+  <Geometry x:Key="IconClearRedactions">M14.5,9.6 L14.5,2.5 L1.5,2.5 L1.5,13.5 L8.6,13.5 M4.2,5.2 L11.8,5.2 L11.8,10.8 L4.2,10.8 Z M13,12.5 L17,16.5 M17,12.5 L13,16.5</Geometry>
+  <Geometry x:Key="IconClearAnnotations">M2,13.5 L11.5,2.5 M7.2,2.4 L11.8,2 L12.2,6.6 M1.5,18 L8.5,18 M12.6,12.4 L17.4,16.6 M17.4,12.4 L12.6,16.6</Geometry>
   <Geometry x:Key="IconClear">M4,2 L11,2 L15,6 L15,18 L4,18 Z M11,2 L11,6 L15,6</Geometry>
-  <Geometry x:Key="AccentClear">M10,10 A4,4 0 1 1 18,10 A4,4 0 1 1 10,10 Z M12,8 L16,12 M16,8 L12,12</Geometry>
+  <Geometry x:Key="AccentClear">M10.5,14.5 A4.5,4.5 0 1 1 19.5,14.5 A4.5,4.5 0 1 1 10.5,14.5 Z</Geometry>
   <Geometry x:Key="IconText">M4,17 L10,3 L16,17 M6.4,11.5 L13.6,11.5</Geometry>
   <Geometry x:Key="IconLine">M3,17 L14,6</Geometry>
   <Geometry x:Key="AccentLine">M17,3 L10.5,5 L15,9.5 Z</Geometry>

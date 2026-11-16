@@ -1,24 +1,30 @@
-# Verification: 3.1.3, 12 November 2026
+# Verification: 3.2.0, 16 November 2026
 
-Status: **`Build-Dev.ps1` (build and all checks) passed: 1410 checks, none failed.** Build: 0 errors, 0 warnings.
+Status: **`Build-Dev.ps1` (build and all checks) passed: 1438 checks, none failed.** Build: 0 errors, 0 warnings. (The first full run stopped where an older check found the Draw menu by its position; the menu order changed, so it now finds menus by name.)
 
 ## What changed
-- Toolbar spacer (Settings › Toolbar › Add Spacer): a blank gap the size of a button, kept in EditorToolbar as "_".
-- First-start defaults from David's "TRT Default Settings.json": toolbar order (Save Media before Save Project, Copy and Paste in their own group), hidden buttons (New, Add Image, Open/Save Project, Previous, Next, Original, Rotate, Flip, Zoom, Settings), the navigation bar in the editor at 48 pixels, a 30-pixel red tab.
-- Save Copy button renamed Save Media, tooltip "Save Media As… (No Redactions)"; the capture bar's red tab has no tooltip.
-- Edit menu: Copy Image, Paste Image and Paste onto Image before Transform, Rotate and Resize.
-- File names: REDACTED_ for every export (CROPPED_ gone); CAPTURE_ for everything made before export (was SCREENSHOT_, RECORDING_, FRAME_, PASTED_, NEW_, EDITED_; Remove History still clears the old names). Save Media As adds _COPY once.
-- Help manual: Settings › Toolbar row mentions Add Spacer; Save Media in the toolbar table; editor, Edit menu and Settings pictures redrawn.
+- Auto redaction colour: Region.AutoColor; AutoColour.Sample takes the most common colour along a band 1.5 to 3 pixels either side of the shape's edge (turned shapes, ovals and polygons included) on the frame shown, after every draw, move, size or turn. The Auto tick box sits between Redaction Colour and the Eyedropper (redaction window and options bar). Choosing a colour turns it off. Settings › Editor › Auto Redaction Colour (off by default).
+- Pictures read by Windows (StillDecoder): PNG, BMP and JPEG, with JPEG EXIF orientation applied and colour profiles ignored, as FFmpeg does; anything else, a PNG with its own EXIF block, or a file Windows can't read goes through FFmpeg. Measured on the development laptop: FFmpeg took 1.2 to 3.6 s for a picture, Windows 0.04 to 0.25 s, the fingerprint 8 to 25 ms.
+- New Image with the current picture: the picture is drawn into the new picture's pixels (NewPictureWindow.Compose) instead of a Picture item covering the canvas.
+- Menus: File, Edit, View, Redact, Draw, Video, Capture, Help. Solid Fill / Blur Fill / Pixelate Fill; Redaction Colour…; Eyedropper; Solid in the redaction window. Paint-bucket icon; filled Rectangle, Oval and Polygon icons; larger Clear icons.
+- Settings › Editor: line width for new shapes (default 4, was 6); the tray click (default: click opens the editor, double-click shows the capture bar).
 
-## New checks (Release027Checks)
-- Edit menu order; Save Media caption and tooltip; red tab without a tooltip; _COPY once; two spacers make two 36-pixel gaps; spacers survive saving; Settings lists, adds and removes spacers; David's new defaults (toolbar, hidden buttons, nav bar, red tab).
+## New checks (Release320Checks; `--release-320-only` runs these 29)
+- Auto colour finds the light blue around black text (not a dark average), the pink around a turned oval, the colour along a polygon's edge, and nothing on see-through pixels.
+- In the editor, through the real mouse path: with Auto on, a Solid Fill drawn over black text on light blue is light blue; moved onto pink it turns pink; choosing a colour turns Auto off; ticking Auto again matches at once; with Auto off a new box uses the chosen colour.
+- A PNG read by Windows has exactly FFmpeg's pixels (transparency included); a JPEG held sideways comes out upright and the same size as FFmpeg's, within decoder rounding; GIF, WebP and TGA still use FFmpeg.
+- Settings defaults and round trip (line width, Auto, tray click); a line width outside 1 to 20 goes back to 4; the line width setting is what new lines start with.
+- Redact menu, toolbar, redaction-window names and tooltips; Auto's place in the redaction window; the paint-bucket and filled icons; Clear icons as tall as File Info.
+- Tray: a double-click shows the capture bar, a click opens the editor, and swapping them in Settings works.
 
 ## Changed checks
-- Capture names expect CAPTURE_ (CaptureChecks, Release014/019/020/021, Release300LayerChecks); leftover CAPTURE_ files are wiped after a crash (Release018).
-- Toolbar order and defaults: FrameSpeedChecks (Save Media after Export; Rotate hidden), Release015 (Fit Width between Fit and Actual Size), Release024/025/026/027 (new hidden buttons, nav bar shown at 48, New and Add Image hidden).
+- Release026: New Image puts the screenshot into the new picture's own pixels (not an item); later counts of picture items one fewer.
+- Release015 and AnnotationChecks: new lines start 4 pixels wide.
+- FrameSpeedChecks: Solid Fill, Blur Fill, Pixelate Fill captions. Program.cs: menu order, and the Draw and Redact menus found by name.
 
 ## Not checked
-- The real keyboard and mouse on David's screen (the checks drive the same code off-screen).
+- The real mouse on David's notification-area icon (the checks call the same click handler).
+- Auto colour on video frames while playing (it samples the frame shown when the redaction is drawn or moved).
 
 ## Package
-- TinyRedactionTool-3.1.3.exe, 117 MB, SHA-256 180CA1002762BEA6286EC35A219CF9D3BF50D88468B386FD97CBB77352ED3365 (product version 3.1.3).
+- TinyRedactionTool-3.2.0.exe, 117 MB, SHA-256 E4FAD4EA14EF2AAAFE99108B262C143EA4AEF0C2D566E359FB01275F5A6862B2 (product version 3.2.0).

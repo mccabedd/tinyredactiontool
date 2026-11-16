@@ -177,14 +177,14 @@ internal static class Release026Checks
             questions = 0; NewPictureWindow? carryDialog = null;
             editor.AnswerNewPicture = dialog => { carryDialog = dialog; dialog.WidthBox.Value = 600; dialog.HeightBox.Value = 400; dialog.White.IsChecked = true; dialog.Accept(); return true; };
             check(Wait(() => editor.NewPictureAsync()) && editor.IsNewPicture && preview.Project.Media is { Width: 600, Height: 400 } && questions == 0
-                  && preview.Project.Annotations.SingleOrDefault() is { Kind: AnnotationKind.Picture, Box: { Width: 120, Height: 80 } },
-                $"New puts the screenshot onto the bigger picture, without asking about the unsaved screenshot ({questions} questions){Failure()}");
+                  && preview.Project.Annotations.Count == 0 && preview.Image is { } carriedOn && Pixel(carriedOn, 300, 200) == Colors.Teal && Pixel(carriedOn, 5, 5) == Colors.White,
+                $"New puts the screenshot into the bigger picture's own pixels (3.2.0: not an item that stays selected), without asking about the unsaved screenshot ({questions} questions){Failure()}");
             check(carryDialog?.Carry.IsChecked == true && ((List<NewPictureWindow.Preset>)carryDialog.Presets.ItemsSource)[0].Name == "The Current Image",
                 "the New window offers to keep the current picture (ticked), and its size");
             var second = controller.Store.NewFile("TEST", ".png"); CaptureController.WritePng(NewPictureWindow.Blank(60, 40, Colors.Orange), second);
-            check(Wait(() => editor.AddCaptureOntoNewPictureAsync(second)) && preview.Project.Annotations.Count(a => a.Kind == AnnotationKind.Picture) == 2 && !File.Exists(second) && editor.IsNewPicture && questions == 0,
+            check(Wait(() => editor.AddCaptureOntoNewPictureAsync(second)) && preview.Project.Annotations.Count(a => a.Kind == AnnotationKind.Picture) == 1 && !File.Exists(second) && editor.IsNewPicture && questions == 0,
                 "another screenshot goes onto the New picture as an item (and its capture file is wiped)");
-            check(Wait(() => editor.AddPictureFilesAsync([Path.Combine(folder, "a.png"), Path.Combine(folder, "b.png"), video])) == 2 && preview.Project.Annotations.Count == 4 && editor.IsNewPicture,
+            check(Wait(() => editor.AddPictureFilesAsync([Path.Combine(folder, "a.png"), Path.Combine(folder, "b.png"), video])) == 2 && preview.Project.Annotations.Count == 3 && editor.IsNewPicture,
                 "File › Add picture puts picture files onto it (a video in the choice is left out)");
             check(Wait(() => editor.OpenPathAsync(Path.Combine(folder, "a.png"))) && !editor.IsNewPicture && !Wait(() => editor.AddCaptureOntoNewPictureAsync(Path.Combine(folder, "b.png"))),
                 "on an ordinary picture a screenshot opens as before");

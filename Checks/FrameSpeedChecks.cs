@@ -117,7 +117,7 @@ internal static class FrameSpeedChecks
                 "Copy and Paste sit on the toolbar just before Undo (after Export and Save Media; 3.1.3: David's defaults; Original hidden)");
             // 0.21.0: the video-only Trim and Append follow Crop; 0.23.0: Resize sits between them, beside Crop;
             // 0.24.0: and the picture's turn and flip buttons after Resize.
-            check(At("Trim") == At("Polygon") + 1 && At("Append") == At("Trim") + 1 && At("Box") == At("Append") + 1 && At("Blur") == At("Box") + 1 && At("Pixelate") == At("Blur") + 1 && At("Text") == At("Pixelate") + 1
+            check(At("Trim") == At("Polygon") + 1 && At("Append") == At("Trim") + 1 && At("Solid Fill") == At("Append") + 1 && At("Blur Fill") == At("Solid Fill") + 1 && At("Pixelate Fill") == At("Blur Fill") + 1 && At("Text") == At("Pixelate Fill") + 1
                   && At("Crop") == At("Pen") + 1 && At("Resize") == At("Crop") + 1 && At("Rotate Right") < 0 && At("Fit") == At("Resize") + 1,
                 "0.27.0 (David's order): Trim and Append after Polygon, then Box, Blur, Pixelate and the drawing tools, then Crop and Resize (3.1.3: the turn buttons hidden by default)");
             // 0.18.0 (David): the Clear buttons sit at the far right beside Panel, after a separator; none at the bottom right.

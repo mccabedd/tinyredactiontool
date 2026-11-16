@@ -52,10 +52,10 @@ internal static class Release015Checks
             // Line options: width 6 and an arrow at the end by default; one ▲▼ width box; pictures for ends and dashes.
             Click("LineTool");
             var width = Find<NumberSpinner>("AnnotationWidth"); var popupWidth = Find<NumberSpinner>("LinePopupWidth");
-            check(preview.AnnotationStyle.Width == 6 && preview.AnnotationStyle.Ends == AnnotationEnds.ArrowEnd && width.Value == 6 && Find<ComboBox>("AnnotationEnds").SelectedIndex == (int)AnnotationEnds.ArrowEnd,
-                "new lines start 6 pixels wide with an arrowhead at the end");
+            check(preview.AnnotationStyle.Width == 4 && preview.AnnotationStyle.Ends == AnnotationEnds.ArrowEnd && width.Value == 4 && Find<ComboBox>("AnnotationEnds").SelectedIndex == (int)AnnotationEnds.ArrowEnd,
+                "new lines start 4 pixels wide (3.2.0, was 6) with an arrowhead at the end");
             width.Step(1);
-            check(preview.AnnotationStyle.Width == 7 && popupWidth.Value == 7, "the ▲ of the width box widens new lines, and the Line window's width box follows");
+            check(preview.AnnotationStyle.Width == 5 && popupWidth.Value == 5, "the ▲ of the width box widens new lines, and the Line window's width box follows");
             width.Box.Text = "99"; width.Commit();
             check(width.Value == Annotation.MaxWidth && preview.AnnotationStyle.Width == Annotation.MaxWidth, "a typed width beyond the limit is pulled back to 20");
             width.Box.Text = "abc"; width.Commit();

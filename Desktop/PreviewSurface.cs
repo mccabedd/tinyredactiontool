@@ -26,6 +26,8 @@ public sealed partial class PreviewSurface : FrameworkElement
     public bool DrawingAggressive { get; set; }
     public int DrawingStrength { get; set; } = 5;
     public string DrawingColor { get; set; } = "#000000";
+    // 3.2.0 (David): new Solid Fill redactions match the background around them (Settings › Editor sets the start).
+    public bool DrawingAutoColor { get; set; }
     internal bool AllowVisualObscuration { get; set; } = true;
     public double Time { get; set; }
     public event Action? BeforeEdit;
@@ -671,6 +673,7 @@ public sealed partial class PreviewSurface : FrameworkElement
     {
         Name = $"Region {Project.Regions.Count + 1}", Shape = shape, Start = Time, End = Project.Media?.Duration ?? 0,
         Effect = AllowVisualObscuration ? DrawingEffect : RedactionEffect.Opaque, Strength = DrawingStrength, Aggressive = DrawingAggressive, Color = DrawingColor,
+        AutoColor = DrawingAutoColor, // 3.2.0: takes the colour around it (MainWindow.ApplyAutoColour).
         // Creation order shared with annotations: a later redaction covers earlier annotations.
         Order = AnnotationRules.NextOrder(Project)
     };

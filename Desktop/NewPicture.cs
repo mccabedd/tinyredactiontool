@@ -115,6 +115,24 @@ internal sealed class NewPictureWindow : Window
         Result = ((int)Math.Clamp(WidthBox.Value, 1, MaxSide), (int)Math.Clamp(HeightBox.Value, 1, MaxSide), background, Carry.IsChecked == true && Carry.Parent != null);
         if (IsLoaded) DialogResult = true;
     }
+    // 3.2.0: a picture drawn into the middle of the background, at its own size (smaller to fit), as plain pixels.
+    internal static BitmapSource Compose(BitmapSource background, BitmapSource picture)
+    {
+        int w = background.PixelWidth, h = background.PixelHeight;
+        double pw = picture.PixelWidth, ph = picture.PixelHeight, fit = Math.Min(1, Math.Min(w / pw, h / ph));
+        pw = Math.Max(1, Math.Round(pw * fit)); ph = Math.Max(1, Math.Round(ph * fit));
+        var visual = new DrawingVisual();
+        using (var dc = visual.RenderOpen())
+        {
+            dc.DrawImage(background, new Rect(0, 0, w, h));
+            dc.DrawImage(picture, new Rect(Math.Floor((w - pw) / 2), Math.Floor((h - ph) / 2), pw, ph));
+        }
+        var target = new RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32); target.Render(visual);
+        var bgra = new FormatConvertedBitmap(target, PixelFormats.Bgra32, null, 0);
+        var pixels = new byte[checked(w * h * 4)]; bgra.CopyPixels(pixels, w * 4, 0);
+        var plain = BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, pixels, w * 4);
+        plain.Freeze(); return plain;
+    }
     // The blank picture itself (transparent: every pixel clear).
     internal static BitmapSource Blank(int width, int height, Color? background)
     {
@@ -148,13 +166,16 @@ public partial class MainWindow
         var answered = AnswerNewPicture != null ? AnswerNewPicture(dialog) : dialog.ShowDialog() == true;
         if (!answered || dialog.Result is not { } chosen) return false;
         var path = captures.Store.NewFile("CAPTURE", ".png");
-        CaptureController.WritePng(NewPictureWindow.Blank(chosen.Width, chosen.Height, chosen.Background), path);
         // Carried over, nothing is lost, so the "unsaved screenshot" question isn't asked.
         var carried = chosen.Carry && current != null;
+        // 3.2.0 (David): the carried picture is part of the new picture's own pixels, not an item on top. As an item the
+        // same size as the canvas it caught every click (it stayed selected, nothing could be drawn on it) and Save
+        // Media As saved only the background.
+        var blank = NewPictureWindow.Blank(chosen.Width, chosen.Height, chosen.Background);
+        CaptureController.WritePng(carried ? NewPictureWindow.Compose(blank, current!) : blank, path);
         var opened = await OpenCaptureAsync(path, ask: !carried, incoming: "new picture");
         if (!opened) { ReleaseCapture(path); return false; }
         newPicture = true; UpdateCaptureUi();
-        if (carried) Preview.AddPicture(current!);
         Preview.Fit(); ZoomText.Text = Preview.ZoomLabel; Refresh(); UpdateEditingState();
         Status.Text = $"New picture, {chosen.Width} × {chosen.Height}{(carried ? ", with the picture you had on it" : "")}. Screenshots, Paste (Ctrl+V) and File › Add picture go onto it; Export or Copy when done.";
         return true;

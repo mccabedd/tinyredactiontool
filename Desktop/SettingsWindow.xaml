@@ -133,6 +133,18 @@
      <TextBlock Text="Options Bar" Style="{StaticResource PanelHeading}" Margin="0,16,0,6"/>
      <CheckBox x:Name="HideOptionsBarBox" Content="Hide the Options Bar Under the Toolbar (Colour, Width, Font…)" Margin="0,2"/>
      <TextBlock Text="The floating windows beside a selection have the same choices. The bar still shows while cropping." TextWrapping="Wrap" FontSize="11" Margin="20,0,0,0"/>
+     <!-- 3.2.0 (David): what new shapes start with. -->
+     <TextBlock Text="New Shapes" Style="{StaticResource PanelHeading}" Margin="0,16,0,6"/>
+     <StackPanel Orientation="Horizontal">
+      <TextBlock Text="Line Width" VerticalAlignment="Center" Margin="0,0,8,0"/>
+      <local:NumberSpinner x:Name="LineWidthBox" Minimum="1" Maximum="20" Value="4" Width="70" ToolTip="Outline, Ellipse, Line, Arrow, Polyline and Pen"/>
+      <TextBlock Text="Pixels (Outline, Ellipse, Line, Arrow, Polyline, Pen)" VerticalAlignment="Center" Margin="8,0,0,0"/>
+     </StackPanel>
+     <CheckBox x:Name="AutoColourSettingBox" Content="Auto Redaction Colour (Solid Fill Matches the Colour Around It)" Margin="0,8,0,2"/>
+     <!-- 3.2.0 (David): single click opens the editor; double-click shows the capture bar (or the other way round). -->
+     <TextBlock Text="Notification-Area Icon" Style="{StaticResource PanelHeading}" Margin="0,16,0,6"/>
+     <RadioButton x:Name="TrayEditorBox" GroupName="TrayClick" Content="Click Opens the Editor, Double-Click Shows the Capture Bar" Margin="0,2" IsChecked="True" Foreground="{DynamicResource Foreground}"/>
+     <RadioButton x:Name="TrayBarBox" GroupName="TrayClick" Content="Click Shows the Capture Bar, Double-Click Opens the Editor" Margin="0,2" Foreground="{DynamicResource Foreground}"/>
     </StackPanel>
    </TabItem>
    <!-- 0.25.0 (David): the slideshow (0.23.0, moved from Editor) and the navigation bar. -->

@@ -57,6 +57,12 @@ internal static class Program
                 using (var layerTools = new MediaTools()) Release300LayerChecks.Run(layerTools, output, Check);
                 Console.WriteLine($"{passed} checks passed."); return 0;
             }
+            if (args.Contains("--release-320-only"))
+            {
+                new App { ShutdownMode = ShutdownMode.OnExplicitShutdown, StartDesktopWindow = false }.InitializeComponent();
+                using (var t320 = new MediaTools()) Release320Checks.Run(t320, output, Check);
+                Console.WriteLine($"{passed} checks passed."); return 0;
+            }
             if (args.Contains("--release-300-only")) { Release300Checks.Run(Check); Console.WriteLine($"{passed} checks passed."); return 0; }
             if (args.Contains("--release-028-only"))
             {
@@ -141,6 +147,7 @@ internal static class Program
             Release300Checks.Run(Check);
             Release300EditChecks.Run(output, Check);
             using (var layerTools = new MediaTools()) Release300LayerChecks.Run(layerTools, output, Check);
+            using (var release320Tools = new MediaTools()) Release320Checks.Run(release320Tools, output, Check);
             if (args.Contains("--still-only"))
             {
                 EyedropperUiChecks.Run(output, Check);
@@ -343,7 +350,7 @@ internal static class Program
                 name + " every toolbar button is visible, inside the window and above the workspace");
             Console.WriteLine($"{name} toolbar rows: {toolButtons.Select(b => Math.Round(b.TranslatePoint(new Point(0, 0), window).Y)).Distinct().Count()}, workspace {preview.ActualWidth:0}×{preview.ActualHeight:0}");
             var menu = (Menu)window.FindName("MainMenu");
-            Check(menu.Items.OfType<MenuItem>().Where(m => m.Visibility == Visibility.Visible).Select(m => ((string)m.Header).Replace("_", "")).SequenceEqual(["File", "Edit", "Draw", "Redact", "View", "Video", "Help"]) && menu.Items.OfType<MenuItem>().Where(m => m.Visibility == Visibility.Visible).All(m => m.IsVisible && m.TranslatePoint(new Point(m.ActualWidth, 0), window).X <= window.ActualWidth),
+            Check(menu.Items.OfType<MenuItem>().Where(m => m.Visibility == Visibility.Visible).Select(m => ((string)m.Header).Replace("_", "")).SequenceEqual(["File", "Edit", "View", "Redact", "Draw", "Video", "Help"]) && menu.Items.OfType<MenuItem>().Where(m => m.Visibility == Visibility.Visible).All(m => m.IsVisible && m.TranslatePoint(new Point(m.ActualWidth, 0), window).X <= window.ActualWidth),
                 name + " menu bar shows File, Edit, Draw, Redact, View, Video and Help (0.22.0: About replaced Help; 0.27.0: Video; 3.0.0: Help with the manual; Capture joins them when the capture bar opened the editor)");
             var scale = Math.Min(preview.ActualWidth / imageWidth, preview.ActualHeight / imageHeight);
             var centre = new Point((preview.ActualWidth - imageWidth * scale) / 2 + 72 * scale, (preview.ActualHeight - imageHeight * scale) / 2 + 44 * scale);
@@ -376,7 +383,7 @@ internal static class Program
         }
         // Menu entries drive the same toolbar buttons, and the active drawing tool shows pressed.
         var mainMenu = (Menu)window.FindName("MainMenu");
-        var polygonItem = ((MenuItem)mainMenu.Items[2]).Items.OfType<MenuItem>().Single(m => (string?)m.Tag == "PolygonTool");
+        var polygonItem = mainMenu.Items.OfType<MenuItem>().First(m => (string)m.Header == "_Draw").Items.OfType<MenuItem>().Single(m => (string?)m.Tag == "PolygonTool");
         polygonItem.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
         Check(preview.Tool == "Polygon" && ((Button)window.FindName("PolygonTool")).Background == window.FindResource("ToolSelected") && ((Button)window.FindName("RectangleTool")).Background == window.FindResource("Surface"),
             "Draw menu selects the same tool as the toolbar and shows it pressed");
@@ -457,7 +464,7 @@ internal static class Program
         effectChoice.SelectedIndex = 0;
         Check(visualRegion.Effect == RedactionEffect.Opaque, "managed session can convert an existing obscuration region to opaque replacement");
         Check(!((Button)restricted.FindName("BlurTool")).IsEnabled && !((Button)restricted.FindName("PixelateTool")).IsEnabled, "managed policy disables direct obscuration tools");
-        var redactMenu = ((MenuItem)((Menu)restricted.FindName("MainMenu")).Items[3]).Items.OfType<MenuItem>().ToArray();
+        var redactMenu = ((Menu)restricted.FindName("MainMenu")).Items.OfType<MenuItem>().First(m => (string)m.Header == "_Redact").Items.OfType<MenuItem>().ToArray();
         Check(redactMenu.Single(m => (string?)m.Tag == "BlurTool") is { IsEnabled: false } && redactMenu.Single(m => (string?)m.Tag == "PixelateTool") is { IsEnabled: false } && redactMenu.Single(m => (string?)m.Tag == "OpaqueTool").IsEnabled,
             "managed policy also disables Blur and Pixelate in the Redact menu");
         restrictedPreview.DrawingEffect = RedactionEffect.Blur;

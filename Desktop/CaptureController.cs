@@ -131,9 +131,17 @@ internal sealed class CaptureController : IDisposable
         try { using var stream = Application.GetResourceStream(new Uri("pack://application:,,,/Assets/icon.ico")).Stream; icon = new Drawing.Icon(stream, Forms.SystemInformation.SmallIconSize); }
         catch (Exception ex) when (ex is IOException or ArgumentException) { icon = Drawing.SystemIcons.Application; }
         tray = new Forms.NotifyIcon { Icon = icon, Text = "TinyRedactionTool", ContextMenuStrip = trayMenu, Visible = true };
-        tray.MouseClick += (_, e) => { if (e.Button == Forms.MouseButtons.Left) ShowBar(); };
-        // 0.17.0 (David): a double-click on the icon opens the editor.
-        tray.MouseDoubleClick += (_, e) => { if (e.Button == Forms.MouseButtons.Left) OpenEditor(); };
+        // 3.2.0 (David): a click opens the editor and a double-click shows the capture bar (Settings › Editor can swap
+        // them, as 0.17.0 had it). A click waits for the double-click time, so a double-click doesn't do both.
+        trayClickTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(Forms.SystemInformation.DoubleClickTime) };
+        trayClickTimer.Tick += (_, _) => { trayClickTimer.Stop(); TrayClicked(doubleClick: false); };
+        tray.MouseClick += (_, e) => { if (e.Button == Forms.MouseButtons.Left) { trayClickTimer.Stop(); trayClickTimer.Start(); } };
+        tray.MouseDoubleClick += (_, e) => { if (e.Button == Forms.MouseButtons.Left) { trayClickTimer.Stop(); TrayClicked(doubleClick: true); } };
+    }
+    private System.Windows.Threading.DispatcherTimer? trayClickTimer;
+    internal void TrayClicked(bool doubleClick)
+    {
+        if (doubleClick == Settings.TrayClickOpensEditor) ShowBar(); else OpenEditor();
     }
     internal void ShowBar()
     {

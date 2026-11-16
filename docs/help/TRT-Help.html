@@ -140,7 +140,7 @@
 <h2 id="quick">Your first redaction (in 6 steps)</h2>
 <ol class="steps">
  <li>Open the editor and click <img class="icon" src="images/icons/openbutton.png" alt="Open"> <span class="ui">Open</span>. Choose a picture.</li>
- <li>Check that <img class="icon" src="images/icons/rectangletool.png" alt="Rectangle"> <span class="ui">Rectangle</span> and <img class="icon" src="images/icons/opaquetool.png" alt="Box"> <span class="ui">Box</span> are pressed (they are when TRT starts).</li>
+ <li>Check that <img class="icon" src="images/icons/rectangletool.png" alt="Rectangle"> <span class="ui">Rectangle</span> and <img class="icon" src="images/icons/opaquetool.png" alt="Solid Fill"> <span class="ui">Solid Fill</span> are pressed (they are when TRT starts).</li>
  <li>Drag over the thing you want to hide. A black box appears over it.</li>
  <li>A small window appears under the box. Click <span class="ui">Redact</span> (or just click somewhere else on the picture).</li>
  <li>Do the same for everything else you want to hide.</li>
@@ -189,17 +189,17 @@
 </table>
 <h3>2. Choose an effect</h3>
 <table class="tools">
- <tr><td><img class="icon" src="images/icons/opaquetool.png" alt=""> Box</td><td>Covers the area with a solid colour (black unless you choose another). <b>This is the safest choice</b>: nothing underneath can show through.</td></tr>
- <tr><td><img class="icon" src="images/icons/blurtool.png" alt=""> Blur</td><td>Makes the area soft and fuzzy. It looks nicer, but large text or shapes may still be guessed.</td></tr>
- <tr><td><img class="icon" src="images/icons/pixelatetool.png" alt=""> Pixelate</td><td>Turns the area into big squares. Like blur, it hides detail but not always everything.</td></tr>
+ <tr><td><img class="icon" src="images/icons/opaquetool.png" alt=""> Solid Fill</td><td>Covers the area with a solid colour (black unless you choose another, or tick <span class="ui">Auto</span>). <b>This is the safest choice</b>: nothing underneath can show through.</td></tr>
+ <tr><td><img class="icon" src="images/icons/blurtool.png" alt=""> Blur Fill</td><td>Makes the area soft and fuzzy. It looks nicer, but large text or shapes may still be guessed.</td></tr>
+ <tr><td><img class="icon" src="images/icons/pixelatetool.png" alt=""> Pixelate Fill</td><td>Turns the area into big squares. Like blur, it hides detail but not always everything.</td></tr>
 </table>
-<div class="box warn"><b>Blur and Pixelate are not guaranteed to hide everything.</b>For card numbers, passwords, names and anything that must not be read, use <span class="ui">Box</span>. For Blur and Pixelate, choose <span class="ui">Aggressive</span> and a high strength to hide more.</div>
+<div class="box warn"><b>Blur and Pixelate are not guaranteed to hide everything.</b>For card numbers, passwords, names and anything that must not be read, use <span class="ui">Solid Fill</span>. For Blur and Pixelate, choose <span class="ui">Aggressive</span> and a high strength to hide more.</div>
 <h3>3. The small window under a redaction</h3>
 <p>When you draw or select a redaction, a small window appears under it:</p>
 <figure><img src="images/redaction-window.png" alt="The redaction window" style="max-width:560px"></figure>
 <ul>
- <li><span class="ui">Box</span>, <span class="ui">Blur</span> and <span class="ui">Pixelate</span> change the effect of this redaction.</li>
- <li>The colour square chooses the box colour. <img class="icon" src="images/icons/eyedropperbutton.png" alt="Pick Colour" onerror="this.remove()"> picks a colour from the picture itself, so the box blends in.</li>
+ <li><span class="ui">Solid</span>, <span class="ui">Blur</span> and <span class="ui">Pixelate</span> change the fill of this redaction.</li>
+ <li>The colour square is the <span class="ui">Redaction Colour</span>. <span class="ui">Auto</span> matches the colour around the redaction (black text on light blue is covered with light blue), again each time you move or size it. <img class="icon" src="images/icons/eyedropperbutton.png" alt="Eyedropper" onerror="this.remove()"> <span class="ui">Eyedropper</span> picks a colour from the picture yourself. Choosing a colour turns Auto off. <span class="ui">Settings › Editor</span> decides whether Auto starts ticked (it starts off).</li>
  <li>For Blur and Pixelate you also get <span class="ui">Default</span> or <span class="ui">Aggressive</span>, and a <span class="ui">Strength</span> from 1 to 10.</li>
  <li><span class="ui">Delete</span> removes this redaction.</li>
  <li><span class="ui">Redact</span> accepts it. Clicking anywhere else does the same.</li>
@@ -236,7 +236,7 @@
  <tr><td><img class="icon" src="images/icons/freehandtool.png" alt=""> Pen</td><td>Draw freely, like a pen on paper.</td></tr>
 </table>
 <p>When you select a line or a text, a small window lets you change its colour, width, dashes, arrowheads, font and size. The same choices are on the <span class="ui">options bar</span> under the toolbar. The options bar is hidden at first; switch it on in <span class="ui">Settings › Editor</span>.</p>
-<figure><img src="images/options-bar.png" alt="The options bar"><figcaption>The options bar (shown here for redactions: effect, strength and box colour).</figcaption></figure>
+<figure><img src="images/options-bar.png" alt="The options bar"><figcaption>The options bar (shown here for redactions: fill, strength and redaction colour).</figcaption></figure>
 <p>On a video, a note stays on screen to the end unless you say otherwise. See <a href="#video">Notes on a video</a>.</p>
 
 <h2 id="layers">Layers: what is on top</h2>
@@ -254,7 +254,7 @@
 <ul>
  <li><img class="icon" src="images/icons/addimagebutton.png" alt=""> <span class="ui">Add Image</span> puts another picture on top of the open one (for example a logo). You can move it, resize it and turn it like any shape.</li>
  <li><img class="icon" src="images/icons/pastebutton.png" alt=""> <span class="ui">Paste</span> (<kbd>Ctrl</kbd>+<kbd>V</kbd>) opens a picture from the clipboard. <span class="ui">Edit › Paste onto Image</span> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd>) puts it on top of the open picture instead.</li>
- <li><img class="icon" src="images/icons/newbutton.png" alt=""> <span class="ui">New</span> (<kbd>Ctrl</kbd>+<kbd>N</kbd>) makes a blank picture to draw on. Choose a size and a background colour. It can start with the current picture already on it.</li>
+ <li><img class="icon" src="images/icons/newbutton.png" alt=""> <span class="ui">New</span> (<kbd>Ctrl</kbd>+<kbd>N</kbd>) makes a blank picture to draw on. Choose a size and a background colour. It can start with the current picture already on it, as part of the new picture (ready to redact and annotate).</li>
 </ul>
 <figure><img src="images/new-image.png" alt="The New Image window" style="max-width:520px"></figure>
 
@@ -378,6 +378,7 @@
  <li><kbd>Ctrl</kbd>+<kbd>Print Screen</kbd> takes a rectangular screenshot at any time.</li>
  <li>The <span class="ui">–</span> button on the bar hides it in a thin red tab at the top of the screen. Point at the tab to bring the bar back.</li>
  <li>You can drag the bar anywhere by its title. Drop it on the top edge of a screen and it tucks itself away.</li>
+ <li>Click the TRT icon in the notification area to open the editor; double-click it to show the capture bar. <span class="ui">Settings › Editor</span> can swap them.</li>
 </ul>
 <div class="box tip"><b>Screenshots are private until you keep them.</b>A screenshot in the editor is kept in a private temporary folder. TRT wipes it when you close it or quit, unless you export it or save it with <span class="ui">File › Save or Copy the Original Capture</span>.</div>
 
@@ -412,7 +413,7 @@
  <tr><td>Shortcuts</td><td>The keys for a screenshot, a recording, the capture bar and the editor, and for the previous and next picture.</td></tr>
  <tr><td>Capture</td><td>A delay before each screenshot, the mouse pointer, several monitors, and recording speed.</td></tr>
  <tr><td>Capture Bar</td><td>Which buttons the bar shows and in what order, the red tab, and what the bar's ✕ does.</td></tr>
- <tr><td>Editor</td><td>Small icons, a toolbar on the left, and showing or hiding the options bar.</td></tr>
+ <tr><td>Editor</td><td>Small icons, a toolbar on the left, showing or hiding the options bar, the line width new outlines, lines and pen strokes start with (4 pixels to begin with), whether Auto redaction colour starts ticked, and what a click on the notification-area icon does.</td></tr>
  <tr><td>Slideshow</td><td>How long each picture shows, the navigation bar, and the <span class="ui">Nav Bar Height</span>.</td></tr>
  <tr><td>Toolbar</td><td>Which buttons the editor's toolbar shows, their order, and which sit on the right. <span class="ui">Add Separator</span> puts in a line between groups; <span class="ui">Add Spacer</span> puts in a blank gap the size of a button.</td></tr>
 </table>
@@ -458,7 +459,7 @@
  <dt>Is the original file changed?</dt>
  <dd>No. TRT only reads it. Export always makes a new file. The only exception is if you tick <span class="ui">Securely Delete the Original After Export</span> and say yes when asked.</dd>
  <dt>Which effect should I use?</dt>
- <dd><span class="ui">Box</span>, whenever something must not be read or recognised. Blur and Pixelate look softer but can leave clues.</dd>
+ <dd><span class="ui">Solid Fill</span>, whenever something must not be read or recognised. Blur and Pixelate look softer but can leave clues.</dd>
  <dt>My screenshot shortcut doesn't work.</dt>
  <dd>Another program may already use that key (for example an older TRT). Quit the other program, or choose a different key in <span class="ui">Settings › Shortcuts</span>. TRT tells you when a shortcut can't be used.</dd>
  <dt>The export failed its check.</dt>

@@ -201,7 +201,7 @@ internal static class AnnotationChecks
             Drag(At(20, 20), At(60, 40), At(100, 60));
             var line = annotations.SingleOrDefault();
             check(line is { Kind: AnnotationKind.Line } && Math.Abs(line.Points[0].X - 20) < 1 && Math.Abs(line.Points[1].X - 100) < 1 && Math.Abs(line.Points[1].Y - 60) < 1 &&
-                  preview.SelectedAnnotation == line && line.Order > region.Order && line.Color == "#FF0000" && line.Width == 6 && line.Ends == AnnotationEnds.ArrowEnd, "Line: dragging draws a red 6-pixel arrow above earlier redactions (0.15.0 defaults)");
+                  preview.SelectedAnnotation == line && line.Order > region.Order && line.Color == "#FF0000" && line.Width == 4 && line.Ends == AnnotationEnds.ArrowEnd, "Line: dragging draws a red 4-pixel arrow above earlier redactions (3.2.0 default width)");
             undo.Invoke(window, [window, new RoutedEventArgs()]);
             check(preview.Project.Annotations.Count == 0, "Undo removes a new line");
             redo.Invoke(window, [window, new RoutedEventArgs()]);
@@ -211,7 +211,7 @@ internal static class AnnotationChecks
             var widthBox = (NumberSpinner)window.FindName("AnnotationWidth"); widthBox.Value = 10;
             check(line.Width == 10, "options bar changes the selected annotation");
             undo.Invoke(window, [window, new RoutedEventArgs()]); annotations = preview.Project.Annotations; line = annotations.Single();
-            check(line.Width == 6, "Undo restores the previous style");
+            check(line.Width == 4, "Undo restores the previous style");
             var before = line.Points.ToArray();
             Drag(At(60, 40), At(70, 45));
             line = preview.Project.Annotations.Single();

@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.2.0 (November 2026)
+- **Auto redaction colour**: an **Auto** tick box between Redaction Colour and the Eyedropper (redaction window and options bar). A Solid Fill redaction then takes the most common colour along its edge (black text on light blue is covered with light blue), again whenever it is moved, sized or turned. Choosing a colour turns it off. Settings › Editor decides whether it starts ticked (off to start).
+- **Pictures open faster**: PNG, BMP and JPEG are read by Windows' own decoder instead of starting FFmpeg (phone photos still come out upright). Other formats still use FFmpeg.
+- **New Image fix**: with "Put the Current Image on It", the picture is now part of the new image, so it can be redacted and annotated, nothing stays stuck selected, and Save Media As saves what you see.
+- Menus in the order File, Edit, View, Redact, Draw, Video, Capture, Help.
+- **Solid Fill, Blur Fill, Pixelate Fill** (toolbar, tooltips and Redact menu); Redact › Redaction Colour… and Eyedropper; the redaction window says Solid. Solid Fill has a paint-bucket icon; the Rectangle, Oval and Polygon redaction icons are filled in.
+- Settings › Editor: the line width new outlines, ellipses, lines and arrows, polylines and pen strokes start with (now 4, was 6).
+- The notification-area icon: a click opens the editor, a double-click shows the capture bar (Settings › Editor can swap them).
+- Clear Redactions and Clear Annotations icons are as large as the others.
+
 ## 3.1.3 (November 2026)
 - Toolbar spacer: Settings › Toolbar › Add Spacer puts a blank, button-sized gap anywhere on the editor's toolbar.
 - New first-start defaults from David's settings file: Save Media before Save Project, Copy and Paste in their own group; Save Media, Delete, Fit Width, Slideshow and Nav Bar shown, New, Add Image and Rotate hidden; the navigation bar shows in the editor at 48 pixels; the red tab is 30 pixels wide.

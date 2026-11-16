@@ -31,6 +31,10 @@ public sealed class Region
     public RegionShape Shape { get; set; }
     public RedactionEffect Effect { get; set; }
     public string Color { get; set; } = "#000000";
+    // 3.2.0 (David): Color is taken from the picture around the shape whenever it is drawn, moved or sized.
+    // Omitted when false, so older projects are unchanged.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool AutoColor { get; set; }
     public int Strength { get; set; } = 5;
     public bool Aggressive { get; set; }
     // This flag hides only editing decorations. It never removes export coverage.

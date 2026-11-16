@@ -1,5 +1,5 @@
 <Window x:Class="TinyRedaction.Desktop.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:TinyRedaction.Desktop"
- Title="TinyRedactionTool 3.1.3" Icon="Assets/icon.ico" Width="1240" Height="800" MinWidth="900" MinHeight="580" WindowState="Maximized" Background="{DynamicResource Background}" Foreground="{DynamicResource Foreground}" PreviewKeyDown="WindowKeyDown" AllowDrop="True" DragOver="MediaDragOver" DragEnter="MediaDragOver" Drop="MediaDropped">
+ Title="TinyRedactionTool 3.2.0" Icon="Assets/icon.ico" Width="1240" Height="800" MinWidth="900" MinHeight="580" WindowState="Maximized" Background="{DynamicResource Background}" Foreground="{DynamicResource Foreground}" PreviewKeyDown="WindowKeyDown" AllowDrop="True" DragOver="MediaDragOver" DragEnter="MediaDragOver" Drop="MediaDropped">
  <!-- Editor layout: menu bar, one row of icon buttons, options bar, workspace, status bar. -->
  <Grid>
  <DockPanel>
@@ -76,32 +76,7 @@
     <Separator/>
     <MenuItem Header="Cancel _Work" Click="CancelWork"/>
    </MenuItem>
-   <MenuItem Header="_Draw">
-    <MenuItem Header="_Select" Tag="SelectToolButton" Click="MenuTool"/>
-    <MenuItem Header="_Rectangle" Tag="RectangleTool" Click="MenuTool"/>
-    <MenuItem Header="_Oval" Tag="OvalTool" Click="MenuTool"/>
-    <MenuItem Header="_Polygon" Tag="PolygonTool" Click="MenuTool"/>
-    <MenuItem Header="P_an" Tag="PanTool" Click="MenuTool"/>
-    <Separator/>
-    <MenuItem Header="_Text Annotation" Tag="TextTool" Click="MenuTool"/>
-    <MenuItem Header="_Line / Arrow Annotation" Tag="LineTool" Click="MenuTool"/>
-    <MenuItem Header="Pol_yline Annotation" Tag="PolylineTool" Click="MenuTool"/>
-    <MenuItem Header="Rectangle _Outline" Tag="DrawRectangleTool" Click="MenuTool"/>
-    <MenuItem Header="_Ellipse Outline" Tag="DrawOvalTool" Click="MenuTool"/>
-    <MenuItem Header="Pe_n (Freehand)" Tag="FreehandTool" Click="MenuTool"/>
-    <Separator/>
-    <MenuItem Header="_Crop" Tag="CropTool" Click="MenuTool" IsEnabled="{Binding IsEnabled, ElementName=CropTool}"/>
-    <MenuItem Header="Co_nfirm Crop" InputGestureText="Enter" Click="ConfirmCrop" IsEnabled="{Binding IsEnabled, ElementName=ConfirmCropButton}"/>
-    <MenuItem x:Name="RemoveCropMenuItem" Header="R_emove Crop" Click="RemoveCrop" IsEnabled="False"/>
-   </MenuItem>
-   <MenuItem Header="_Redact">
-    <MenuItem Header="_Coloured Box" Tag="OpaqueTool" Click="MenuTool" IsEnabled="{Binding IsEnabled, ElementName=OpaqueTool}"/>
-    <MenuItem Header="_Blur" Tag="BlurTool" Click="MenuTool" IsEnabled="{Binding IsEnabled, ElementName=BlurTool}"/>
-    <MenuItem Header="_Pixelate" Tag="PixelateTool" Click="MenuTool" IsEnabled="{Binding IsEnabled, ElementName=PixelateTool}"/>
-    <Separator/>
-    <MenuItem Header="Box C_olour…" Click="ChooseColor" IsEnabled="{Binding IsEnabled, ElementName=ColorSwatch}"/>
-    <MenuItem Header="Pick Colour from _Image" Tag="EyedropperButton" Click="MenuTool" IsEnabled="{Binding IsEnabled, ElementName=EyedropperButton}"/>
-   </MenuItem>
+   <!-- 3.2.0 (David): File, Edit, View, Redact, Draw, Video, Capture, Help. -->
    <MenuItem Header="_View">
     <MenuItem Header="Zoom _In" Click="ZoomIn"/>
     <MenuItem Header="Zoom _Out" Click="ZoomOut"/>
@@ -122,6 +97,32 @@
      <MenuItem Header="_Dark" Tag="1" Click="MenuTheme"/>
      <MenuItem Header="_Light" Tag="2" Click="MenuTheme"/>
     </MenuItem>
+   </MenuItem>
+   <MenuItem Header="_Redact">
+    <MenuItem Header="_Solid Fill" Tag="OpaqueTool" Click="MenuTool" IsEnabled="{Binding IsEnabled, ElementName=OpaqueTool}"/>
+    <MenuItem Header="_Blur Fill" Tag="BlurTool" Click="MenuTool" IsEnabled="{Binding IsEnabled, ElementName=BlurTool}"/>
+    <MenuItem Header="_Pixelate Fill" Tag="PixelateTool" Click="MenuTool" IsEnabled="{Binding IsEnabled, ElementName=PixelateTool}"/>
+    <Separator/>
+    <MenuItem Header="Redaction C_olour…" Click="ChooseColor" IsEnabled="{Binding IsEnabled, ElementName=ColorSwatch}"/>
+    <MenuItem Header="_Eyedropper" Tag="EyedropperButton" Click="MenuTool" IsEnabled="{Binding IsEnabled, ElementName=EyedropperButton}"/>
+   </MenuItem>
+   <MenuItem Header="_Draw">
+    <MenuItem Header="_Select" Tag="SelectToolButton" Click="MenuTool"/>
+    <MenuItem Header="_Rectangle" Tag="RectangleTool" Click="MenuTool"/>
+    <MenuItem Header="_Oval" Tag="OvalTool" Click="MenuTool"/>
+    <MenuItem Header="_Polygon" Tag="PolygonTool" Click="MenuTool"/>
+    <MenuItem Header="P_an" Tag="PanTool" Click="MenuTool"/>
+    <Separator/>
+    <MenuItem Header="_Text Annotation" Tag="TextTool" Click="MenuTool"/>
+    <MenuItem Header="_Line / Arrow Annotation" Tag="LineTool" Click="MenuTool"/>
+    <MenuItem Header="Pol_yline Annotation" Tag="PolylineTool" Click="MenuTool"/>
+    <MenuItem Header="Rectangle _Outline" Tag="DrawRectangleTool" Click="MenuTool"/>
+    <MenuItem Header="_Ellipse Outline" Tag="DrawOvalTool" Click="MenuTool"/>
+    <MenuItem Header="Pe_n (Freehand)" Tag="FreehandTool" Click="MenuTool"/>
+    <Separator/>
+    <MenuItem Header="_Crop" Tag="CropTool" Click="MenuTool" IsEnabled="{Binding IsEnabled, ElementName=CropTool}"/>
+    <MenuItem Header="Co_nfirm Crop" InputGestureText="Enter" Click="ConfirmCrop" IsEnabled="{Binding IsEnabled, ElementName=ConfirmCropButton}"/>
+    <MenuItem x:Name="RemoveCropMenuItem" Header="R_emove Crop" Click="RemoveCrop" IsEnabled="False"/>
    </MenuItem>
    <!-- 0.27.0 (David): the video buttons (Trim, Append) and Capture Frame have their own menu. -->
    <MenuItem x:Name="VideoMenu" Header="V_ideo">
@@ -186,9 +187,9 @@
     <Button x:Name="RedoButton" Style="{StaticResource ToolButton}" Content="Redo" Click="Redo" ToolTip="Redo (Ctrl+Y)" local:Toolbar.Icon="{StaticResource IconRedo}"/>
     <Rectangle Style="{StaticResource ToolSeparator}"/>
     <Button x:Name="SelectToolButton" Style="{StaticResource ToolButton}" Content="Select" Tag="Select" Click="SelectTool" ToolTip="Select, Move, Resize and Turn Shapes (Drag Round Several to Select Them)" local:Toolbar.Icon="{StaticResource IconSelect}" local:Toolbar.Accent="{StaticResource IconSelect}" local:Toolbar.AccentBrush="{StaticResource AccentWhite}"/>
-    <Button x:Name="RectangleTool" Style="{StaticResource ToolButton}" Content="Rectangle" Tag="Rectangle" Click="SelectTool" ToolTip="Draw a Rectangle Redaction" local:Toolbar.Icon="{StaticResource IconRectangle}"/>
-    <Button x:Name="OvalTool" Style="{StaticResource ToolButton}" Content="Oval" Tag="Oval" Click="SelectTool" ToolTip="Draw an Oval Redaction" local:Toolbar.Icon="{StaticResource IconOval}"/>
-    <Button x:Name="PolygonTool" Style="{StaticResource ToolButton}" Content="Polygon" Tag="Polygon" Click="SelectTool" ToolTip="Draw a Polygon Redaction" local:Toolbar.Icon="{StaticResource IconPolygon}"/>
+    <Button x:Name="RectangleTool" Style="{StaticResource ToolButton}" Content="Rectangle" Tag="Rectangle" Click="SelectTool" ToolTip="Draw a Rectangle Redaction" local:Toolbar.Icon="{StaticResource IconRectangle}" local:Toolbar.Accent="{StaticResource IconRectangle}" local:Toolbar.AccentBrush="{StaticResource AccentSolid}"/>
+    <Button x:Name="OvalTool" Style="{StaticResource ToolButton}" Content="Oval" Tag="Oval" Click="SelectTool" ToolTip="Draw an Oval Redaction" local:Toolbar.Icon="{StaticResource IconOval}" local:Toolbar.Accent="{StaticResource IconOval}" local:Toolbar.AccentBrush="{StaticResource AccentSolid}"/>
+    <Button x:Name="PolygonTool" Style="{StaticResource ToolButton}" Content="Polygon" Tag="Polygon" Click="SelectTool" ToolTip="Draw a Polygon Redaction" local:Toolbar.Icon="{StaticResource IconPolygon}" local:Toolbar.Accent="{StaticResource IconPolygon}" local:Toolbar.AccentBrush="{StaticResource AccentSolid}"/>
     <Button x:Name="PanTool" Style="{StaticResource ToolButton}" Content="Pan" Tag="Pan" Click="SelectTool" ToolTip="Move the View" local:Toolbar.Icon="{StaticResource IconPan}"/>
     <Button x:Name="CropTool" Style="{StaticResource ToolButton}" Content="Crop" Tag="Crop" Click="SelectTool" ToolTip="Crop" local:Toolbar.Icon="{StaticResource IconCrop}"/>
     <Button x:Name="ResizeButton" Style="{StaticResource ToolButton}" Content="Resize" Click="ResizePicture" ToolTip="Resize the Picture" local:Toolbar.Icon="{StaticResource IconResize}"/>
@@ -196,9 +197,9 @@
     <Button x:Name="TrimToolButton" Style="{StaticResource ToolButton}" Content="Trim" Click="ToggleTrimRow" Visibility="Collapsed" ToolTip="Show or Hide Trim" local:Toolbar.Icon="{StaticResource IconTrim}" local:Toolbar.Accent="{StaticResource AccentTrim}" local:Toolbar.AccentBrush="{StaticResource AccentRed}"/>
     <Button x:Name="AppendToolButton" Style="{StaticResource ToolButton}" Content="Append" Click="AppendVideo" Visibility="Collapsed" ToolTip="Add Another Video at the Beginning or End" local:Toolbar.Icon="{StaticResource IconAppend}" local:Toolbar.Accent="{StaticResource AccentAppend}" local:Toolbar.AccentBrush="{StaticResource AccentGreen}"/>
     <Rectangle Style="{StaticResource ToolSeparator}"/>
-    <Button x:Name="OpaqueTool" Style="{StaticResource ToolButton}" Content="Box" Tag="Opaque" Click="SelectEffectTool" ToolTip="Redaction Box" local:Toolbar.Icon="{StaticResource IconBox}" local:Toolbar.Accent="{StaticResource IconBox}" local:Toolbar.AccentBrush="{StaticResource AccentSolid}"/>
-    <Button x:Name="BlurTool" Style="{StaticResource ToolButton}" Content="Blur" Tag="Blur" Click="SelectEffectTool" ToolTip="Blur" local:Toolbar.Accent="{StaticResource AccentBlur}" local:Toolbar.AccentBrush="{StaticResource AccentSoft}"/>
-    <Button x:Name="PixelateTool" Style="{StaticResource ToolButton}" Content="Pixelate" Tag="Pixelate" Click="SelectEffectTool" ToolTip="Pixelate" local:Toolbar.Icon="{StaticResource IconPixelate}" local:Toolbar.Accent="{StaticResource AccentPixelate}" local:Toolbar.AccentBrush="{StaticResource AccentGrey}"/>
+    <Button x:Name="OpaqueTool" Style="{StaticResource ToolButton}" Content="Solid Fill" Tag="Opaque" Click="SelectEffectTool" ToolTip="Solid Fill" local:Toolbar.Icon="{StaticResource IconSolidFill}" local:Toolbar.Accent="{StaticResource AccentSolidFill}" local:Toolbar.AccentBrush="{StaticResource AccentSolid}"/>
+    <Button x:Name="BlurTool" Style="{StaticResource ToolButton}" Content="Blur Fill" Tag="Blur" Click="SelectEffectTool" ToolTip="Blur Fill" local:Toolbar.Accent="{StaticResource AccentBlur}" local:Toolbar.AccentBrush="{StaticResource AccentSoft}"/>
+    <Button x:Name="PixelateTool" Style="{StaticResource ToolButton}" Content="Pixelate Fill" Tag="Pixelate" Click="SelectEffectTool" ToolTip="Pixelate Fill" local:Toolbar.Icon="{StaticResource IconPixelate}" local:Toolbar.Accent="{StaticResource AccentPixelate}" local:Toolbar.AccentBrush="{StaticResource AccentGrey}"/>
     <Rectangle Style="{StaticResource ToolSeparator}"/>
     <Button x:Name="TextTool" Style="{StaticResource ToolButton}" Content="Text" Tag="Text" Click="SelectTool" ToolTip="Text: Drag a Box, Then Type (Double-Click a Text to Edit It)" local:Toolbar.Icon="{StaticResource IconText}"/>
     <Button x:Name="DrawRectangleTool" Style="{StaticResource ToolButton}" Content="Outline" Tag="DrawRectangle" Click="SelectTool" ToolTip="Rectangle Outline" local:Toolbar.Icon="{StaticResource IconDrawRectangle}" local:Toolbar.Accent="{StaticResource AccentPencil}" local:Toolbar.AccentBrush="{StaticResource AccentRed}"/>
@@ -240,9 +241,10 @@
      <Slider x:Name="EffectStrength" Width="110" Minimum="1" Maximum="10" Value="5" TickFrequency="1" IsSnapToTickEnabled="True" Margin="2" VerticalAlignment="Center" ValueChanged="EffectStrengthChanged" ToolTip="Strength (1–10)"/>
      <TextBlock Text="{Binding Value, ElementName=EffectStrength, StringFormat={}{0:0}}" VerticalAlignment="Center" Margin="3,0"/>
      <Rectangle Width="1" Height="18" Margin="8,0" Fill="{DynamicResource ChromeLine}"/>
-     <TextBlock Text="Box Colour" Margin="2,0,4,0" VerticalAlignment="Center"/>
-     <Button x:Name="ColorSwatch" Padding="4,4" Click="ChooseColor" ToolTip="Box Colour"><Border x:Name="ColorSwatchFill" Width="22" Height="12" Background="Black" BorderBrush="#9AA3B2" BorderThickness="1"/></Button>
-     <Button x:Name="EyedropperButton" Style="{StaticResource IconButton}" Content="Pick Colour" Click="ToggleEyedropper" ToolTip="Pick a Colour from the Picture" local:Toolbar.Icon="{StaticResource IconEyedropper}" local:Toolbar.IconFill="{StaticResource IconFillEyedropper}" local:Toolbar.Accent="{StaticResource AccentEyedropper}" local:Toolbar.AccentBrush="{Binding Background, ElementName=ColorSwatchFill}"/>
+     <TextBlock Text="Redaction Colour" Margin="2,0,4,0" VerticalAlignment="Center"/>
+     <Button x:Name="ColorSwatch" Padding="4,4" Click="ChooseColor" ToolTip="Redaction Colour"><Border x:Name="ColorSwatchFill" Width="22" Height="12" Background="Black" BorderBrush="#9AA3B2" BorderThickness="1"/></Button>
+     <CheckBox x:Name="AutoColourBox" Content="Auto" VerticalAlignment="Center" Margin="6,0,4,0" Checked="AutoColourChanged" Unchecked="AutoColourChanged" ToolTip="Match the Colour Around the Redaction"/>
+     <Button x:Name="EyedropperButton" Style="{StaticResource IconButton}" Content="Eyedropper" Click="ToggleEyedropper" ToolTip="Eyedropper" local:Toolbar.Icon="{StaticResource IconEyedropper}" local:Toolbar.IconFill="{StaticResource IconFillEyedropper}" local:Toolbar.Accent="{StaticResource AccentEyedropper}" local:Toolbar.AccentBrush="{Binding Background, ElementName=ColorSwatchFill}"/>
     </StackPanel>
     <!-- Annotation options: change the selected annotation, otherwise the style for new ones. -->
     <StackPanel x:Name="AnnotationOptions" Orientation="Horizontal" Visibility="Collapsed">
@@ -251,7 +253,7 @@
      <Button x:Name="AnnotationColorSwatch" Padding="4,4" Click="ChooseAnnotationColor" ToolTip="Colour"><Border x:Name="AnnotationColorFill" Width="22" Height="12" Background="Red" BorderBrush="#9AA3B2" BorderThickness="1"/></Button>
      <StackPanel x:Name="LineOptions" Orientation="Horizontal">
       <TextBlock Text="Width" Margin="8,0,4,0" VerticalAlignment="Center"/>
-      <local:NumberSpinner x:Name="AnnotationWidth" Minimum="1" Maximum="20" Value="6" Margin="2" ValueChanged="AnnotationWidthChanged" ToolTip="Line Width"/>
+      <local:NumberSpinner x:Name="AnnotationWidth" Minimum="1" Maximum="20" Value="4" Margin="2" ValueChanged="AnnotationWidthChanged" ToolTip="Line Width"/>
       <TextBlock Text="Dash" Margin="8,0,4,0" VerticalAlignment="Center"/>
       <ComboBox x:Name="AnnotationDash" Width="92" Margin="2" ItemTemplate="{StaticResource LineStyleTemplate}" SelectionChanged="AnnotationOptionChanged" ToolTip="Line Style"/>
       <StackPanel x:Name="EndsOptions" Orientation="Horizontal">
@@ -320,14 +322,16 @@
      <Border x:Name="RegionPopup" Visibility="Collapsed" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource ChromeLine}" BorderThickness="1" CornerRadius="3" Padding="6,4">
       <Border.Effect><DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.35"/></Border.Effect>
       <StackPanel Orientation="Horizontal">
-       <Button x:Name="PopupOpaque" Style="{StaticResource ToolButton}" Content="Box" Tag="Opaque" Click="SelectEffectTool" ToolTip="Coloured Box" IsEnabled="{Binding IsEnabled, ElementName=OpaqueTool}" local:Toolbar.Icon="{StaticResource IconBox}" local:Toolbar.Accent="{StaticResource IconBox}" local:Toolbar.AccentBrush="{StaticResource AccentSolid}"/>
-       <Button x:Name="PopupBlur" Style="{StaticResource ToolButton}" Content="Blur" Tag="Blur" Click="SelectEffectTool" ToolTip="Blur" IsEnabled="{Binding IsEnabled, ElementName=BlurTool}" local:Toolbar.Accent="{StaticResource AccentBlur}" local:Toolbar.AccentBrush="{StaticResource AccentSoft}"/>
-       <Button x:Name="PopupPixelate" Style="{StaticResource ToolButton}" Content="Pixelate" Tag="Pixelate" Click="SelectEffectTool" ToolTip="Pixelate" IsEnabled="{Binding IsEnabled, ElementName=PixelateTool}" local:Toolbar.Icon="{StaticResource IconPixelate}" local:Toolbar.Accent="{StaticResource AccentPixelate}" local:Toolbar.AccentBrush="{StaticResource AccentGrey}"/>
+       <Button x:Name="PopupOpaque" Style="{StaticResource ToolButton}" Content="Solid" Tag="Opaque" Click="SelectEffectTool" ToolTip="Solid Fill" IsEnabled="{Binding IsEnabled, ElementName=OpaqueTool}" local:Toolbar.Icon="{StaticResource IconSolidFill}" local:Toolbar.Accent="{StaticResource AccentSolidFill}" local:Toolbar.AccentBrush="{StaticResource AccentSolid}"/>
+       <Button x:Name="PopupBlur" Style="{StaticResource ToolButton}" Content="Blur" Tag="Blur" Click="SelectEffectTool" ToolTip="Blur Fill" IsEnabled="{Binding IsEnabled, ElementName=BlurTool}" local:Toolbar.Accent="{StaticResource AccentBlur}" local:Toolbar.AccentBrush="{StaticResource AccentSoft}"/>
+       <Button x:Name="PopupPixelate" Style="{StaticResource ToolButton}" Content="Pixelate" Tag="Pixelate" Click="SelectEffectTool" ToolTip="Pixelate Fill" IsEnabled="{Binding IsEnabled, ElementName=PixelateTool}" local:Toolbar.Icon="{StaticResource IconPixelate}" local:Toolbar.Accent="{StaticResource AccentPixelate}" local:Toolbar.AccentBrush="{StaticResource AccentGrey}"/>
        <Rectangle Width="1" Height="30" Margin="6,0" Fill="{DynamicResource ChromeLine}"/>
        <StackPanel x:Name="PopupColorOption" Orientation="Horizontal" VerticalAlignment="Center">
-        <Button x:Name="PopupColorSwatch" Padding="4" Margin="2" Click="ChooseColor" ToolTip="Box Colour" IsEnabled="{Binding IsEnabled, ElementName=ColorSwatch}"><Border Width="22" Height="14" Background="{Binding Background, ElementName=ColorSwatchFill}" BorderBrush="#9AA3B2" BorderThickness="1"/></Button>
+        <Button x:Name="PopupColorSwatch" Padding="4" Margin="2" Click="ChooseColor" ToolTip="Redaction Colour" IsEnabled="{Binding IsEnabled, ElementName=ColorSwatch}"><Border Width="22" Height="14" Background="{Binding Background, ElementName=ColorSwatchFill}" BorderBrush="#9AA3B2" BorderThickness="1"/></Button>
+        <!-- 3.2.0 (David): Auto matches the colour around the redaction. -->
+        <CheckBox x:Name="PopupAutoColour" Content="Auto" VerticalAlignment="Center" Margin="4,0,2,0" Checked="AutoColourChanged" Unchecked="AutoColourChanged" ToolTip="Match the Colour Around the Redaction"/>
         <!-- 0.18.0 (David): pick the box colour from the picture, right here. -->
-        <Button x:Name="PopupEyedropper" Style="{StaticResource IconButton}" Content="Pick Colour" Click="ToggleEyedropper" IsEnabled="{Binding IsEnabled, ElementName=EyedropperButton}" ToolTip="Pick a Colour from the Picture" local:Toolbar.Icon="{StaticResource IconEyedropper}" local:Toolbar.IconFill="{StaticResource IconFillEyedropper}" local:Toolbar.Accent="{StaticResource AccentEyedropper}" local:Toolbar.AccentBrush="{Binding Background, ElementName=ColorSwatchFill}"/>
+        <Button x:Name="PopupEyedropper" Style="{StaticResource IconButton}" Content="Eyedropper" Click="ToggleEyedropper" IsEnabled="{Binding IsEnabled, ElementName=EyedropperButton}" ToolTip="Eyedropper" local:Toolbar.Icon="{StaticResource IconEyedropper}" local:Toolbar.IconFill="{StaticResource IconFillEyedropper}" local:Toolbar.Accent="{StaticResource AccentEyedropper}" local:Toolbar.AccentBrush="{Binding Background, ElementName=ColorSwatchFill}"/>
        </StackPanel>
        <!-- 0.18.0 (David): Default / Aggressive wherever Blur and Pixelate are chosen. -->
        <ComboBox x:Name="PopupEffectMode" Width="96" Margin="2,0,4,0" VerticalAlignment="Center" SelectedIndex="{Binding SelectedIndex, ElementName=EffectMode, Mode=TwoWay}" IsEnabled="{Binding IsEnabled, ElementName=EffectMode}" Visibility="{Binding Visibility, ElementName=PopupStrengthOption}" ToolTip="Aggressive Hides More Detail"><ComboBoxItem Content="Default"/><ComboBoxItem Content="Aggressive"/></ComboBox>
@@ -478,7 +482,7 @@
      <ListBox x:Name="TrackingRanges" Height="60" ScrollViewer.HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Stretch"><ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"/></DataTemplate></ListBox.ItemTemplate></ListBox>
      <Expander x:Name="RegionDetails" Header="Region Details and Keyframes" IsExpanded="False" Margin="4,12,4,4"><StackPanel>
       <TextBlock Text="Effect" Margin="4"/>
-      <ComboBox x:Name="EffectChoice" SelectedIndex="0" Margin="4" SelectionChanged="EffectOptionsChanged"><ComboBoxItem Content="Coloured Box"/><ComboBoxItem Content="Blur"/><ComboBoxItem Content="Pixelate"/></ComboBox>
+      <ComboBox x:Name="EffectChoice" SelectedIndex="0" Margin="4" SelectionChanged="EffectOptionsChanged"><ComboBoxItem Content="Solid Fill"/><ComboBoxItem Content="Blur Fill"/><ComboBoxItem Content="Pixelate Fill"/></ComboBox>
       <TextBlock Text="Opaque Colour (#RRGGBB)" Margin="4"/><TextBox x:Name="RegionColor" Text="#000000"/>
       <CheckBox x:Name="Decorations" Content="Show Editing Outlines" IsChecked="True"/>
       <TextBlock Text="X, Y, Width, Height (Source Pixels)" Margin="4"/>
@@ -501,7 +505,7 @@
       <CheckBox x:Name="DeleteOriginalBox" Content="Securely Delete the Original After Export" Click="ExportOptionsChanged" ToolTipService.ShowOnDisabled="True"
        ToolTip="After the export has been written and checked, TRT asks once more, then overwrites the original file with zeros, checks that, and deletes it. It can't be undone. (On solid-state drives a copy may survive in the drive's spare area.)"/>
      </StackPanel></Expander>
-     <TextBlock Text="Blur and Pixelate obscure appearance. Use a coloured box for opaque replacement. Play a tracked range through to check the box stays on the subject." Margin="4,10" TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource Warning}"/>
+     <TextBlock Text="Blur and Pixelate obscure appearance. Use Solid Fill for opaque replacement. Play a tracked range through to check the box stays on the subject." Margin="4,10" TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource Warning}"/>
     </StackPanel></ScrollViewer>
    </Border>
   </Grid>

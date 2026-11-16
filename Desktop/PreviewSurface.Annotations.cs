@@ -15,7 +15,7 @@ public sealed partial class PreviewSurface
     public Annotation? SelectedAnnotation { get; set; }
     // Style for new annotations; the options bar edits this when nothing is selected.
     // 0.15.0 (David): new lines start 6 pixels wide with an arrowhead at the end (only Line and Polyline draw ends).
-    public Annotation AnnotationStyle { get; } = new() { Width = 6, Ends = AnnotationEnds.ArrowEnd };
+    public Annotation AnnotationStyle { get; } = new() { Width = AppSettings.DefaultLineWidth, Ends = AnnotationEnds.ArrowEnd }; // 3.2.0: 4 (was 6), Settings › Editor.
     public event Action<Annotation?>? AnnotationSelectionChanged;
     // Asks the window to open the floating text editor for a new draft or an existing Text.
     public event Action<Annotation>? TextEditRequested;

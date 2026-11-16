@@ -143,6 +143,14 @@ public sealed class AppSettings
     public int StripPositionPercent { get; set; } = 50;
     // The editor's options bar (colour, width, font...) can be hidden: the floating style windows have the same choices.
     public bool HideOptionsBar { get; set; } = true; // 0.27.0: David's default.
+    // 3.2.0 (David): new Solid Fill redactions match the colour around them (Auto in the redaction window). Off to start.
+    public bool AutoRedactionColour { get; set; }
+    // 3.2.0 (David): the line width new outlines, ellipses, lines and arrows, polylines and pen strokes start with (was 6).
+    public const int MinLineWidth = 1, MaxLineWidth = 20, DefaultLineWidth = 4;
+    public int LineWidth { get; set; } = DefaultLineWidth;
+    // 3.2.0 (David): a single click on the notification-area icon opens the editor and a double-click shows the capture
+    // bar; false swaps them back (the bar on a single click, as before).
+    public bool TrayClickOpensEditor { get; set; } = true;
 
     internal static string Path { get; set; } = System.IO.Path.Combine(ProgramFolder, "settings.json");
     // The folder people see the program in. A standalone .exe unpacks itself to a temporary folder
@@ -171,6 +179,7 @@ public sealed class AppSettings
             if (!SlideshowTimes.Contains(loaded.SlideshowSeconds)) loaded.SlideshowSeconds = 5;
             // 0.26.0: any height the bar was dragged to, within NavigationBar's limits.
             if (loaded.NavBarThumbnailSize is < MinNavBarSize or > MaxNavBarSize) loaded.NavBarThumbnailSize = DefaultNavBarSize;
+            if (loaded.LineWidth is < MinLineWidth or > MaxLineWidth) loaded.LineWidth = DefaultLineWidth;
             loaded.EditorToolbar = CleanToolbar(loaded.EditorToolbar);
             loaded.EditorHiddenButtons = (loaded.EditorHiddenButtons ?? [.. DefaultHiddenEditorButtons]).Where(EditorButtonIds.Contains).Distinct().ToList();
             if (ParseKey(loaded.PreviousPictureKey) == null) loaded.PreviousPictureKey = DefaultPreviousKey;

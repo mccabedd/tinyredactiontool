@@ -57,7 +57,7 @@ public partial class MainWindow : Window
         UpdateToolButtons();
         Preview.BeforeEdit += () => { Pause(); history.Checkpoint(Project); };
         Preview.PausePlayback += Pause;
-        Preview.SelectionChanged += _ => Refresh(); Preview.Edited += Refresh; Preview.MultiSelectionChanged += Refresh;
+        Preview.SelectionChanged += _ => Refresh(); Preview.Edited += () => { ApplyAutoColour(); Refresh(); }; Preview.MultiSelectionChanged += Refresh;
         Preview.ViewportChanged += () => ZoomText.Text = Preview.ZoomLabel;
         Preview.ColorSampled += colour => ApplyColor(colour, "Picked");
         Preview.EyedropperEnded += UpdateColorControls;
@@ -260,7 +260,9 @@ public partial class MainWindow : Window
             try
             {
                 timeline = video ? await Task.Run(() => tools.ProbeTimelineAsync(path, token), token) : null;
-                frame = await Task.Run(() => tools.FrameAsync(path, timeline?.Frames[0], null, token), token);
+                // 3.2.0 (David): ordinary pictures are read by Windows (fast; StillDecoder), the rest by FFmpeg.
+                frame = (video ? null : await Task.Run(() => StillDecoder.Decode(path), token))
+                        ?? await Task.Run(() => tools.FrameAsync(path, timeline?.Frames[0], null, token), token);
                 gif = video ? null : await ReadAnimationAsync(path, token); // 0.28.0: an animated GIF plays.
                 if (gif != null && (gif.Width != frame.PixelWidth || gif.Height != frame.PixelHeight)) gif = null;
                 hash = await hashTask;
@@ -338,7 +340,10 @@ public partial class MainWindow : Window
         {
             RegionName.Text = selected.Name; RegionColor.Text = selected.Color; Decorations.IsChecked = selected.ShowDecorations;
             updating = true; EffectChoice.SelectedIndex = (int)selected.Effect; EffectMode.SelectedIndex = selected.Aggressive ? 1 : 0; EffectStrength.Value = selected.Strength; updating = false;
-            Preview.DrawingEffect = selected.Effect; Preview.DrawingAggressive = selected.Aggressive; Preview.DrawingStrength = selected.Strength; Preview.DrawingColor = selected.Color;
+            Preview.DrawingEffect = selected.Effect; Preview.DrawingAggressive = selected.Aggressive; Preview.DrawingStrength = selected.Strength;
+            // 3.2.0: an Auto colour is the picture's, not a choice: it doesn't become the Redaction Colour for new boxes.
+            if (!selected.AutoColor) Preview.DrawingColor = selected.Color;
+            if (selected.Effect == RedactionEffect.Opaque) Preview.DrawingAutoColor = selected.AutoColor;
             var b = selected.GeometryAt(Time); GeometryX.Text = F(b.X); GeometryY.Text = F(b.Y); GeometryW.Text = F(b.Width); GeometryH.Text = F(b.Height);
             StartTime.Text = F(selected.Start); EndTime.Text = F(selected.End);
             CoverageMargin.Text = F(selected.CoverageMargin);
@@ -432,6 +437,9 @@ public partial class MainWindow : Window
         ColorSwatch.IsEnabled = ColorApplies;
         EyedropperButton.IsEnabled = ColorApplies && Project.Media != null;
         if (!EyedropperButton.IsEnabled && Preview.EyedropperActive) Preview.EyedropperActive = false;
+        // 3.2.0: Auto shows the selected Solid Fill's choice, otherwise the one for new redactions.
+        var auto = Preview.Selected is { Effect: RedactionEffect.Opaque } chosen ? chosen.AutoColor : Preview.DrawingAutoColor;
+        foreach (var box in new[] { AutoColourBox, PopupAutoColour }) { box.IsEnabled = ColorApplies && Project.Media != null; if (box.IsChecked != auto) { autoColourUpdating = true; box.IsChecked = auto; autoColourUpdating = false; } }
         EyedropperButton.SetResourceReference(BackgroundProperty, Preview.EyedropperActive ? "ToolSelected" : "Surface");
         EyedropperButton.SetResourceReference(ForegroundProperty, Preview.EyedropperActive ? "ToolSelectedText" : "Foreground");
     }
@@ -441,17 +449,50 @@ public partial class MainWindow : Window
     {
         if (busy) return;
         colour = colour.ToUpperInvariant();
+        // 3.2.0: a colour chosen by hand turns Auto off.
         if (Preview.Selected is { Effect: RedactionEffect.Opaque } region && Project.Regions.Contains(region))
         {
-            if (region.Color != colour) { history.Checkpoint(Project); region.Color = colour; }
-            Preview.DrawingColor = colour; Refresh();
+            if (region.Color != colour || region.AutoColor) { history.Checkpoint(Project); region.Color = colour; region.AutoColor = false; }
+            Preview.DrawingColor = colour; Preview.DrawingAutoColor = false; Refresh();
             Status.Text = $"{verb} {colour} · applied to {region.Name}. Undo restores the previous colour.";
         }
         else
         {
-            Preview.DrawingColor = colour; UpdateColorControls();
-            Status.Text = $"{verb} {colour} · used for new coloured boxes.";
+            Preview.DrawingColor = colour; Preview.DrawingAutoColor = false; UpdateColorControls();
+            Status.Text = $"{verb} {colour} · used for new Solid Fill redactions.";
         }
+    }
+    // ---- Auto redaction colour (3.2.0, David) ----
+    private bool autoColourUpdating;
+    private void AutoColourChanged(object sender, RoutedEventArgs e)
+    {
+        if (autoColourUpdating || busy || sender is not CheckBox box) return;
+        var on = box.IsChecked == true;
+        if (Preview.Selected is { Effect: RedactionEffect.Opaque } region && Project.Regions.Contains(region))
+        {
+            if (region.AutoColor != on) { history.Checkpoint(Project); region.AutoColor = on; }
+            Preview.DrawingAutoColor = on;
+            ApplyAutoColour();
+            Status.Text = on ? $"{region.Name} now takes the colour around it ({region.Color}). Undo turns it back." : $"{region.Name} keeps {region.Color}; choose another colour or use the Eyedropper.";
+        }
+        else
+        {
+            Preview.DrawingAutoColor = on;
+            Status.Text = on ? "New Solid Fill redactions take the colour around them." : "New Solid Fill redactions use the Redaction Colour.";
+        }
+        Refresh();
+    }
+    // The selected Solid Fill redactions with Auto on take the colour around them on the frame shown. Called after every
+    // draw, move, size or turn (the colour rides on that edit's Undo step).
+    internal void ApplyAutoColour()
+    {
+        if (busy || Preview.Image is not { } picture || Project.Media == null) return;
+        var regions = Preview.MultiRegions.Append(Preview.Selected).OfType<Region>().Distinct()
+            .Where(r => r.AutoColor && r.Effect == RedactionEffect.Opaque && Project.Regions.Contains(r)).ToList();
+        if (regions.Count == 0) return;
+        foreach (var r in regions)
+            if (AutoColour.Sample(picture, r, Math.Clamp(Time, r.Start, r.End)) is { } colour) r.Color = colour;
+        Preview.InvalidateVisual();
     }
     private void ToggleEyedropper(object sender, RoutedEventArgs e)
     {
@@ -496,7 +537,7 @@ public partial class MainWindow : Window
         if (Preview.DrawingEffect != effect) return;
         if (Preview.Tool is "Select" or "Pan") Preview.Tool = "Rectangle";
         UpdateToolButtons();
-        Hint($"{(effect == RedactionEffect.Opaque ? "Coloured box" : effect)} · Drag a {Preview.Tool.ToLowerInvariant()} over the area to redact");
+        Hint($"{(effect == RedactionEffect.Opaque ? "Solid Fill" : $"{effect} Fill")} · Drag a {Preview.Tool.ToLowerInvariant()} over the area to redact");
     }
     private void UpdateToolButtons()
     {
@@ -1051,5 +1092,5 @@ public partial class MainWindow : Window
     private void About(object sender, RoutedEventArgs e) => AboutWindow.Open(this, VersionText);
     private void OpenHelp(object sender, RoutedEventArgs e) => HelpManual.Open(this); // 3.0.0 (David)
     // 0.27.1 (David): the About box is the simple one (AboutWindow); this text is its version and description.
-    internal static string AboutText => "TinyRedactionTool 3.1.3\n" + AboutWindow.Description;
+    internal static string AboutText => "TinyRedactionTool 3.2.0\n" + AboutWindow.Description;
 }
