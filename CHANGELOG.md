@@ -9,6 +9,7 @@
 - Settings › Editor: the line width new outlines, ellipses, lines and arrows, polylines and pen strokes start with (now 4, was 6).
 - The notification-area icon: a click opens the editor, a double-click shows the capture bar (Settings › Editor can swap them).
 - Clear Redactions and Clear Annotations icons are as large as the others.
+- TRT starts with the capture bar hidden in the red tab at the top of the screen (point at the tab to bring it out). Settings › Capture Bar can start it open instead.
 
 ## 3.1.3 (November 2026)
 - Toolbar spacer: Settings › Toolbar › Add Spacer puts a blank, button-sized gap anywhere on the editor's toolbar.

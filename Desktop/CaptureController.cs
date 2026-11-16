@@ -90,12 +90,16 @@ internal sealed class CaptureController : IDisposable
         {
             bar.Show();
             if (Settings.BarTop is { } savedTop && Math.Abs(savedTop - WorkAreaOf(bar).Top) < 1) BarMoved(); // Was docked last time.
+            // 3.2.0 (David): TRT starts with the bar tucked into the red tab; pointing at the tab brings it out.
+            if (Settings.StartBarInTab && (MinimiseOnStart ?? interactive)) MinimizeToStrip();
         }
         if (interactive)
         {
             bar.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () => { ReportShortcutProblems(); OfferAbandonedCleanup(); });
         }
     }
+    // Checks (which start without the real tray and shortcuts) set this to see the start-up tab.
+    internal bool? MinimiseOnStart { get; set; }
     private void PlaceBar()
     {
         if (bar == null) return;

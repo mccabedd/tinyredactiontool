@@ -63,6 +63,25 @@ internal static class Release320Checks
             "Settings › Editor shows and keeps the line width, Auto Redaction Colour and the tray click choice");
         dialog.Close();
 
+        check(new AppSettings().StartBarInTab && !new SettingsWindow(new AppSettings { StartBarInTab = false }).Collect().StartBarInTab, "TRT starts with the capture bar in the red tab (Settings › Capture Bar can turn it off)");
+        {
+            var startTemp = Path.Combine(output, "release320-start"); if (Directory.Exists(startTemp)) Directory.Delete(startTemp, true); Directory.CreateDirectory(startTemp);
+            var startSaved = AppSettings.Path; AppSettings.Path = Path.Combine(output, "release320-start-settings.json"); if (File.Exists(AppSettings.Path)) File.Delete(AppSettings.Path);
+            var starting = new CaptureController(new ManagedPolicy(), false, startTemp) { MinimiseOnStart = true };
+            try
+            {
+                starting.Start();
+                check(starting.Bar is { IsVisible: false } && starting.Strip is { IsVisible: true }, "on start the bar waits in the red tab, not open");
+                starting.ShowBar();
+                check(starting.Bar!.IsVisible && starting.Strip?.IsVisible != true, "and comes out of the tab when asked (pointing at the tab, or the tray icon)");
+                File.WriteAllText(AppSettings.Path, "{\"StartBarInTab\": false}");
+                var open = new CaptureController(new ManagedPolicy(), false, startTemp) { MinimiseOnStart = true };
+                try { open.Start(); check(open.Bar is { IsVisible: true } && open.Strip?.IsVisible != true, "with the setting off, the bar starts open as before"); }
+                finally { open.Dispose(); }
+            }
+            finally { starting.Dispose(); AppSettings.Path = startSaved; }
+        }
+
         // ---- Pictures read by Windows ----
         var folder = Path.Combine(output, "release320"); if (Directory.Exists(folder)) Directory.Delete(folder, true); Directory.CreateDirectory(folder);
         var png = Path.Combine(folder, "see-through.png");

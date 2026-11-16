@@ -87,7 +87,9 @@
    <TabItem Header="Capture Bar">
     <StackPanel>
      <CheckBox x:Name="ShowBarBox" Content="Show the Capture Bar" Margin="0,0,0,2"/>
-     <TextBlock Text="Without it, TRT works from its notification-area icon and the shortcuts." TextWrapping="Wrap" FontSize="11" Margin="20,0,0,8"/>
+     <TextBlock Text="Without it, TRT works from its notification-area icon and the shortcuts." TextWrapping="Wrap" FontSize="11" Margin="20,0,0,2"/>
+     <!-- 3.2.0 (David): start tucked away. -->
+     <CheckBox x:Name="StartInTabBox" Content="Start Hidden in the Red Tab (Point at the Tab to Bring the Bar Out)" Margin="0,0,0,8"/>
      <TextBlock Text="Tick the buttons to show; use Up and Down to change the order. Menu is always last." TextWrapping="Wrap" FontSize="11" Margin="0,0,0,6"/>
      <Grid>
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>

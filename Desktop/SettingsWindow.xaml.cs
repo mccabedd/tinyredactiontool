@@ -49,6 +49,7 @@ public partial class SettingsWindow : Window
         HideOptionsBarBox.IsChecked = current.HideOptionsBar;
         LineWidthBox.Value = current.LineWidth; AutoColourSettingBox.IsChecked = current.AutoRedactionColour; // 3.2.0
         (current.TrayClickOpensEditor ? TrayEditorBox : TrayBarBox).IsChecked = true;
+        StartInTabBox.IsChecked = current.StartBarInTab;
         DelayChoice.SelectedItem = current.CaptureDelaySeconds;
         CapturePointerBox.IsChecked = current.CaptureMousePointer;
         FullScreenChoice.SelectedIndex = current.FullScreenAllMonitors ? 1 : 0;
@@ -264,6 +265,7 @@ public partial class SettingsWindow : Window
         Result.HideOptionsBar = HideOptionsBarBox.IsChecked == true;
         Result.LineWidth = (int)Math.Clamp(Math.Round(LineWidthBox.Value), AppSettings.MinLineWidth, AppSettings.MaxLineWidth);
         Result.AutoRedactionColour = AutoColourSettingBox.IsChecked == true; Result.TrayClickOpensEditor = TrayEditorBox.IsChecked == true;
+        Result.StartBarInTab = StartInTabBox.IsChecked == true;
         StartupChosen = StartupBox.IsChecked == true;
         ThemeChosen = ThemeShown;
         Result.CaptureDelaySeconds = DelayChoice.SelectedItem is int delay ? delay : 0;

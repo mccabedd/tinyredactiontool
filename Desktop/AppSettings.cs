@@ -151,6 +151,8 @@ public sealed class AppSettings
     // 3.2.0 (David): a single click on the notification-area icon opens the editor and a double-click shows the capture
     // bar; false swaps them back (the bar on a single click, as before).
     public bool TrayClickOpensEditor { get; set; } = true;
+    // 3.2.0 (David): when TRT starts, the capture bar waits in the red tab at the top of the screen.
+    public bool StartBarInTab { get; set; } = true;
 
     internal static string Path { get; set; } = System.IO.Path.Combine(ProgramFolder, "settings.json");
     // The folder people see the program in. A standalone .exe unpacks itself to a temporary folder
