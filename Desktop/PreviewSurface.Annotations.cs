@@ -50,12 +50,16 @@ public sealed partial class PreviewSurface
         if (SelectedAnnotation == annotation) return;
         SelectedAnnotation = annotation; AnnotationSelectionChanged?.Invoke(annotation); InvalidateVisual();
     }
+    // The selected picture still moves with any tool (as just pasted); Esc lets go of it.
+    internal bool GrabbedByTool(Annotation a) => a.Kind != AnnotationKind.Picture || Tool == "Select" || a == SelectedAnnotation;
     // Returns true when the press was handled as an annotation gesture.
     private bool AnnotationPointerDown(Point p, MediaPoint s, MouseButton button, int clickCount)
     {
         if (button != MouseButton.Left || Tool == "Polygon" && polygon.Count > 0) return false;
         var handleHit = SelectedAnnotation != null && Project.Annotations.Contains(SelectedAnnotation) && Active(SelectedAnnotation) ? AnnotationHandleAt(SelectedAnnotation, p) : null;
-        var hit = handleHit != null ? SelectedAnnotation : Project.Annotations.Where(Active).OrderByDescending(a => a.Order).FirstOrDefault(a => HitAnnotation(a, p));
+        // 3.2.0 (David): a pasted picture that isn't selected is grabbed by the Select tool only; with a drawing tool a press
+        // on it draws (a picture as big as the canvas otherwise caught every click and nothing could be drawn on it).
+        var hit = handleHit != null ? SelectedAnnotation : Project.Annotations.Where(a => Active(a) && GrabbedByTool(a)).OrderByDescending(a => a.Order).FirstOrDefault(a => HitAnnotation(a, p));
         // A redaction committed later sits on top; let it take the click.
         if (hit != null && handleHit == null && Project.Regions.Any(r => r.Order > hit.Order && Active(r) && ShapeGeometry(r, r.GeometryAt(Time)).FillContains(p))) hit = null;
         if (hit != null)

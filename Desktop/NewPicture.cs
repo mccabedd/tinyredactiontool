@@ -213,7 +213,22 @@ public partial class MainWindow
         }
         catch (System.Runtime.InteropServices.COMException) { Status.Text = "The clipboard is busy. Try Paste again."; return 0; }
         if (found.Count == 0) { Status.Text = "There is no picture on the clipboard to paste."; return 0; }
-        return AddPictures(found, "pasted");
+        var wasEmpty = IsBlankNewPicture;
+        var added = AddPictures(found, "pasted");
+        await BakeFillingPictureAsync(wasEmpty, added);
+        return added;
+    }
+    // 3.2.0 (David): New Image at the clipboard's size, then Paste: the pasted picture covered the whole canvas as an item,
+    // so it caught every click and Save Media As saved only the background. A single picture that fills a still-empty New
+    // picture becomes part of it (as Flatten Image does; Undo takes it back out).
+    private bool IsBlankNewPicture => IsNewPicture && Project.Regions.Count == 0 && Project.Annotations.Count == 0;
+    private async Task<bool> BakeFillingPictureAsync(bool wasEmpty, int added)
+    {
+        if (!wasEmpty || added != 1 || !IsNewPicture || Project.Media is not { } m || Project.Regions.Count != 0) return false;
+        if (Project.Annotations is not [{ Kind: AnnotationKind.Picture } item] || item.Box.Width < m.Width - 0.5 || item.Box.Height < m.Height - 0.5) return false;
+        if (!await FlattenImageAsync()) return false;
+        Status.Text = "Picture pasted into the new image: draw, redact and annotate on it; Save Media As saves it. Ctrl+Z takes it back out.";
+        return true;
     }
     // Pictures as items on the open picture; several at once step down and across a little, so each can be seen and picked.
     private int AddPictures(IReadOnlyList<BitmapSource> found, string done)
@@ -228,7 +243,7 @@ public partial class MainWindow
         }
         Refresh(); UpdateEditingState();
         Status.Text = added == 0 ? "That picture is too large to put onto this one." :
-            $"{(added == 1 ? "Picture" : $"{added} pictures")} {done}. Drag to move; drag a corner to size (Shift stretches); Del removes; Ctrl+Z takes it back.";
+            $"{(added == 1 ? "Picture" : $"{added} pictures")} {done}. Drag to move; drag a corner to size (Shift stretches); Esc lets go; Del removes; Ctrl+Z takes it back.";
         return added;
     }
     // File › Add picture… (0.26.1, David: open a picture without losing what is in the editor): picture files as items.
@@ -246,7 +261,10 @@ public partial class MainWindow
         foreach (var file in files.Where(f => File.Exists(f) && PictureExtensions.Contains(Path.GetExtension(f).ToLowerInvariant())))
             if (await Task.Run(() => ReadWhole(file)) is { } read) found.Add(read);
         if (found.Count == 0) { Status.Text = "Those files aren't pictures TRT can read."; return 0; }
-        return AddPictures(found, "added");
+        var wasEmpty = IsBlankNewPicture;
+        var added = AddPictures(found, "added");
+        await BakeFillingPictureAsync(wasEmpty, added);
+        return added;
     }
     // A new screenshot while a New picture is open (0.26.1, David): it goes onto the picture as an item instead of
     // replacing it (the capture file is then wiped; its pixels are in the picture). False when it should open as usual.

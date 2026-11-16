@@ -145,6 +145,32 @@ internal static class Release320Checks
             preview.MouseDownAt(On(42, 90), System.Windows.Input.MouseButton.Left, 1); preview.PointerMove(On(70, 100)); preview.PointerMove(On(100, 110)); preview.PointerUp(); Refresh();
             check(preview.Selected is { AutoColor: false, Color: "#00FF00" } plain && plain != drawn, $"with Auto off (the default), a new Solid Fill uses the chosen Redaction Colour, not the last matched one ({preview.Selected?.Color})");
 
+            // New Image at a picture's size, then that picture pasted (David's video, 16 Nov): it becomes the image itself.
+            preview.Selected = null; Refresh();
+            editor.AnswerNewPicture = d => { d.Carry.IsChecked = false; d.WidthBox.Value = 300; d.HeightBox.Value = 120; d.White.IsChecked = true; d.Accept(); return true; };
+            check(Wait(() => editor.NewPictureAsync()) && editor.IsNewPicture && preview.Project.Media is { Width: 300, Height: 120 }, "a New Image the size of the picture opens");
+            var blankPath = preview.Project.Media!.Path;
+            check(Wait(() => editor.AddPictureFilesAsync([Path.Combine(folder, "plain.png")])) == 1 && preview.Project.Annotations.Count == 0 && preview.Project.Media!.Path != blankPath
+                  && preview.Image is { } baked && Pixels(baked)[(10 * 300 + 10) * 4 + 2] == Blue.R && editor.IsNewPicture,
+                "a picture that fills the empty New Image becomes part of it (no item left on top to catch clicks)");
+            check(File.ReadAllBytes(preview.Project.Media!.Path).Length > 0 && StillDecoder.Decode(preview.Project.Media.Path) is { } saved && Pixels(saved)[(10 * 300 + 10) * 4 + 2] == Blue.R,
+                "so Save Media As saves the picture, not just the white background");
+            preview.Tool = "Rectangle"; preview.DrawingEffect = RedactionEffect.Opaque; preview.Fit(); preview.UpdateLayout(); Refresh();
+            preview.MouseDownAt(On(40, 44), System.Windows.Input.MouseButton.Left, 1); preview.PointerMove(On(80, 60)); preview.PointerMove(On(110, 74)); preview.PointerUp(); Refresh();
+            check(preview.Project.Regions.Count == 1 && preview.Selected != null, "and a redaction can be drawn on it straight away");
+            // A smaller pasted picture stays an item, but a drawing tool draws over it; only Select grabs it.
+            editor.AnswerNewPicture = d => { d.Carry.IsChecked = false; d.WidthBox.Value = 600; d.HeightBox.Value = 300; d.White.IsChecked = true; d.Accept(); return true; };
+            check(Wait(() => editor.NewPictureAsync()) && Wait(() => editor.AddPictureFilesAsync([Path.Combine(folder, "plain.png")])) == 1 && preview.Project.Annotations.Count == 1,
+                "a smaller picture on a larger New Image stays a picture you can move");
+            var item = preview.Project.Annotations[0]; var itemBox = item.Box;
+            preview.Tool = "Rectangle"; preview.SelectAnnotation(null); preview.Fit(); preview.UpdateLayout(); Refresh(); // Esc, or a click elsewhere, lets go of it.
+            var x0 = itemBox.X + 40; var y0 = itemBox.Y + 30;
+            preview.MouseDownAt(On(x0, y0), System.Windows.Input.MouseButton.Left, 1); preview.PointerMove(On(x0 + 30, y0 + 20)); preview.PointerMove(On(x0 + 60, y0 + 40)); preview.PointerUp(); Refresh();
+            check(preview.Project.Regions.Count == 1 && item.Box == itemBox, "once it is let go, dragging on the picture with the Rectangle tool draws a redaction instead of moving it");
+            preview.Tool = "Select"; preview.Selected = null; Refresh();
+            preview.MouseDownAt(On(itemBox.X + 5, itemBox.Y + 5), System.Windows.Input.MouseButton.Left, 1); preview.PointerMove(On(itemBox.X + 25, itemBox.Y + 15)); preview.PointerMove(On(itemBox.X + 45, itemBox.Y + 25)); preview.PointerUp(); Refresh();
+            check(item.Box.X > itemBox.X + 30 && preview.SelectedAnnotation == item, "with Select, the picture is grabbed and moved as before");
+
             // Tray icon clicks.
             controller.Bar.Hide(); controller.TrayClicked(doubleClick: true);
             check(controller.Bar.IsVisible, "a double-click on the tray icon shows the capture bar");

@@ -1027,6 +1027,9 @@ public partial class MainWindow : Window
         else if (e.Key is Key.Left or Key.Right) { await Step(e.Key == Key.Left ? -1 : 1); e.Handled = true; }
         else if (e.Key == Key.Delete) DeleteRegion(sender, e);
         else if (e.Key == Key.Escape && Preview.EyedropperActive) { Preview.EyedropperActive = false; Status.Text = "Eyedropper cancelled."; e.Handled = true; }
+        // 3.2.0: Esc lets go of the selected shape or picture (drawing tools then draw over a pasted picture).
+        else if (e.Key == Key.Escape && Keyboard.Modifiers == ModifierKeys.None && (Preview.Selected != null || Preview.SelectedAnnotation != null) && Preview.EditingText == null && Preview.Tool != "Crop")
+        { Preview.Selected = null; Preview.SelectAnnotation(null); Refresh(); e.Handled = true; }
     }
     private void ThemeChanged(object sender, SelectionChangedEventArgs e)
     {

@@ -482,7 +482,7 @@ public sealed partial class PreviewSurface : FrameworkElement
             return IsTurnZone(annotationHandle) ? CustomCursors.RotateAt(annotationHandle, a.Rotation) : annotationHandle.StartsWith('P') ? Cursors.Cross : CustomCursors.Resize(annotationHandle, a.Rotation);
         if (Selected != null && Active(Selected) && RegionHandleAt(Selected, p) is { } handle)
             return IsTurnZone(handle) ? CustomCursors.RotateAt(handle, Selected.Rotation) : handle.StartsWith('V') ? Cursors.Cross : CustomCursors.Resize(handle, Selected.Rotation);
-        if (Project.Annotations.Any(x => Active(x) && HitAnnotation(x, p)) || Project.Regions.Any(r => Active(r) && ShapeGeometry(r, r.GeometryAt(Time)).FillContains(p)))
+        if (Project.Annotations.Any(x => Active(x) && GrabbedByTool(x) && HitAnnotation(x, p)) || Project.Regions.Any(r => Active(r) && ShapeGeometry(r, r.GeometryAt(Time)).FillContains(p)))
             return Cursors.SizeAll;
         return Tool == "Select" ? null : Cursors.Cross;
     }
