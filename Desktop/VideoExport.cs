@@ -14,7 +14,7 @@ public enum ExportPhase { Exporting, Validating }
 public sealed class VideoExport(MediaTools tools)
 {
     public async Task ExportAsync(string destination, RedactionProject project, FrameTimeline map, ManagedPolicy policy,
-        IProgress<double>? progress, CancellationToken cancellation, IProgress<ExportPhase>? phase = null)
+        IProgress<double>? progress, CancellationToken cancellation, IProgress<ExportPhase>? phase = null, ExportReplace? replace = null)
     {
         ExportGate.Check(project, policy);
         var source = project.Media!;
@@ -22,10 +22,13 @@ public sealed class VideoExport(MediaTools tools)
         if (project.Export.DeleteOriginal) throw new InvalidOperationException("Original-source deletion is not implemented and cannot be requested.");
         var extension = Path.GetExtension(destination).ToLowerInvariant();
         if (!new[] { ".mp4", ".mov", ".m4v", ".avi", ".mkv", ".webm" }.Contains(extension)) throw new InvalidOperationException("Unsupported video destination format.");
-        if (ProjectStore.SamePath(destination, source.Path) || File.Exists(destination)) throw new IOException("Choose a new file name (not the original).");
+        // 3.2.2 (David): replaced only when confirmed (Existing) or through File › Save (Original).
+        if (ProjectStore.SamePath(destination, source.Path) && replace?.ReleaseOriginal == null || File.Exists(destination) && replace == null) throw new IOException("Choose a new file name (not the original).");
         if (policy.BlockNetworkDestination && ManagedPolicy.IsNetwork(destination)) throw new IOException("Your organisation's policy blocks exporting to network drives.");
-        using var sourceLease = new FileStream(source.Path, FileMode.Open, FileAccess.Read, FileShare.Read);
-        if (!await ProjectStore.MatchesAsync(source, source.Path, cancellation)) throw new IOException("The original file has changed since it was opened. Nothing was exported.");
+        // Released just before a replaced original is swapped in (File › Save, 3.2.2), and always at the end.
+        var sourceLease = new FileStream(source.Path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        try { if (!await ProjectStore.MatchesAsync(source, source.Path, cancellation)) throw new IOException("The original file has changed since it was opened. Nothing was exported."); }
+        catch { sourceLease.Dispose(); throw; }
         var root = Path.Combine(Path.GetTempPath(), ScratchFolder, "masks-" + Guid.NewGuid().ToString("N"));
         var temporary = destination + ".partial." + Guid.NewGuid().ToString("N") + extension;
         Directory.CreateDirectory(root);
@@ -38,7 +41,7 @@ public sealed class VideoExport(MediaTools tools)
                 await Task.Run(() => EffectVideoEncoder.EncodeAsync(temporary, project, map, progress, cancellation), cancellation);
                 phase?.Report(ExportPhase.Validating);
                 await ValidateAsync(temporary, source, map, project.Export.KeepAudio, cancellation, project.Crop);
-                cancellation.ThrowIfCancellationRequested(); File.Move(temporary, destination, false); progress?.Report(1); return;
+                cancellation.ThrowIfCancellationRequested(); sourceLease.Dispose(); ExportReplace.Finish(temporary, destination, replace); progress?.Report(1); return;
             }
             var concatPath = Path.Combine(root, "geometry.ffconcat");
             await Task.Run(() => WriteMasks(root, concatPath, project, map, progress, cancellation), cancellation);
@@ -57,11 +60,12 @@ public sealed class VideoExport(MediaTools tools)
             phase?.Report(ExportPhase.Validating);
             await ValidateAsync(temporary, source, map, project.Export.KeepAudio, cancellation);
             cancellation.ThrowIfCancellationRequested();
-            File.Move(temporary, destination, false);
+            sourceLease.Dispose(); ExportReplace.Finish(temporary, destination, replace);
             progress?.Report(1);
         }
         finally
         {
+            sourceLease.Dispose();
             if (File.Exists(temporary)) File.Delete(temporary);
             var parent = Path.GetFullPath(Path.Combine(Path.GetTempPath(), ScratchFolder)) + Path.DirectorySeparatorChar;
             if (!Path.GetFullPath(root).StartsWith(parent, StringComparison.OrdinalIgnoreCase)) throw new IOException("Invalid owned mask directory.");

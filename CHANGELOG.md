@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.2.2 (November 2026)
+- **File › Save (Ctrl+S)**: the redacted picture or video replaces the file you opened, under the same name. TRT writes the new file beside it and checks it first; only then does it replace the old one. The first Save of each file asks once ("Replace 01.png with the redacted version? The unredacted picture will be gone."). The saved file opens again with the redactions now part of it. Screenshots and New Image have no file yet, so Save works like Export there; formats TRT can't write (such as BMP or TIFF) still go through Export.
+- **Export can replace an existing file**: when Windows asks whether to replace a file and you answer Yes, Export replaces it (after its checks). It never replaces the file open in TRT; that goes through Save.
+- The window title shows the open file's name, for example "TinyRedactionTool 3.2.2 - 01.png".
+
 ## 3.2.1 (November 2026)
 - Scrolling capture of a short scrolling area (between a fixed header and a large fixed box) captured only the first screen: each wheel turn moved the area almost its whole height, leaving too little to join. The first turn is now one notch, and each later turn is sized to move about 45 % of the area (tall web pages keep their usual speed).
 - When a web page pane is picked, its own top (such as a title) is kept above the joined picture, with no side columns.

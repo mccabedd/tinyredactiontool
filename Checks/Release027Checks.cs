@@ -110,9 +110,9 @@ internal static class Release027Checks
             var items = All(menu); string Header(MenuItem m) => (m.Header as string ?? "").Replace("_", "");
             var file = menu.Items.OfType<MenuItem>().First(m => Header(m) == "File");
             // 3.1.2 (David): the File menu's order and shortcuts.
-            var fileItems = file.Items.OfType<MenuItem>().Take(8).Select(m => Header(m) + (string.IsNullOrEmpty(m.InputGestureText) ? "" : " " + m.InputGestureText)).ToArray();
-            check(fileItems.SequenceEqual(["New Image… Ctrl+N", "Open Media… Ctrl+O", "Export… Ctrl+E", "Save Media As… Ctrl+Shift+S", "Add Image… Ctrl+Shift+O", "Open Project…", "Save Project…", "File Info… Ctrl+I"]),
-                "the File menu reads New Image, Open Media (Ctrl+O), Export (Ctrl+E), Save Media As (Ctrl+Shift+S), Add Image, Open Project, Save Project, File Info: " + string.Join(" | ", fileItems));
+            var fileItems = file.Items.OfType<MenuItem>().Take(9).Select(m => Header(m) + (string.IsNullOrEmpty(m.InputGestureText) ? "" : " " + m.InputGestureText)).ToArray();
+            check(fileItems.SequenceEqual(["New Image… Ctrl+N", "Open Media… Ctrl+O", "Save Ctrl+S", "Export… Ctrl+E", "Save Media As… Ctrl+Shift+S", "Add Image… Ctrl+Shift+O", "Open Project…", "Save Project…", "File Info… Ctrl+I"]),
+                "the File menu reads New Image, Open Media (Ctrl+O), Save (Ctrl+S, 3.2.2), Export (Ctrl+E), Save Media As (Ctrl+Shift+S), Add Image, Open Project, Save Project, File Info: " + string.Join(" | ", fileItems));
             check(items.Any(m => Header(m) == "Add Image…") && items.Any(m => Header(m) == "Paste onto Image") && items.Any(m => Header(m) == "Resize Image…")
                   && !items.Any(m => Header(m).Contains("picture", StringComparison.OrdinalIgnoreCase)),
                 $"the menus say Image (New Image, Add Image, Paste onto Image...), never picture ({string.Join(", ", items.Select(Header).Where(h => h.Contains("icture")))})");

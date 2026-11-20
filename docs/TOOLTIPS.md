@@ -7,6 +7,8 @@ sentence capitals. The tables below keep the wording in its 0.21.3 sentence case
 Add Image toolbar button "Add Images onto This One"; File › Add Image "Put Images onto This One, to Move and Size";
 New "New Image". The DEVELOPMENT BUILD label (#22) is gone.
 
+**3.2.2 (David):** File › Save (Ctrl+S), tooltip "Replace the Open File with the Redacted Version".
+
 **3.2.0 (David):** toolbar Solid Fill / Blur Fill / Pixelate Fill (tooltips the same); redaction window Solid (tooltip Solid Fill), Blur Fill, Pixelate Fill; the colour square "Redaction Colour"; the picker "Eyedropper"; the new Auto tick box "Match the Colour Around the Redaction"; Settings › Editor line width "Outline, Ellipse, Line, Arrow, Polyline and Pen".
 
 **3.1.3 (David):** the red tab (#18) has no tooltip; the Save Copy button is now Save Media, tooltip "Save Media As… (No Redactions)" (#158); Settings › Toolbar has Add Spacer, tooltip "Add a Blank Space the Size of a Button", and Remove says "Remove the Separator or Spacer".

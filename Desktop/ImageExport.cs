@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using System.Windows.Media;
@@ -15,19 +15,21 @@ public static class ImageExport
     // is moved to the requested destination.
     // animation (0.28.0): an animated GIF's whole frames. Exported as GIF it stays animated, with the redactions and
     // annotations on every frame; exported as anything else it is the frame shown (source).
-    public static async Task ExportAsync(string destination, RedactionProject project, ManagedPolicy policy, BitmapSource source, CancellationToken cancellation, MediaTools? tools = null, GifAnimation? animation = null)
+    public static async Task ExportAsync(string destination, RedactionProject project, ManagedPolicy policy, BitmapSource source, CancellationToken cancellation, MediaTools? tools = null, GifAnimation? animation = null, ExportReplace? replace = null)
     {
         ExportGate.Check(project, policy);
         if (project.Media!.IsVideo) throw new InvalidOperationException("Choose the video exporter for video media.");
         if (project.Export.DeleteOriginal || project.Export.KeepAudio) throw new InvalidOperationException("Source deletion and audio retention are not implemented in this build.");
         var format = StillImageFormats.FromPath(destination) ?? throw new InvalidOperationException("Choose a PNG, JPG, GIF or WebP destination.");
         if (format != StillFormat.Png && tools == null) throw new InvalidOperationException("The approved media tools are required for " + StillImageFormats.DisplayName(format) + " export.");
-        if (ProjectStore.SamePath(destination, project.Media.Path)) throw new IOException("Export can't replace the original.");
-        if (File.Exists(destination)) throw new IOException("Choose a new destination. Existing files are never replaced.");
+        // 3.2.2 (David): an existing file is replaced only when the user confirmed it (ExportReplace.Existing), and the
+        // original only through File › Save (ExportReplace.Original); never otherwise.
+        if (ProjectStore.SamePath(destination, project.Media.Path) && replace?.ReleaseOriginal == null) throw new IOException("Export can't replace the original.");
+        if (File.Exists(destination) && replace == null) throw new IOException("Choose a new destination. Existing files are never replaced.");
         if (policy.BlockNetworkDestination && ManagedPolicy.IsNetwork(destination)) throw new IOException("Your organisation's policy blocks exporting to network drives.");
         if (!await ProjectStore.MatchesAsync(project.Media, project.Media.Path, cancellation)) throw new IOException("The original file has changed since it was opened. Nothing was exported.");
         if (format != StillFormat.Png) await RequireCapabilitiesAsync(tools!, format, cancellation);
-        if (format == StillFormat.Gif && animation is { Frames.Count: > 1 }) { await ExportAnimatedGifAsync(destination, project, animation, tools!, cancellation); return; }
+        if (format == StillFormat.Gif && animation is { Frames.Count: > 1 }) { await ExportAnimatedGifAsync(destination, project, animation, tools!, cancellation, replace); return; }
         var sourceWidth = project.Media.Width; var sourceHeight = project.Media.Height;
         // A confirmed crop is applied after every redaction has been rendered at full size.
         var crop = project.Crop ?? new MediaRect(0, 0, sourceWidth, sourceHeight);
@@ -84,15 +86,15 @@ public static class ImageExport
             var issue = StillImageFormats.CompareDecoded(format, pixels, actual, width, height, interior);
             if (issue != null) throw new InvalidDataException(issue);
             cancellation.ThrowIfCancellationRequested();
-            // The destination must remain absent until finalisation; never overwrite.
-            File.Move(temporary, destination, false);
+            // The destination must remain absent until finalisation, unless the user chose to replace it (3.2.2).
+            ExportReplace.Finish(temporary, destination, replace);
         }
         finally { if (File.Exists(temporary)) File.Delete(temporary); }
     }
     // An animated GIF (0.28.0): each whole frame is redacted by the same renderer as a still, sent to the approved FFmpeg
     // with its own timing, and written as one GIF that plays for ever. The finished file must have exactly as many
     // frames, each decoded and compared with its prepared frame as a still GIF is (including inside opaque boxes).
-    private static async Task ExportAnimatedGifAsync(string destination, RedactionProject project, GifAnimation animation, MediaTools tools, CancellationToken cancellation)
+    private static async Task ExportAnimatedGifAsync(string destination, RedactionProject project, GifAnimation animation, MediaTools tools, CancellationToken cancellation, ExportReplace? replace)
     {
         var media = project.Media!;
         var sourceWidth = media.Width; var sourceHeight = media.Height;
@@ -150,7 +152,7 @@ public static class ImageExport
                 if (issue != null) throw new InvalidDataException($"Frame {i + 1}: {issue}");
             }
             cancellation.ThrowIfCancellationRequested();
-            File.Move(temporary, destination, false);
+            ExportReplace.Finish(temporary, destination, replace);
         }
         finally { if (File.Exists(temporary)) File.Delete(temporary); }
     }

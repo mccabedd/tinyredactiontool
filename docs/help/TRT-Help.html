@@ -123,7 +123,7 @@
 <main>
 
 <h2 id="what">What TRT does</h2>
-<p>TinyRedactionTool (TRT for short) hides private details in pictures and videos before you share them. You draw a shape over a name, a face, a number plate or a card number, and TRT covers it with a <span class="ui">black box</span>, a <span class="ui">blur</span> or <span class="ui">pixels</span>. Then you save a new copy. Your original file is never changed.</p>
+<p>TinyRedactionTool (TRT for short) hides private details in pictures and videos before you share them. You draw a shape over a name, a face, a number plate or a card number, and TRT covers it with a <span class="ui">black box</span>, a <span class="ui">blur</span> or <span class="ui">pixels</span>. Then you export a new copy, which leaves your original as it was, or use Save to replace the original with the redacted version.</p>
 <p>TRT can also take screenshots, record the screen, and add notes such as arrows and text.</p>
 <div class="box tip"><b>Everything stays on your computer.</b>TRT does not upload anything and does not send any information about you or your files anywhere.</div>
 
@@ -338,8 +338,16 @@
  <li><b>Videos</b> can be saved as MP4, MOV, M4V, AVI, MKV or WebM. MP4 works almost everywhere.</li>
  <li>TRT <b>checks the new file</b> after saving it, to make sure the redactions are really in it. If anything is wrong, it doesn't keep the file.</li>
  <li>Hidden details inside the file (such as where a photo was taken) are <b>not copied</b> into the new file.</li>
- <li>TRT never replaces an existing file, and never changes your original.</li>
+ <li>If you pick a file that is already there, Windows asks whether to replace it. Answer <span class="ui">Yes</span> and TRT replaces it, but only after the new file has passed its checks. Export never replaces the file you have open: use <span class="ui">Save</span> for that (below).</li>
 </ul>
+<h3 id="save">Save: redact the file itself</h3>
+<p><span class="ui">File › Save</span> (<kbd>Ctrl</kbd>+<kbd>S</kbd>) puts the redacted version <b>in place of the file you opened</b>, under the same name. TRT writes the new file beside it and checks it first; only then does it replace the old one. The first time you save a file, TRT asks: <span class="ui">Replace 01.png with the redacted version? The unredacted picture will be gone.</span> After that it saves without asking. The saved file opens again with the redactions now part of it, so they can no longer be moved or undone.</p>
+<ul>
+ <li>Screenshots and new images have no file yet: Save works like Export there.</li>
+ <li>Pictures saved as PNG, JPG, GIF or WebP, and videos saved as MP4, MOV, M4V, AVI, MKV or WebM, can be saved over. For other kinds (such as BMP or TIFF), use Export.</li>
+ <li>To keep the unredacted original, use Export with a new name instead.</li>
+</ul>
+<p>The window title shows the name of the open file, for example <span class="ui">TinyRedactionTool 3.2.2 - 01.png</span>.</p>
 <h3>Export Options (in the side panel)</h3>
 <p>Click <img class="icon" src="images/icons/panelbutton.png" alt="Panel"> <span class="ui">Panel</span> and open <span class="ui">Export Options</span>:</p>
 <figure><img src="images/side-panel.png" alt="The side panel with Export Options" style="max-width:340px"></figure>
@@ -431,6 +439,7 @@
  <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>E</kbd></td><td>Open the editor</td></tr>
  <tr><td><kbd>Ctrl</kbd>+<kbd>N</kbd></td><td>New image</td></tr>
  <tr><td><kbd>Ctrl</kbd>+<kbd>O</kbd></td><td>Open a picture or video</td></tr>
+ <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Save (the redacted version replaces the open file)</td></tr>
  <tr><td><kbd>Ctrl</kbd>+<kbd>E</kbd></td><td>Export</td></tr>
  <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd></td><td>Save Media As (a copy of the file as it is)</td></tr>
  <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd></td><td>Add an image onto this one</td></tr>

@@ -195,7 +195,7 @@ public partial class MainWindow : Window
         set
         {
             picturesOnly = value;
-            Title = value ? $"TinyRedactionTool {VersionText} · Image Editor" : $"TinyRedactionTool {VersionText}";
+            UpdateTitle();
             AppendVideoMenuItem.Visibility = CaptureFrameMenuItem.Visibility = VideoMenu.Visibility = value ? Visibility.Collapsed : Visibility.Visible;
         }
     }
@@ -292,6 +292,7 @@ public partial class MainWindow : Window
             }
             if (existing == null) projectPath = null;
             if (!keepHistory) { openedPath = captures?.Store.Owns(path) == true ? null : Path.GetFullPath(path); newPicture = false; }
+            UpdateTitle();
             ShowAnimation(gif);
             RefreshNavBar(); // Also after a Rotate or Trim (a video hides it, a picture brings it back).
             savedSnapshot = ProjectStore.Serialize(Project);
@@ -647,7 +648,7 @@ public partial class MainWindow : Window
     {
         var shown = Project.Media?.Path;
         Pause(); seekWork?.Cancel(); StopFrameWork(); Preview.EyedropperActive = false; Preview.CropDraft = null; Preview.Player.Close(); sourceLock?.Dispose(); sourceLock = null; ShowAnimation(null); Preview.Image = null; Preview.Selected = null; Preview.Timeline = null; frameCache.Clear(); Preview.Time = 0; Project = new(); ClearHistory(); savedSnapshot = null; projectPath = null; Status.Text = "Workspace cleared.";
-        ReleaseCapture(shown);
+        ReleaseCapture(shown); UpdateTitle();
     }
     private void SelectTool(object sender, RoutedEventArgs e)
     {
@@ -796,8 +797,8 @@ public partial class MainWindow : Window
     private async void ExportImage(object sender, RoutedEventArgs e)
     {
         if (busy || Project.Media == null) return;
-        var video = Project.Media.IsVideo; var exported = false;
-        if (video && Project.Export.KeepAudio && ThemedMessage.Show(this, "Audio is not inspected or redacted. Retain the primary audio track only after reviewing it separately?", "Unredacted Audio", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+        var video = Project.Media.IsVideo;
+        if (video && !ConfirmAudio()) return;
         var imageFormat = lastStillFormat;
         var dialog = new SaveFileDialog
         {
@@ -808,41 +809,98 @@ public partial class MainWindow : Window
         };
         if (dialog.ShowDialog(this) != true) return;
         if (!video && StillImageFormats.FromPath(dialog.FileName) == null) { ThemedMessage.Show(this, "Choose a .png, .jpg, .gif or .webp file name.", "Image Format"); return; }
+        // 3.2.2 (David): Windows has already asked "replace?" for an existing file; a Yes replaces it (checked first,
+        // then swapped in). The file open in TRT is replaced only through File › Save.
+        if (IsOpenFile(dialog.FileName)) { ThemedMessage.Show(this, $"{Path.GetFileName(dialog.FileName)} is open in TRT. Use File › Save (Ctrl+S) to replace it with the redacted version, or choose another name.", "Export"); return; }
+        var exported = await ExportToAsync(dialog.FileName, File.Exists(dialog.FileName) ? ExportReplace.Existing : null);
+        if (exported && Project.Export.DeleteOriginal && !policy.DisableSourceDeletion) await SecurelyDeleteOriginalAsync(dialog.FileName);
+    }
+    private bool ConfirmAudio() => !Project.Export.KeepAudio ||
+        ThemedMessage.Show(this, "Audio is not inspected or redacted. Retain the primary audio track only after reviewing it separately?", "Unredacted Audio", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes;
+    internal bool IsOpenFile(string path) =>
+        openedPath != null && ProjectStore.SamePath(path, openedPath) || Project.Media != null && ProjectStore.SamePath(path, Project.Media.Path);
+    // Export (and, 3.2.2, Save): written beside the destination, checked, then moved into place. replace null: an
+    // existing file is refused; Existing: the user confirmed replacing it; Original: File › Save over the opened file.
+    internal async Task<bool> ExportToAsync(string destination, ExportReplace? replace)
+    {
+        var video = Project.Media!.IsVideo; var exported = false;
         await RunWork(async token =>
         {
-            if (!CheckPath(dialog.FileName, true)) return;
-            if (File.Exists(dialog.FileName)) throw new IOException("That file already exists. Choose a new name.");
+            if (!CheckPath(destination, true)) return;
             // The policy still sees the request (ExportGate refuses it under a no-deletion policy); the exporters
             // themselves never delete: TRT deletes the original only after a validated export (0.18.0).
             ExportGate.Check(Project, policy);
             var snapshot = ProjectStore.Deserialize(ProjectStore.Serialize(Project));
             snapshot.Export.DeleteOriginal = false;
+            var kept = replace?.ReleaseOriginal != null ? "The redacted version replaced the original." : "Original source retained.";
             if (video)
             {
                 // Two steps in the popup: "Exporting video" with a percentage, then "Validating".
                 var validating = false;
-                await new VideoExport(tools).ExportAsync(dialog.FileName, snapshot, Preview.Timeline!, policy,
+                await new VideoExport(tools).ExportAsync(destination, snapshot, Preview.Timeline!, policy,
                     new Progress<double>(fraction => { if (!validating) ReportWork(fraction, $"Exporting · {fraction:P0}"); }), token,
-                    new Progress<ExportPhase>(phase => { validating = phase == ExportPhase.Validating; ShowExportPhase(phase); }));
-                Status.Text = "Video export passed stream, metadata, frame timeline and decode validation. Original source retained.";
+                    new Progress<ExportPhase>(phase => { validating = phase == ExportPhase.Validating; ShowExportPhase(phase); }), replace);
+                Status.Text = $"Video export passed stream, metadata, frame timeline and decode validation. {kept}";
                 captures?.Store.MarkKept(Project.Media!.Path);
                 exported = true;
             }
             else
             {
                 snapshot.Export.KeepAudio = false;
-                var format = StillImageFormats.FromPath(dialog.FileName)!.Value;
+                var format = StillImageFormats.FromPath(destination)!.Value;
                 Status.Text = $"Exporting {StillImageFormats.DisplayName(format)}, then validating it";
-                await ImageExport.ExportAsync(dialog.FileName, snapshot, policy, Preview.Image!, token, tools, animation);
-                lastStillFormat = format; // Session convenience only; does not mark the project as changed.
+                await ImageExport.ExportAsync(destination, snapshot, policy, Preview.Image!, token, tools, animation, replace);
+                if (replace?.ReleaseOriginal == null) lastStillFormat = format; // Session convenience only; does not mark the project as changed.
                 captures?.Store.MarkKept(Project.Media!.Path);
                 exported = true;
-                Status.Text = format == StillFormat.Png ? "PNG export validated pixel-for-pixel and saved. Original source retained." :
-                    $"{StillImageFormats.DisplayName(format)} export passed stream, metadata, decode and coverage checks. Source metadata is not copied. Original source retained.";
+                Status.Text = format == StillFormat.Png ? $"PNG export validated pixel-for-pixel and saved. {kept}" :
+                    $"{StillImageFormats.DisplayName(format)} export passed stream, metadata, decode and coverage checks. Source metadata is not copied. {kept}";
             }
-        }, title: video ? "Exporting Video" : "Exporting Picture");
-        if (exported && Project.Export.DeleteOriginal && !policy.DisableSourceDeletion) await SecurelyDeleteOriginalAsync(dialog.FileName);
+        }, title: replace?.ReleaseOriginal != null ? "Saving" : video ? "Exporting Video" : "Exporting Picture");
+        return exported;
     }
+    // File › Save (3.2.2, David): the redacted picture or video replaces the file that was opened. It is written and
+    // checked beside it first, then swapped in; the first Save of each file asks once. Captures and New Image have no
+    // file yet, so Save works like Export there. The saved file is opened again, with the redactions now part of it.
+    private async void SaveFile(object sender, RoutedEventArgs e) => await SaveAsync();
+    private readonly HashSet<string> replaceConfirmed = new(StringComparer.OrdinalIgnoreCase);
+    internal async Task<bool> SaveAsync()
+    {
+        if (busy || Project.Media is not { } media) return false;
+        if (openedPath == null) { ExportImage(this, new RoutedEventArgs()); return false; }
+        var target = openedPath; var name = Path.GetFileName(target);
+        var extension = Path.GetExtension(target).ToLowerInvariant();
+        var writable = media.IsVideo ? new[] { ".mp4", ".mov", ".m4v", ".avi", ".mkv", ".webm" }.Contains(extension) : StillImageFormats.FromPath(target) != null;
+        if (!writable)
+        {
+            ThemedMessage.Show(this, $"TRT can't write {extension} files, so {name} can't be replaced. Use Export to save a redacted copy as " + (media.IsVideo ? "MP4, MOV, M4V, AVI, MKV or WebM." : "PNG, JPG, GIF or WebP."), "Save");
+            return false;
+        }
+        if (!File.Exists(target)) { ThemedMessage.Show(this, $"{name} is no longer there. Use Export to save the redacted version.", "Save"); return false; }
+        if (media.IsVideo && !ConfirmAudio()) return false;
+        if (!replaceConfirmed.Contains(target) &&
+            !ConfirmKeepQuestion(this, $"Replace {name} with the redacted version? The unredacted {(media.IsVideo ? "video" : "picture")} will be gone.", "Save")) return false;
+        replaceConfirmed.Add(target);
+        var released = false;
+        // Just before the swap: let go of TRT's own hold on the file (the lock, the player, background frame reading).
+        var replace = ExportReplace.Original(() => Dispatcher.Invoke(() =>
+        {
+            Pause(); StopFrameWork(); Preview.Player.Close(); sourceLock?.Dispose(); sourceLock = null; released = true;
+        }));
+        var saved = await ExportToAsync(target, replace);
+        if (!saved)
+        {
+            // The swap failed after letting go: the original is untouched; hold it again with the work as it was.
+            if (released) await RunWork(async token => await LoadMedia(Project.Media!.Path, Project, token, keepHistory: true), "Reopening cancelled.", "Opening");
+            return false;
+        }
+        await RunWork(async token => await LoadMedia(target, null, token), "Reopening cancelled. The file was saved.", "Opening");
+        Status.Text = $"Saved {name}: the redactions are now part of it (checked before it replaced the original).";
+        return true;
+    }
+    // The window title names the open file (3.2.2, David): "TinyRedactionTool 3.2.2 - 01.png".
+    private void UpdateTitle() =>
+        Title = $"TinyRedactionTool {VersionText}" + (picturesOnly ? " · Image Editor" : "") + (openedPath != null && Project.Media != null ? " - " + Path.GetFileName(openedPath) : "");
     // Secure deletion of the original (0.18.0, David), only after a validated export and one more question:
     // the editor closes the file, then TRT overwrites it with zeros, checks that, and deletes it.
     internal async Task<bool> SecurelyDeleteOriginalAsync(string exportedTo)
@@ -1019,6 +1077,7 @@ public partial class MainWindow : Window
         else if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.O) { OpenMedia(sender, e); e.Handled = true; }
         else if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.E) { if (ExportButton.IsEnabled) ExportImage(sender, e); e.Handled = true; }
         else if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.S) { if (SaveMediaMenuItem.IsEnabled) SaveMediaAs(sender, e); e.Handled = true; }
+        else if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.S) { if (SaveMenuItem.IsEnabled) SaveFile(sender, e); e.Handled = true; }
         else if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && e.Key == Key.Z) { Undo(sender, e); e.Handled = true; }
         else if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && e.Key == Key.Y) { Redo(sender, e); e.Handled = true; }
         // 3.0.0 (David): layers, as in image editors: Ctrl+] up, Ctrl+[ down, Ctrl+D duplicate.
@@ -1095,5 +1154,5 @@ public partial class MainWindow : Window
     private void About(object sender, RoutedEventArgs e) => AboutWindow.Open(this, VersionText);
     private void OpenHelp(object sender, RoutedEventArgs e) => HelpManual.Open(this); // 3.0.0 (David)
     // 0.27.1 (David): the About box is the simple one (AboutWindow); this text is its version and description.
-    internal static string AboutText => "TinyRedactionTool 3.2.1\n" + AboutWindow.Description;
+    internal static string AboutText => "TinyRedactionTool 3.2.2\n" + AboutWindow.Description;
 }
