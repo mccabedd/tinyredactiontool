@@ -19,4 +19,4 @@ Status: **`--release-330-only` 52 passed; `--still-only` 1138 passed (it include
 - The Windows Save dialog itself (checks answer it through AnswerSaveAs / AnswerSaveProject).
 
 ## Package
-- Not packaged (out of scope for this change).
+- standalone/3.3.0/TinyRedactionTool-3.3.0.exe (product version 3.3.0); its SHA-256 is in the release's SHA256SUMS file. Packaged after David passed the quick tests on the test build.
