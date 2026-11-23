@@ -182,7 +182,7 @@ internal static class Release320Checks
                   && preview.Image is { } baked && Pixels(baked)[(10 * 300 + 10) * 4 + 2] == Blue.R && editor.IsNewPicture,
                 "a picture that fills the empty New Image becomes part of it (no item left on top to catch clicks)");
             check(File.ReadAllBytes(preview.Project.Media!.Path).Length > 0 && StillDecoder.Decode(preview.Project.Media.Path) is { } saved && Pixels(saved)[(10 * 300 + 10) * 4 + 2] == Blue.R,
-                "so Save Media As saves the picture, not just the white background");
+                "so saving it saves the picture, not just the white background");
             preview.Tool = "Rectangle"; preview.DrawingEffect = RedactionEffect.Opaque; preview.Fit(); preview.UpdateLayout(); Refresh();
             preview.MouseDownAt(On(40, 44), System.Windows.Input.MouseButton.Left, 1); preview.PointerMove(On(80, 60)); preview.PointerMove(On(110, 74)); preview.PointerUp(); Refresh();
             check(preview.Project.Regions.Count == 1 && preview.Selected != null, "and a redaction can be drawn on it straight away");

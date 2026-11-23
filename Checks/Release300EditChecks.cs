@@ -33,7 +33,7 @@ internal static class Release300EditChecks
         var pictureTags = System.Text.RegularExpressions.Regex.Matches(html[html.IndexOf("<main>", StringComparison.Ordinal)..], "<img ").Count;
         check(manual.MissingPictures.Count == 0 && manual.Pictures == pictureTags, $"every picture and icon in the manual is shown ({manual.Pictures} of {pictureTags}; missing {string.Join(", ", manual.MissingPictures)})");
         var text = new TextRange(manual.Document.ContentStart, manual.Document.ContentEnd).Text;
-        check(text.Contains("TinyRedactionTool (TRT for short) hides private details") && text.Contains("Before you share, look at the exported file.") && text.Contains("How do I open this manual again?"),
+        check(text.Contains("TinyRedactionTool (TRT for short) hides private details") && text.Contains("Before you share, look at the saved file.") && text.Contains("How do I open this manual again?"),
             "the manual's text is all there, from the first section to the last question");
         // (Icons are left out of this text, so the spaces either side of an icon meet here; that is expected.)
         check(!text.Contains('<') && !text.Contains('>') && !text.Contains("&amp;") && !text.Contains("&nbsp;") && !text.Contains("onerror"), "no tags or codes show in the text");

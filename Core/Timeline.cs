@@ -36,7 +36,8 @@ public static class ExportGate
     public static void Check(RedactionProject project, ManagedPolicy policy)
     {
         ProjectStore.Validate(project);
-        if (project.Regions.Count == 0 && project.Annotations.Count == 0 && project.Crop == null) throw new InvalidOperationException("Add a redaction, annotation or crop first.");
+        // 3.3.0 (David): untouched captures, new images and work that is only turned, resized or trimmed can be saved too
+        // (Save As); the written file is checked exactly as before.
         // 0.14.0: David removed the separate tracking Review step, so followed ranges no longer block export.
         if (policy.DisableVisualObscuration && project.Regions.Any(r => r.Effect != RedactionEffect.Opaque)) throw new InvalidOperationException("Your organisation's policy does not allow Blur or Pixelate.");
         if (policy.DisableAudioRetention && project.Export.KeepAudio) throw new InvalidOperationException("Your organisation's policy does not allow keeping the sound.");

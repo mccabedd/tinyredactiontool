@@ -135,7 +135,7 @@ public partial class SettingsWindow : Window
     internal static string ToolbarLabel(string id) => id switch
     {
         "OpenButton" => "Open", "AddImageButton" => "Add Image", "OpenProjectButton" => "Open Project", "PreviousPictureButton" => "Previous Image", "NextPictureButton" => "Next Image",
-        "ExportButton" => "Export", "SaveProjectButton" => "Save Project", "SaveMediaButton" => "Save Media", "OriginalButton" => "Original (Captures Only)",
+        "SaveButton" => "Save", "ExportButton" => "Save As", "SaveProjectButton" => "Save Project", "OriginalButton" => "Original (Captures Only)",
         "CopyButton" => "Copy", "PasteButton" => "Paste", "UndoButton" => "Undo", "RedoButton" => "Redo", "DeleteButton" => "Delete the Selected Shape",
         "SelectToolButton" => "Select", "RectangleTool" => "Rectangle", "OvalTool" => "Oval", "PolygonTool" => "Polygon", "PanTool" => "Pan", "CropTool" => "Crop", "ResizeButton" => "Resize",
         "RotateClockwiseButton" => "Rotate Right (Clockwise)", "RotateCounterClockwiseButton" => "Rotate Left (Anti-Clockwise)",

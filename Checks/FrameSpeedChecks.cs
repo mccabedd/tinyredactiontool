@@ -109,12 +109,12 @@ internal static class FrameSpeedChecks
             preview.Image = image;
             preview.Project = new RedactionProject { Media = new(Path.Combine(output, "review.png"), 1, new string('0', 64), 200, 100, 0, false), Regions = [Followed("Face", 20), Followed("Plate", 120)] };
             refresh.Invoke(window, null); window.UpdateLayout();
-            check(Find<Button>("ExportButton").IsEnabled && (string)Find<Button>("ExportButton").ToolTip == "Export with Redactions (Checked After Saving)",
-                "followed ranges no longer hold up Export");
+            check(Find<Button>("ExportButton").IsEnabled && (string)Find<Button>("ExportButton").ToolTip == "Save As a New File (Ctrl+Shift+S)",
+                "followed ranges no longer hold up Save As");
             var names = Find<WrapPanel>("ToolButtons").Children.OfType<Button>().Select(b => ((string)b.Content).Replace("\n", " ")).ToList();
             int At(string name) => names.IndexOf(name);
-            check(At("Save Media") == At("Export") + 1 && At("Copy") == At("Save Media") + 1 && At("Original") < 0 && At("Paste") == At("Copy") + 1 && At("Undo") == At("Paste") + 1,
-                "Copy and Paste sit on the toolbar just before Undo (after Export and Save Media; 3.1.3: David's defaults; Original hidden)");
+            check(At("Save As") == At("Save") + 1 && At("Save Project") == At("Save As") + 1 && At("Copy") == At("Save Project") + 1 && At("Original") < 0 && At("Paste") == At("Copy") + 1 && At("Undo") == At("Paste") + 1,
+                "Copy and Paste sit on the toolbar just before Undo (after Save, Save As and Save Project; 3.3.0; Original hidden)");
             // 0.21.0: the video-only Trim and Append follow Crop; 0.23.0: Resize sits between them, beside Crop;
             // 0.24.0: and the picture's turn and flip buttons after Resize.
             check(At("Trim") == At("Polygon") + 1 && At("Append") == At("Trim") + 1 && At("Solid Fill") == At("Append") + 1 && At("Blur Fill") == At("Solid Fill") + 1 && At("Pixelate Fill") == At("Blur Fill") + 1 && At("Outline") == At("Pixelate Fill") + 1

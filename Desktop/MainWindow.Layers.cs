@@ -88,6 +88,8 @@ public partial class MainWindow
             CaptureController.WritePng(picture, made);
             token.ThrowIfCancellationRequested();
             var project = ProjectStore.Deserialize(before);
+            // 3.3.0: what is flattened stays counted for the suggested name (REDACTED or EDITED).
+            project.BakedRedaction |= project.Regions.Count > 0; project.BakedEdit |= project.Annotations.Count > 0;
             project.Regions.Clear(); project.Annotations.Clear();
             project.Media = media with { Path = made, Length = new FileInfo(made).Length, Sha256 = await ProjectStore.HashAsync(made, token) };
             await LoadMedia(made, project, token, keepHistory: true);

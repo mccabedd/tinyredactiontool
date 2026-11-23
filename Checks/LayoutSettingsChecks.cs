@@ -77,12 +77,12 @@ internal static class LayoutSettingsChecks
 
             // Export explains itself when unavailable.
             var export = Find<Button>("ExportButton");
-            check(!export.IsEnabled && ToolTipService.GetShowOnDisabled(export) && ((string)export.ToolTip).Contains("draw a redaction"), "greyed Export says what is missing (nothing drawn yet)");
+            check(export.IsEnabled && (string)export.ToolTip == "Save As a New File (Ctrl+Shift+S)", "3.3.0 (David): Save As is available with nothing drawn (an untouched picture can be saved)");
             var region = new Region { Name = "Face", Start = 0, End = 1 }; region.PutManual(0, new(120, 50, 50, 30));
             region.Tracking = [new(0, .5, ReviewState.Unreviewed, "tracked"), new(.5, 1, ReviewState.Lost, "lost")];
             preview.Project.Regions.Add(region); RefreshWindow();
             // 0.14.0 (David): no Review step; followed ranges do not hold up Export.
-            check(export.IsEnabled && (string)export.ToolTip == "Export with Redactions (Checked After Saving)", "with followed ranges, Export is available straight away (no Review step)");
+            check(export.IsEnabled && (string)export.ToolTip == "Save As a New File (Ctrl+Shift+S)", "with followed ranges, Save As is available straight away (no Review step)");
             preview.Selected = region; RefreshWindow();
             check(Find<Border>("RegionPopup").IsVisible && window.FindName("PopupReview") == null, "the redaction popup has no Review button");
             check(!Find<Button>("PopupFollow").IsVisible && (string)Find<Button>("PopupRedact").Content == "Redact", "on a still image the popup keeps a single Redact button");

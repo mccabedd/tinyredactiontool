@@ -143,20 +143,19 @@ internal static class Release018Checks
                 "the eyedropper is design D: a solid pipette and a swatch of the chosen colour");
             preview.Selected = null; preview.Project.Regions.Clear(); Refresh();
 
-            // Save media as: the file exactly as it is.
-            var copy = Path.Combine(output, "release018-copy.png"); if (File.Exists(copy)) File.Delete(copy);
-            preview.Project.Regions.Add(box); Refresh();
-            check(Wait(() => window.SaveMediaAsAsync(copy)) && File.ReadAllBytes(copy).AsSpan().SequenceEqual(File.ReadAllBytes(still)), "Save media as… saves the picture as it is, without redactions or edits");
-            check(!Wait(() => window.SaveMediaAsAsync(still)) && File.Exists(still), "it never replaces the original");
-
-            // Secure delete after export (asked once more; overwrites, then deletes).
-            check(Find<CheckBox>("DeleteOriginalBox").IsEnabled, "the Panel offers Securely delete the original after export");
+            // 3.3.0: Save Media As is gone (Release330Checks); secure deletion is its own command, after Save As wrote a copy.
+            var saved = Path.Combine(output, "release018-saved-copy.png"); if (File.Exists(saved)) File.Delete(saved);
             var victim = Path.Combine(output, "release018-delete-me.png"); WritePng(victim, 64, 48, 90);
             Wait(() => window.OpenPathAsync(victim));
-            window.ConfirmKeepQuestion = (_, _, _) => false;
-            check(!Wait(() => window.SecurelyDeleteOriginalAsync(copy)) && File.Exists(victim) && preview.Project.Media != null, "answering No keeps the original");
+            check(window.SecureDeleteTarget() == null && !Find<MenuItem>("SecureDeleteMenuItem").IsEnabled, "Securely Delete Original is off until Save As has written a copy");
+            check(Wait(() => window.SaveAsAsync(saved)) && File.Exists(saved) && window.SecureDeleteTarget() == Path.GetFullPath(victim) && Find<MenuItem>("SecureDeleteMenuItem").IsEnabled,
+                "after Save As, File › Securely Delete Original… names the opened file");
+            string? asked = null;
+            window.ConfirmKeepQuestion = (_, text, _) => { asked = text; return false; };
+            check(!Wait(() => window.SecurelyDeleteOriginalAsync()) && File.Exists(victim) && preview.Project.Media != null && asked?.Contains(Path.GetFullPath(victim)) == true,
+                "the question shows the exact file to be deleted; answering No keeps it");
             window.ConfirmKeepQuestion = (_, _, _) => true;
-            check(Wait(() => window.SecurelyDeleteOriginalAsync(copy)) && !File.Exists(victim) && preview.Project.Media == null, "answering Yes securely deletes the original and clears the editor");
+            check(Wait(() => window.SecurelyDeleteOriginalAsync()) && !File.Exists(victim) && File.Exists(saved) && preview.Project.Media == null, "answering Yes securely deletes the original, keeps the saved copy and clears the editor");
             var linked = Path.Combine(output, "release018-linked.png"); var second = Path.Combine(output, "release018-second-name.png");
             foreach (var f in new[] { linked, second }) if (File.Exists(f)) File.Delete(f);
             WritePng(linked, 32, 32, 50); CreateHardLink(second, linked, IntPtr.Zero);
@@ -166,7 +165,7 @@ internal static class Release018Checks
         finally { preview.Project = new(); preview.Selected = null; window.Close(); }
         var strict = Editor(new ManagedPolicy(DisableSourceDeletion: true)); strict.Show();
         Wait(() => strict.OpenPathAsync(still));
-        check(!((CheckBox)strict.FindName("DeleteOriginalBox")).IsEnabled, "with source deletion turned off by policy, the option can't be ticked");
+        check(strict.SecureDeleteTarget() == null && !((MenuItem)strict.FindName("SecureDeleteMenuItem")).IsEnabled, "with source deletion turned off by policy, Securely Delete Original stays off");
         strict.Close();
 
         // ---- Capture frame from a video. ----

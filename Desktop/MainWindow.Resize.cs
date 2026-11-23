@@ -64,6 +64,7 @@ public partial class MainWindow
             if (Preview.Image is not { } image) throw new InvalidOperationException("The picture is not loaded.");
             var project = ProjectStore.Deserialize(ProjectStore.Serialize(Project));
             ScaleProjectGeometry(project, width, height);
+            project.BakedEdit = true; // 3.3.0: for the suggested name (EDITED).
             made = captures.Store.NewFile("CAPTURE", ".png");
             CaptureController.WritePng(ScaleBitmap(image, width, height), made);
             token.ThrowIfCancellationRequested();

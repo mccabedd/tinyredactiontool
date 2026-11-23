@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.3.0 (November 2026)
+Saving is simpler: three commands in the File menu and on the toolbar, each with its own icon and a place in Settings › Toolbar.
+- **Save (Ctrl+S)** saves to the same file again: the file you opened, or the last file Save As wrote (named in the title bar). With nothing changed it does nothing. A screenshot, a new image or a project has no file yet, so Save opens Save As; so does a format TRT can't write. Saving over the file being edited explains first, once, that the edits become permanent and that Save Project keeps them editable (and, for a video, that its sound will go when Keep Primary Audio is off); the saved file then opens again.
+- **Save As (Ctrl+Shift+S)** replaces Export: the same checked writing and replacing, to a new file, which then becomes the file Save writes to. Cancelled or failed, nothing changes (the previous file, the editing and any file it would have replaced). Untouched screenshots, recordings, new images and work that is only turned, resized, flipped or trimmed can now be saved too.
+- **Save Project** keeps the work editable. A project whose picture or video is in TRT's temporary folder (a screenshot, say) gets a checked copy beside it (`<project>_MEDIA.png`), so it opens again after TRT has wiped its temporary files.
+- **Suggested names**: `yyyyMMdd_HHmmss_SUFFIX.ext`. REDACTED when the file has a Solid, Blur or Pixelate redaction (including one made part of the picture by Flatten Image or a Save); EDITED for notes or other edits without a redaction; otherwise SCREENGRAB, RECORDING, FRAME, COPY (an opened file or pasted picture) or IMAGE (a new image). Untouched screenshots, recordings and frames carry the time they were taken. A name already in the folder gets _2, _3 and so on. Projects: `yyyyMMdd_HHmmss.trtwpf.json`. The Original command (raw screenshots and recordings) suggests SCREENGRAB or RECORDING even after edits.
+- **Save Media As** is gone (Original still saves a screenshot or recording exactly as captured). Ctrl+E is gone with Export.
+- **Securely Delete Original** is its own command in the File menu, no longer an option of saving. It becomes available after Save As has written a copy, shows the exact file before asking, and keeps the organisation policy that can turn it off.
+- The side panel's Export Options are now Save Options.
+
 ## 3.2.2 (November 2026)
 - **File › Save (Ctrl+S)**: the redacted picture or video replaces the file you opened, under the same name. TRT writes the new file beside it and checks it first; only then does it replace the old one. The first Save of each file asks once ("Replace 01.png with the redacted version? The unredacted picture will be gone."). The saved file opens again with the redactions now part of it. Screenshots and New Image have no file yet, so Save works like Export there; formats TRT can't write (such as BMP or TIFF) still go through Export.
 - **Export can replace an existing file**: when Windows asks whether to replace a file and you answer Yes, Export replaces it (after its checks). It never replaces the file open in TRT; that goes through Save.

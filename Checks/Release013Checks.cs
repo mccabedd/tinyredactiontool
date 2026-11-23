@@ -130,9 +130,9 @@ internal static class Release013Checks
             check(clip?.PixelWidth == 300 && CaptureToast.LastText == "Copied to the clipboard", "a screenshot to the editor is also put on the clipboard, with a \"Copied to the clipboard\" toast");
             var editor = controller.Editor!;
             check(((TextBlock)editor.FindName("ZoomText")).Text == "100%", "a capture opens in the editor at actual size (100%), not fitted");
-            // 0.24.0: a Save Project button exists for Settings › Editor › Buttons, but it is off unless ticked.
-            check(!editor.OnToolbar("SaveProjectButton") && editor.FindName("SaveProjectMenuItem") is MenuItem save && ((string)save.Header).Replace("_", "") == "Save Project…" && save.IsEnabled,
-                "Save is no longer on the toolbar; File › Save Project… remains");
+            // 0.24.0: a Save Project button exists for Settings › Editor › Buttons. 3.3.0 (David): Save, Save As and Save Project are on the toolbar.
+            check(editor.OnToolbar("SaveButton") && editor.OnToolbar("ExportButton") && editor.OnToolbar("SaveProjectButton") && editor.FindName("SaveProjectMenuItem") is MenuItem save && ((string)save.Header).Replace("_", "") == "Save Project…" && save.IsEnabled,
+                "Save, Save As and Save Project are on the toolbar (3.3.0), and File › Save Project… is there");
             editor.Close(); Pump();
         }
         finally

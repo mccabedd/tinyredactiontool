@@ -73,9 +73,9 @@ internal static class HelpShots
             Save((FrameworkElement)editor.FindName("RegionPopup"), Path.Combine(folder, "redaction-window.png"));
             preview.Selected = null; Refresh(editor);
 
-            // The side panel (Panel button) with Export Options open.
+            // The side panel (Panel button) with Save Options open (3.3.0: was Export Options).
             editor.ToggleProperties(editor, new RoutedEventArgs()); editor.UpdateLayout(); Settle();
-            foreach (var expander in Descendants<Expander>(editor)) expander.IsExpanded = (string)expander.Header == "Export Options";
+            foreach (var expander in Descendants<Expander>(editor)) expander.IsExpanded = (string)expander.Header == "Save Options";
             editor.UpdateLayout(); foreach (var scroller in Descendants<ScrollViewer>((FrameworkElement)editor.FindName("PropertiesPanel"))) scroller.ScrollToEnd(); editor.UpdateLayout(); Settle();
             Save((FrameworkElement)editor.FindName("PropertiesPanel"), Path.Combine(folder, "side-panel.png"));
             editor.ToggleProperties(editor, new RoutedEventArgs()); editor.UpdateLayout();

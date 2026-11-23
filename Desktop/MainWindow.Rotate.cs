@@ -102,6 +102,7 @@ public partial class MainWindow
             var project = ProjectStore.Deserialize(ProjectStore.Serialize(Project));
             var oldMap = Preview.Timeline;
             var (width, height) = TurnProjectGeometry(project, op);
+            project.BakedEdit = true; // 3.3.0: for the suggested name (EDITED).
             if (!media.IsVideo)
             {
                 if (Preview.Image is not { } image) throw new InvalidOperationException("The picture is not loaded.");

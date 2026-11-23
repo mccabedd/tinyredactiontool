@@ -139,6 +139,12 @@ public sealed class RedactionProject
     public List<Annotation> Annotations { get; set; } = [];
     [JsonPropertyName("Annotations"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<Annotation>? SavedAnnotations { get => Annotations.Count == 0 ? null : Annotations; set => Annotations = value ?? []; }
+    // 3.3.0: what is already part of the media's own pixels (Flatten, Resize, Rotate, Flip, Trim, Append, a Save), so the
+    // suggested file name still says REDACTED or EDITED. Written only when true, so other projects keep their layout.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool BakedRedaction { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool BakedEdit { get; set; }
 }
 public static class ProjectStore
 {

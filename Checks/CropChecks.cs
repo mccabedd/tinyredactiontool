@@ -48,8 +48,9 @@ internal static class CropChecks
         check(!withoutCrop.Contains("\"Crop\""), "projects without a crop keep the 0.6.0 file layout");
         ExportGate.Check(project, new());
         check(true, "a crop alone can be exported, like the inherited Export Cropped Image");
-        try { ExportGate.Check(new RedactionProject { Media = project.Media }, new()); check(false, "export with neither redaction nor crop is blocked"); }
-        catch (InvalidOperationException) { check(true, "export with neither redaction nor crop is blocked"); }
+        // 3.3.0 (David): untouched work can be saved too (Save As); the written file is still checked.
+        ExportGate.Check(new RedactionProject { Media = project.Media }, new());
+        check(true, "untouched work (no redaction, annotation or crop) can be saved (3.3.0)");
         var history = new EditHistory(); history.Checkpoint(project); project.Crop = new MediaRect(0, 0, 10, 10);
         project = history.Undo(project);
         check(project.Crop == new MediaRect(10, 20, 50, 30), "Undo restores the previous crop");

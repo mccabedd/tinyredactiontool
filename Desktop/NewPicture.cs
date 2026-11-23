@@ -165,7 +165,10 @@ public partial class MainWindow
         var dialog = new NewPictureWindow(clipboard, current) { Owner = IsLoaded ? this : null };
         var answered = AnswerNewPicture != null ? AnswerNewPicture(dialog) : dialog.ShowDialog() == true;
         if (!answered || dialog.Result is not { } chosen) return false;
-        var path = captures.Store.NewFile("CAPTURE", ".png");
+        var path = captures.Store.NewFile("CAPTURE", ".png", new MediaOrigin(MediaOriginKind.NewImage, DateTime.Now));
+        // 3.3.0: a carried picture brings its redactions and edits along (they are in the new image's pixels).
+        var carriedRedaction = Project.BakedRedaction || Project.Regions.Count > 0;
+        var carriedEdit = Project.BakedEdit || Project.Annotations.Count > 0 || Project.Crop != null;
         // Carried over, nothing is lost, so the "unsaved screenshot" question isn't asked.
         var carried = chosen.Carry && current != null;
         // 3.2.0 (David): the carried picture is part of the new picture's own pixels, not an item on top. As an item the
@@ -176,8 +179,9 @@ public partial class MainWindow
         var opened = await OpenCaptureAsync(path, ask: !carried, incoming: "new picture");
         if (!opened) { ReleaseCapture(path); return false; }
         newPicture = true; UpdateCaptureUi();
+        if (carried) CarryProvenance(carriedRedaction, carriedEdit);
         Preview.Fit(); ZoomText.Text = Preview.ZoomLabel; Refresh(); UpdateEditingState();
-        Status.Text = $"New picture, {chosen.Width} × {chosen.Height}{(carried ? ", with the picture you had on it" : "")}. Screenshots, Paste (Ctrl+V) and File › Add picture go onto it; Export or Copy when done.";
+        Status.Text = $"New picture, {chosen.Width} × {chosen.Height}{(carried ? ", with the picture you had on it" : "")}. Screenshots, Paste (Ctrl+V) and File › Add picture go onto it; Save As or Copy when done.";
         return true;
     }
 
@@ -227,7 +231,7 @@ public partial class MainWindow
         if (!wasEmpty || added != 1 || !IsNewPicture || Project.Media is not { } m || Project.Regions.Count != 0) return false;
         if (Project.Annotations is not [{ Kind: AnnotationKind.Picture } item] || item.Box.Width < m.Width - 0.5 || item.Box.Height < m.Height - 0.5) return false;
         if (!await FlattenImageAsync()) return false;
-        Status.Text = "Picture pasted into the new image: draw, redact and annotate on it; Save Media As saves it. Ctrl+Z takes it back out.";
+        Status.Text = "Picture pasted into the new image: draw, redact and annotate on it, then Save As. Ctrl+Z takes it back out.";
         return true;
     }
     // Pictures as items on the open picture; several at once step down and across a little, so each can be seen and picked.

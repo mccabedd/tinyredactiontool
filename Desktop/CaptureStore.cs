@@ -15,6 +15,7 @@ internal sealed class CaptureStore : IDisposable
     private readonly string tempBase;
     private readonly List<string> files = [];
     private readonly HashSet<string> kept = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, MediaOrigin> origins = new(StringComparer.OrdinalIgnoreCase);
     private FileStream? lease;
     public string? Root { get; private set; }
     public IReadOnlyList<string> Files => files;
@@ -22,7 +23,9 @@ internal sealed class CaptureStore : IDisposable
     public CaptureStore(string? temporaryFolder = null) => tempBase = Path.GetFullPath(temporaryFolder ?? Path.GetTempPath());
 
     // A new, unused file name such as SCREENSHOT_20261029_143005.png.
-    public string NewFile(string stem, string extension)
+    // 3.3.0: origin says what the file is (a screenshot, a recording, a video frame...) and when it was taken, for the
+    // suggested file name when it is saved; working copies made by edits have none.
+    public string NewFile(string stem, string extension, MediaOrigin? origin = null)
     {
         if (Root == null)
         {
@@ -36,12 +39,14 @@ internal sealed class CaptureStore : IDisposable
         var path = Path.Combine(Root, name + extension);
         for (var i = 2; File.Exists(path) || files.Contains(path, StringComparer.OrdinalIgnoreCase); i++) path = Path.Combine(Root, $"{name}_{i}{extension}");
         files.Add(path);
+        if (origin is { } o) origins[path] = o;
         return path;
     }
     public bool Owns(string? path) => path != null && Root != null && files.Contains(Path.GetFullPath(path), StringComparer.OrdinalIgnoreCase);
     // Saved or exported: the user has what they wanted from it.
     public void MarkKept(string path) { if (Owns(path)) kept.Add(Path.GetFullPath(path)); }
     public bool IsKept(string path) => kept.Contains(Path.GetFullPath(path));
+    public MediaOrigin? OriginOf(string? path) => path != null && origins.TryGetValue(Path.GetFullPath(path), out var o) ? o : null;
     public IReadOnlyList<string> Unkept => files.Where(f => !kept.Contains(f) && File.Exists(f)).ToList();
 
     // Overwrites the capture with zeros, checks the overwrite, then deletes it. A file still open
@@ -55,7 +60,7 @@ internal sealed class CaptureStore : IDisposable
             try { OverwriteAndDelete(full, Root!); break; }
             catch (IOException ex) when (ex is not CaptureCleanupRefused && attempt < 10 && File.Exists(full)) { Thread.Sleep(150); }
         }
-        files.RemoveAll(f => string.Equals(f, full, StringComparison.OrdinalIgnoreCase)); kept.Remove(full);
+        files.RemoveAll(f => string.Equals(f, full, StringComparison.OrdinalIgnoreCase)); kept.Remove(full); origins.Remove(full);
     }
     // Wipes every capture and removes the folder. Returns the files that could not be wiped.
     public IReadOnlyList<string> WipeAll()

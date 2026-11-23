@@ -7,6 +7,8 @@ sentence capitals. The tables below keep the wording in its 0.21.3 sentence case
 Add Image toolbar button "Add Images onto This One"; File › Add Image "Put Images onto This One, to Move and Size";
 New "New Image". The DEVELOPMENT BUILD label (#22) is gone.
 
+**3.3.0 (David):** toolbar Save "Save (Ctrl+S)", Save As (was Export) "Save As a New File (Ctrl+Shift+S)", Save Project "Save the Project (Keeps the Edits Editable)"; File › Save "Save to the Same File Again", Save As "Save As a New File, Checked After Saving", Save Project "Keep the Redactions and Edits Editable", Securely Delete Original "Overwrite and Delete the Opened File, After Save As Wrote a Copy" (under a no-deletion policy: "Your Organisation's Policy Turns Off Deleting Originals"). Save Media (#158) and Export (#24) are gone.
+
 **3.2.2 (David):** File › Save (Ctrl+S), tooltip "Replace the Open File with the Redacted Version".
 
 **3.2.0 (David):** toolbar Solid Fill / Blur Fill / Pixelate Fill (tooltips the same); redaction window Solid (tooltip Solid Fill), Blur Fill, Pixelate Fill; the colour square "Redaction Colour"; the picker "Eyedropper"; the new Auto tick box "Match the Colour Around the Redaction"; Settings › Editor line width "Outline, Ellipse, Line, Arrow, Polyline and Pen".

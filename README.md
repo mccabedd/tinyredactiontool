@@ -24,8 +24,8 @@ Get **TinyRedactionTool-3.2.2.exe** from the [latest release](https://github.com
 - **Layers:** move redactions and notes up or down, duplicate them, or flatten them into the picture.
 - **Capture** the screen: region, freehand, window or object, full screen, scrolling windows (long web pages), screen recordings and a screen ruler. A small capture bar and a notification-area icon keep it at hand.
 - **Crop, resize, rotate and flip**; zoom, full screen, slideshow, folder navigation bar; animated GIFs play and export animated.
-- **Export** PNG, JPG, GIF and WebP pictures and MP4, MOV, M4V, AVI, MKV and WebM videos. Every export is checked after writing (streams, frames, timing and the redacted pixels) before it is kept. Hidden details such as GPS position are not copied. The original is never changed by Export (unless you choose secure deletion after a checked export).
-- **Save** (Ctrl+S) replaces the open file with the redacted version, after the same checks; TRT asks the first time.
+- **Save As** PNG, JPG, GIF and WebP pictures and MP4, MOV, M4V, AVI, MKV and WebM videos. Every file is checked after writing (streams, frames, timing and the redacted pixels) before it is kept. Hidden details such as GPS position are not copied. Suggested names say what the file holds (for example `20261123_140506_REDACTED.png`).
+- **Save** (Ctrl+S) saves to the same file again: the one you opened or last saved with Save As. Saving over the opened file asks the first time. **Save Project** keeps the work editable, with a copy of a screenshot beside it.
 - **Privacy:** screenshots and working copies live in a private temporary folder and are overwritten and deleted when closed, on quit, or on demand with *File › Remove History*.
 - Light and Dark themes, a configurable toolbar and capture bar, keyboard shortcuts and a full **Help manual** (Help › Help, or F1).
 

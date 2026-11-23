@@ -158,6 +158,7 @@ public partial class MainWindow
             var newMap = await Task.Run(() => tools.ProbeTimelineAsync(result, token), token);
             if (newMap.Frames.Count != expected) throw new InvalidDataException($"The new video has {newMap.Frames.Count} frames instead of {expected}. Nothing was changed.");
             MoveWorkToFrames(project, oldMap, newMap, newIndex);
+            project.BakedEdit = true; // 3.3.0: trimmed or appended, for the suggested name (EDITED).
             token.ThrowIfCancellationRequested();
             var hash = await ProjectStore.HashAsync(result, token);
             project.Media = media with { Path = result, Length = new FileInfo(result).Length, Sha256 = hash, Duration = newMap.Frames[^1].Time + newMap.Frames[^1].Duration };

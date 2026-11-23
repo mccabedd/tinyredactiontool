@@ -54,10 +54,10 @@ internal static class Release024Checks
             var failures = new List<string>(); editor.WorkFailed = ex => failures.Add(ex.GetType().Name + ": " + ex.Message);
             T Find<T>(string name) where T : class => (T)editor.FindName(name);
             string[] asked = ["RotateClockwiseButton", "RotateCounterClockwiseButton", "PreviousPictureButton", "NextPictureButton", "FullScreenButton", "SlideshowButton", "ResizeButton", "FileInfoButton", "FlipHorizontalButton", "FlipVerticalButton"];
-            string[] extras = ["OpenProjectButton", "SaveProjectButton", "SaveMediaButton", "DeleteButton", "FitWidthButton", "SettingsButton"];
+            string[] extras = ["OpenProjectButton", "SaveButton", "SaveProjectButton", "DeleteButton", "FitWidthButton", "SettingsButton"];
             check(asked.All(id => editor.OnToolbar(id) == !AppSettings.DefaultHiddenEditorButtons.Contains(id)), "the buttons David asked for are on the toolbar (0.27.0: except the ones his own defaults untick): rotate both ways, previous, next, full screen, slideshow, resize, file info, flip both ways");
             check(extras.All(id => editor.OnToolbar(id) == !AppSettings.DefaultHiddenEditorButtons.Contains(id)) && editor.OnRightSide("ClearScreenButton") && editor.OnRightSide("PanelButton") && !editor.OnRightSide("OpenButton"),
-                "the extra buttons (Open/Save Project, Save Media, Delete, Fit Width, Settings) start as David's 3.1.3 defaults say; Clear and Panel sit on the right");
+                "the extra buttons (Open Project, Save, Save Project, Delete, Fit Width, Settings) start as the defaults say (3.3.0); Clear and Panel sit on the right");
             var custom = editor.Settings.Copy();
             var layout = AppSettings.CleanToolbar(null); layout.Remove("OpenButton"); layout.Insert(layout.IndexOf(">") + 1, "OpenButton");
             custom.EditorToolbar = layout; custom.EditorHiddenButtons = [.. AppSettings.DefaultHiddenEditorButtons.Except(["SettingsButton"]), "UndoButton"];

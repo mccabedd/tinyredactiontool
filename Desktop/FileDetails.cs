@@ -517,8 +517,8 @@ internal sealed class FileInfoWindow : Window
         Box.Resources.Add(typeof(System.Windows.Controls.Primitives.ScrollBar), ThinScrollBar);
         Box.Resources.Add(SystemColors.ControlBrushKey, Brushes.Transparent); // The square where the two scroll bars meet.
         var count = report.Details.Count;
-        Summary = count == 0 ? "Nothing is written in this file besides the picture or video. Export writes only the picture or video." :
-            $"{count} detail{(count == 1 ? " is" : "s are")} written in this file besides the picture or video. Export removes all of them (and checks it did). Save media as… keeps them: that is an exact copy.";
+        Summary = count == 0 ? "Nothing is written in this file besides the picture or video. Save and Save As write only the picture or video." :
+            $"{count} detail{(count == 1 ? " is" : "s are")} written in this file besides the picture or video. Save and Save As remove all of them (and check they did).";
         var copy = new Button { Content = "Copy All", MinWidth = 80, Margin = new(0, 0, 8, 0), ToolTip = "Copy All the Text" };
         copy.Click += (_, _) => { try { Clipboard.SetText(report.Text); } catch (System.Runtime.InteropServices.ExternalException) { } };
         var close = new Button { Content = "Close", IsCancel = true, IsDefault = true, MinWidth = 80 };

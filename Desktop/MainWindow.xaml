@@ -1,5 +1,5 @@
 <Window x:Class="TinyRedaction.Desktop.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:TinyRedaction.Desktop"
- Title="TinyRedactionTool 3.2.2" Icon="Assets/icon.ico" Width="1240" Height="800" MinWidth="900" MinHeight="580" WindowState="Maximized" Background="{DynamicResource Background}" Foreground="{DynamicResource Foreground}" PreviewKeyDown="WindowKeyDown" AllowDrop="True" DragOver="MediaDragOver" DragEnter="MediaDragOver" Drop="MediaDropped">
+ Title="TinyRedactionTool 3.3.0" Icon="Assets/icon.ico" Width="1240" Height="800" MinWidth="900" MinHeight="580" WindowState="Maximized" Background="{DynamicResource Background}" Foreground="{DynamicResource Foreground}" PreviewKeyDown="WindowKeyDown" AllowDrop="True" DragOver="MediaDragOver" DragEnter="MediaDragOver" Drop="MediaDropped">
  <!-- Editor layout: menu bar, one row of icon buttons, options bar, workspace, status bar. -->
  <Grid>
  <DockPanel>
@@ -12,20 +12,21 @@
    <MenuItem Header="_File">
     <!-- 0.26.0 (David): a blank picture to draw on and paste onto. -->
     <MenuItem Header="_New Image…" InputGestureText="Ctrl+N" Click="NewPicture"/>
-    <!-- 3.1.2 (David): this order, with Ctrl+O, Ctrl+E and Ctrl+Shift+S. -->
     <MenuItem Header="_Open Media…" InputGestureText="Ctrl+O" Click="OpenMedia"/>
-    <MenuItem x:Name="SaveMenuItem" Header="_Save" InputGestureText="Ctrl+S" Click="SaveFile" IsEnabled="{Binding IsEnabled, ElementName=ExportButton}" ToolTip="Replace the Open File with the Redacted Version"/>
-    <MenuItem Header="_Export…" InputGestureText="Ctrl+E" Click="ExportImage" IsEnabled="{Binding IsEnabled, ElementName=ExportButton}"/>
-    <!-- 0.18.0 (David): the file as it is. -->
-    <MenuItem x:Name="SaveMediaMenuItem" Header="Save _Media As…" InputGestureText="Ctrl+Shift+S" Click="SaveMediaAs" IsEnabled="False" ToolTip="Save a Copy as It Is, Without Redactions or Edits"/>
+    <!-- 3.3.0 (David): three save commands. Save writes to the established file, Save As (was Export) to a new one, Save
+         Project keeps the editable work. Save Media As is gone. -->
+    <MenuItem x:Name="SaveMenuItem" Header="_Save" InputGestureText="Ctrl+S" Click="SaveFile" IsEnabled="{Binding IsEnabled, ElementName=ExportButton}" ToolTip="Save to the Same File Again"/>
+    <MenuItem x:Name="SaveAsMenuItem" Header="Save _As…" InputGestureText="Ctrl+Shift+S" Click="SaveAs" IsEnabled="{Binding IsEnabled, ElementName=ExportButton}" ToolTip="Save As a New File, Checked After Saving"/>
+    <MenuItem x:Name="SaveProjectMenuItem" Header="Save Pro_ject…" Click="SaveProject" IsEnabled="False" ToolTip="Keep the Redactions and Edits Editable"/>
     <!-- 0.26.1 (David): pictures onto the open one, without closing it. 0.27.0: "Add Image". -->
     <MenuItem Header="A_dd Image…" InputGestureText="Ctrl+Shift+O" Click="AddPictureFiles" IsEnabled="{Binding IsEnabled, ElementName=AddImageButton}" ToolTip="Put Images onto This One, to Move and Size"/>
     <MenuItem Header="Open _Project…" Click="OpenProject"/>
-    <MenuItem x:Name="SaveProjectMenuItem" Header="_Save Project…" Click="SaveProject" IsEnabled="False"/>
-    <!-- 0.23.0: what is written inside the file besides the picture, and what Export removes. -->
+    <!-- 0.23.0: what is written inside the file besides the picture, and what saving removes. -->
     <MenuItem Header="File _Info…" InputGestureText="Ctrl+I" Click="ShowFileInfo"/>
     <Separator/>
     <MenuItem x:Name="OriginalMenuItem" Header="Save or Copy the _Original Capture…" Click="KeepOriginal" IsEnabled="False"/>
+    <!-- 3.3.0: secure deletion is its own command, after Save As wrote a copy; it names the exact file first. -->
+    <MenuItem x:Name="SecureDeleteMenuItem" Header="Securely _Delete Original…" Click="SecurelyDeleteOriginal" IsEnabled="False" ToolTipService.ShowOnDisabled="True"/>
     <!-- 0.28.0 (David): wipe old captures and working copies, and forget the folders used, without quitting. -->
     <MenuItem x:Name="RemoveHistoryMenuItem" Header="_Remove History…" Click="RemoveHistory" ToolTip="Wipe Old Captures and Working Copies, and Forget the Folders Used"/>
     <Separator/>
@@ -179,7 +180,9 @@
     <Button x:Name="AddImageButton" Style="{StaticResource ToolButton}" Content="Add Image" Click="AddPictureFiles" IsEnabled="False" ToolTipService.ShowOnDisabled="True" ToolTip="Add Images onto This One" local:Toolbar.Icon="{StaticResource IconAddImage}" local:Toolbar.Accent="{StaticResource AccentAddImage}" local:Toolbar.AccentBrush="{StaticResource AccentGreen}"/>
     <Button x:Name="PreviousPictureButton" Style="{StaticResource ToolButton}" Content="Previous" Click="PreviousPicture" ToolTip="Previous Picture in the Folder" local:Toolbar.Icon="{StaticResource IconPrevious}"/>
     <Button x:Name="NextPictureButton" Style="{StaticResource ToolButton}" Content="Next" Click="NextPicture" ToolTip="Next Picture in the Folder" local:Toolbar.Icon="{StaticResource IconNext}"/>
-    <Button x:Name="ExportButton" Style="{StaticResource ToolButton}" Content="Export" Click="ExportImage" IsEnabled="False" ToolTip="Export with Redactions (Checked After Saving)" ToolTipService.ShowOnDisabled="True" local:Toolbar.Icon="{StaticResource IconExport}" local:Toolbar.Accent="{StaticResource AccentExport}" local:Toolbar.AccentBrush="{StaticResource AccentGreen}"/>
+    <!-- 3.3.0 (David): Save, and Save As (was Export; the name ExportButton stays so saved toolbar layouts keep it). -->
+    <Button x:Name="SaveButton" Style="{StaticResource ToolButton}" Content="Save" Click="SaveFile" IsEnabled="{Binding IsEnabled, ElementName=ExportButton}" ToolTip="Save (Ctrl+S)" ToolTipService.ShowOnDisabled="True" local:Toolbar.Icon="{StaticResource IconSave}" local:Toolbar.Accent="{StaticResource AccentSave}" local:Toolbar.AccentBrush="{StaticResource AccentGreen}"/>
+    <Button x:Name="ExportButton" Style="{StaticResource ToolButton}" Content="Save As" Click="SaveAs" IsEnabled="False" ToolTip="Save As a New File (Ctrl+Shift+S)" ToolTipService.ShowOnDisabled="True" local:Toolbar.Icon="{StaticResource IconSaveAs}" local:Toolbar.Accent="{StaticResource AccentSave}" local:Toolbar.AccentBrush="{StaticResource AccentGreen}"/>
     <Button x:Name="OriginalButton" Style="{StaticResource ToolButton}" Content="Original" Click="KeepOriginal" Visibility="Collapsed" local:Toolbar.Icon="{StaticResource IconOriginal}" local:Toolbar.Accent="{StaticResource AccentOriginal}" local:Toolbar.AccentBrush="{StaticResource AccentFolder}"/>
     <!-- Copy and Paste (0.14.0, David): copy the picture as it would be exported; paste a picture as a new capture. -->
     <Button x:Name="CopyButton" Style="{StaticResource ToolButton}" Content="Copy" Click="CopyPicture" IsEnabled="False" ToolTipService.ShowOnDisabled="True" local:Toolbar.Icon="{StaticResource IconCopy}" local:Toolbar.Accent="{StaticResource AccentCopy}" local:Toolbar.AccentBrush="{StaticResource AccentGlass}"/>
@@ -225,8 +228,7 @@
     <Button x:Name="NavBarButton" Style="{StaticResource ToolButton}" Content="Nav Bar" Click="ToggleNavBar" ToolTip="Show or Hide the Navigation Bar" local:Toolbar.Icon="{StaticResource IconNavBar}"/>
     <Button x:Name="FileInfoButton" Style="{StaticResource ToolButton}" Content="File Info" Click="ShowFileInfo" ToolTip="File Info (Ctrl+I)" local:Toolbar.Icon="{StaticResource IconFileInfo}"/>
     <Button x:Name="OpenProjectButton" Style="{StaticResource ToolButton}" Content="Open Project" Click="OpenProject" ToolTip="Open a Project" local:Toolbar.Icon="{StaticResource IconOpenProject}" local:Toolbar.Accent="{StaticResource IconOpenProject}" local:Toolbar.AccentBrush="{StaticResource AccentFolder}"/>
-    <Button x:Name="SaveProjectButton" Style="{StaticResource ToolButton}" Content="Save Project" Click="SaveProject" IsEnabled="{Binding IsEnabled, ElementName=SaveProjectMenuItem}" ToolTipService.ShowOnDisabled="True" ToolTip="Save the Project" local:Toolbar.Icon="{StaticResource IconSave}" local:Toolbar.Accent="{StaticResource AccentSave}" local:Toolbar.AccentBrush="{StaticResource AccentBlue}"/>
-    <Button x:Name="SaveMediaButton" Style="{StaticResource ToolButton}" Content="Save Media" Click="SaveMediaAs" IsEnabled="{Binding IsEnabled, ElementName=SaveMediaMenuItem}" ToolTipService.ShowOnDisabled="True" ToolTip="Save Media As… (No Redactions)" local:Toolbar.Icon="{StaticResource IconSaveMediaAs}"/>
+    <Button x:Name="SaveProjectButton" Style="{StaticResource ToolButton}" Content="Save Project" Click="SaveProject" IsEnabled="{Binding IsEnabled, ElementName=SaveProjectMenuItem}" ToolTipService.ShowOnDisabled="True" ToolTip="Save the Project (Keeps the Edits Editable)" local:Toolbar.Icon="{StaticResource IconSaveProject}" local:Toolbar.Accent="{StaticResource AccentSave}" local:Toolbar.AccentBrush="{StaticResource AccentBlue}"/>
     <Button x:Name="FitWidthButton" Style="{StaticResource ToolButton}" Content="Fit Width" Click="FitWidth" ToolTip="Fit Width" local:Toolbar.Icon="{StaticResource IconFitWidth}" local:Toolbar.Accent="{StaticResource AccentFit}" local:Toolbar.AccentBrush="{StaticResource AccentGlass}"/>
     <Button x:Name="DeleteButton" Style="{StaticResource ToolButton}" Content="Delete" Click="DeleteRegion" ToolTip="Delete the Selected Shape (Del)" local:Toolbar.Icon="{StaticResource IconDelete}" local:Toolbar.Accent="{StaticResource IconDelete}" local:Toolbar.AccentBrush="{StaticResource AccentRed}"/>
     <Button x:Name="SettingsButton" Style="{StaticResource ToolButton}" Content="Settings" Click="OpenSettings" ToolTip="Settings" local:Toolbar.Icon="{StaticResource IconSettings}"/>
@@ -500,12 +502,9 @@
       <ListBox x:Name="Keyframes" Height="100" MouseDoubleClick="SeekKeyframe"/>
       <Button Content="Remove Selected Keyframe" Click="RemoveKeyframe"/>
      </StackPanel></Expander>
-     <Expander Header="Export Options" IsExpanded="False" Margin="4,8"><StackPanel>
+     <Expander Header="Save Options" IsExpanded="False" Margin="4,8"><StackPanel>
       <ComboBox x:Name="ExportQuality" SelectedIndex="1" Margin="4" SelectionChanged="ExportOptionsChanged"><ComboBoxItem Content="High"/><ComboBoxItem Content="Normal"/><ComboBoxItem Content="Smaller"/></ComboBox>
       <CheckBox x:Name="KeepAudio" Content="Keep Primary Audio (Unredacted)" Click="ExportOptionsChanged"/>
-      <!-- 0.18.0 (David): secure deletion of the original, only from here and only after a checked export. -->
-      <CheckBox x:Name="DeleteOriginalBox" Content="Securely Delete the Original After Export" Click="ExportOptionsChanged" ToolTipService.ShowOnDisabled="True"
-       ToolTip="After the export has been written and checked, TRT asks once more, then overwrites the original file with zeros, checks that, and deletes it. It can't be undone. (On solid-state drives a copy may survive in the drive's spare area.)"/>
      </StackPanel></Expander>
      <TextBlock Text="Blur and Pixelate obscure appearance. Use Solid Fill for opaque replacement. Play a tracked range through to check the box stays on the subject." Margin="4,10" TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource Warning}"/>
     </StackPanel></ScrollViewer>

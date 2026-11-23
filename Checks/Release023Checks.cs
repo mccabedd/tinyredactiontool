@@ -96,7 +96,7 @@ internal static class Release023Checks
             var info = Wait(() => editor.ShowFileInfoAsync(show: false));
             check(info != null && info.Details.Any(d => d.Name == "title" && d.Value == "Secret meeting") && info.Details.Any(d => d.Name == "artist") && info.Details.Any(d => d.Name.Contains("location")),
                 $"File info lists them ({string.Join("; ", info?.Details.Select(d => $"{d.Name}={d.Value}") ?? [])})");
-            check(info?.Summary.Contains("Export removes all of them") == true && info.Summary.Contains("Save media as"), "and says Export removes them, Save media as… keeps them");
+            check(info?.Summary.Contains("Save and Save As remove all of them") == true, "and says saving removes them (3.3.0: Save and Save As)");
             info?.Close();
             var photo = Path.Combine(output, "release023-photo.jpg");
             {

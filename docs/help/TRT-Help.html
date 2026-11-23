@@ -107,7 +107,7 @@
  <a href="#video">Redacting a video</a>
  <a href="#trim">Trim, append and capture frame</a>
  <strong>Saving</strong>
- <a href="#export">Export: saving the result</a>
+ <a href="#save">Saving: Save, Save As and Save Project</a>
  <a href="#other-saves">Copy, projects and other ways to save</a>
  <a href="#fileinfo">File Info: what is hidden inside a file</a>
  <strong>Capturing the screen</strong>
@@ -123,7 +123,7 @@
 <main>
 
 <h2 id="what">What TRT does</h2>
-<p>TinyRedactionTool (TRT for short) hides private details in pictures and videos before you share them. You draw a shape over a name, a face, a number plate or a card number, and TRT covers it with a <span class="ui">black box</span>, a <span class="ui">blur</span> or <span class="ui">pixels</span>. Then you export a new copy, which leaves your original as it was, or use Save to replace the original with the redacted version.</p>
+<p>TinyRedactionTool (TRT for short) hides private details in pictures and videos before you share them. You draw a shape over a name, a face, a number plate or a card number, and TRT covers it with a <span class="ui">black box</span>, a <span class="ui">blur</span> or <span class="ui">pixels</span>. Then you save it: Save As makes a new file and leaves your original as it was, or Save replaces the original with the redacted version.</p>
 <p>TRT can also take screenshots, record the screen, and add notes such as arrows and text.</p>
 <div class="box tip"><b>Everything stays on your computer.</b>TRT does not upload anything and does not send any information about you or your files anywhere.</div>
 
@@ -144,9 +144,9 @@
  <li>Drag over the thing you want to hide. A black box appears over it.</li>
  <li>A small window appears under the box. Click <span class="ui">Redact</span> (or just click somewhere else on the picture).</li>
  <li>Do the same for everything else you want to hide.</li>
- <li>Click <img class="icon" src="images/icons/exportbutton.png" alt="Export"> <span class="ui">Export</span> and choose a name for the new file. TRT saves it and checks it. That new file is the one to share.</li>
+ <li>Click <img class="icon" src="images/icons/exportbutton.png" alt="Save As"> <span class="ui">Save As</span> and choose a name for the new file. TRT saves it and checks it. That new file is the one to share.</li>
 </ol>
-<div class="box stop"><b>Before you share, look at the exported file.</b>Open the exported file and check that everything private is covered. TRT does exactly what you draw. It does not find private details for you.</div>
+<div class="box stop"><b>Before you share, look at the saved file.</b>Open the saved file and check that everything private is covered. TRT does exactly what you draw. It does not find private details for you.</div>
 
 <h2 id="editor">The editor at a glance</h2>
 <figure class="callouts">
@@ -164,8 +164,8 @@
  <tr><td>3</td><td>Workspace</td><td>The grey area around your picture.</td></tr>
  <tr><td>4</td><td>Your picture</td><td>Draw on it to hide things or add notes.</td></tr>
 </table>
-<p>Short messages appear at the bottom of the picture now and then, for example "PNG export validated". They fade away by themselves.</p>
-<p>The <img class="icon" src="images/icons/panelbutton.png" alt="Panel"> <span class="ui">Panel</span> button (top right) opens a side panel. It lists your redactions and notes, and it has the <span class="ui">Export Options</span>.</p>
+<p>Short messages appear at the bottom of the picture now and then, for example "The PNG was checked pixel for pixel". They fade away by themselves.</p>
+<p>The <img class="icon" src="images/icons/panelbutton.png" alt="Panel"> <span class="ui">Panel</span> button (top right) opens a side panel. It lists your redactions and notes, and it has the <span class="ui">Save Options</span>.</p>
 <p>The editor opens the way you last closed it: filling the screen, or in a window of the same size and place. The first time, it fills the screen.</p>
 <p>The editor can be light or dark. Choose in <span class="ui">Settings › General › Theme</span>, or in <span class="ui">View › Theme</span>.</p>
 <figure><img src="images/editor-dark.png" alt="The editor in the Dark theme"><figcaption>The same editor in the Dark theme.</figcaption></figure>
@@ -260,7 +260,7 @@
 
 <h2 id="crop">Crop, resize, rotate and flip</h2>
 <table class="tools">
- <tr><td><img class="icon" src="images/icons/croptool.png" alt=""> Crop</td><td>Drag the area to keep, then click <span class="ui">Confirm Crop</span> (or press <kbd>Enter</kbd>). <span class="ui">Cancel Crop</span> stops. You can remove the crop later with <span class="ui">Draw › Remove Crop</span>. This works on <b>videos</b> too: every frame is cut to the same area when you export.</td></tr>
+ <tr><td><img class="icon" src="images/icons/croptool.png" alt=""> Crop</td><td>Drag the area to keep, then click <span class="ui">Confirm Crop</span> (or press <kbd>Enter</kbd>). <span class="ui">Cancel Crop</span> stops. You can remove the crop later with <span class="ui">Draw › Remove Crop</span>. This works on <b>videos</b> too: every frame is cut to the same area when you save.</td></tr>
  <tr><td><img class="icon" src="images/icons/resizebutton.png" alt=""> Resize</td><td>Makes the picture bigger or smaller. Your shapes and notes are resized with it.</td></tr>
  <tr><td><img class="icon" src="images/icons/rotateclockwisebutton.png" alt=""> <img class="icon" src="images/icons/rotatecounterclockwisebutton.png" alt=""> Rotate</td><td>Turns the whole picture or video a quarter turn right or left.</td></tr>
  <tr><td><img class="icon" src="images/icons/fliphorizontalbutton.png" alt=""> <img class="icon" src="images/icons/flipverticalbutton.png" alt=""> Flip</td><td>Mirrors the picture (in <span class="ui">Edit › Rotate Image or Video</span>; the buttons are hidden at first).</td></tr>
@@ -284,7 +284,7 @@
 <ul>
  <li>To <b>pause</b> or <b>play</b>: click <img class="icon" src="images/icons/selecttoolbutton.png" alt="Select"> <span class="ui">Select</span>, then click the picture (away from any shape).</li>
  <li>Your redactions and notes are on <b>every frame</b>. Pause on a few frames to check that the boxes still cover what moves.</li>
- <li><b>Export as GIF</b> keeps the animation, with the redactions on every frame. Exporting as PNG, JPG or WebP saves only the frame you are looking at.</li>
+ <li><b>Saving as GIF</b> keeps the animation, with the redactions on every frame. Saving as PNG, JPG or WebP saves only the frame you are looking at.</li>
 </ul>
 
 <h2 id="video">Redacting a video</h2>
@@ -309,7 +309,7 @@
 <h3>Notes on a video</h3>
 <p>A note (text, arrow, outline…) starts on the frame where you add it and stays to the end. To end it sooner, play or step to the last frame it should show, click the note, and click the red <span class="ui">End Here</span> in its small window. The green <span class="ui">Begin Here</span> moves its start to the frame on screen.</p>
 <h3>Cropping a video</h3>
-<p>Click <img class="icon" src="images/icons/croptool.png" alt="Crop"> <span class="ui">Crop</span>, drag the area to keep and click <span class="ui">Confirm Crop</span>. The whole video is cut to that area when you export. You can trim, crop, redact and add notes, then export once.</p>
+<p>Click <img class="icon" src="images/icons/croptool.png" alt="Crop"> <span class="ui">Crop</span>, drag the area to keep and click <span class="ui">Confirm Crop</span>. The whole video is cut to that area when you save. You can trim, crop, redact and add notes, then export once.</p>
 <h3>The coloured lines</h3>
 <p>Each redaction and note has a coloured line above the timeline, showing when it is on screen. Point at a line to see what it is.</p>
 <table>
@@ -321,7 +321,7 @@
  <tr><td>Violet</td><td>A note (annotation) is on screen.</td></tr>
 </table>
 <div class="box stop"><b>Always watch the whole video before you share it.</b>Tracking can drift away from what it should cover, especially when things move fast, turn or are hidden for a moment.</div>
-<p>Sound is <b>removed</b> when you export a video, because TRT can't check or redact what is said. If you need to keep it, see <a href="#export">Export</a>.</p>
+<p>Sound is <b>removed</b> when you save a video, because TRT can't check or redact what is said. If you need to keep it, see <a href="#save">Saving</a>.</p>
 
 <h2 id="trim">Trim, append and capture frame</h2>
 <table class="tools">
@@ -331,38 +331,47 @@
 </table>
 <p>These are also in the <span class="ui">Video</span> menu. <span class="ui">Undo</span> takes back a trim or an append.</p>
 
-<h2 id="export">Export: saving the result</h2>
-<p>Click <img class="icon" src="images/icons/exportbutton.png" alt="Export"> <span class="ui">Export</span> (or <span class="ui">File › Export…</span>), choose where to save and a file name, and click <span class="ui">Save</span>.</p>
+<h2 id="save">Saving: Save, Save As and Save Project</h2>
+<p>The <span class="ui">File</span> menu has three ways to save:</p>
+<table class="tools">
+ <tr><td><img class="icon" src="images/icons/savebutton.png" alt=""> Save (<kbd>Ctrl</kbd>+<kbd>S</kbd>)</td><td>Saves to the same file again: the file you opened, or the last file you saved with Save As. The title bar shows which file that is, for example <span class="ui">TinyRedactionTool 3.3.0 - 01.png</span>. If nothing has changed, Save does nothing. A screenshot, a new image or a project has no file yet, so Save opens Save As.</td></tr>
+ <tr><td><img class="icon" src="images/icons/exportbutton.png" alt=""> Save As (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>)</td><td>Saves a new file: choose where, a name and the kind of file. After that, Save goes to this new file.</td></tr>
+ <tr><td><img class="icon" src="images/icons/saveprojectbutton.png" alt=""> Save Project</td><td>Keeps your redactions and notes <b>editable</b>, so you can carry on later (see below). A project is not a file to share.</td></tr>
+</table>
 <ul>
  <li><b>Pictures</b> can be saved as PNG, JPG, GIF or WebP. PNG keeps the best quality.</li>
  <li><b>Videos</b> can be saved as MP4, MOV, M4V, AVI, MKV or WebM. MP4 works almost everywhere.</li>
- <li>TRT <b>checks the new file</b> after saving it, to make sure the redactions are really in it. If anything is wrong, it doesn't keep the file.</li>
+ <li>TRT <b>checks the new file</b> after writing it, to make sure the redactions are really in it. If anything is wrong, it doesn't keep the file, and anything it would have replaced stays as it was.</li>
  <li>Hidden details inside the file (such as where a photo was taken) are <b>not copied</b> into the new file.</li>
- <li>If you pick a file that is already there, Windows asks whether to replace it. Answer <span class="ui">Yes</span> and TRT replaces it, but only after the new file has passed its checks. Export never replaces the file you have open: use <span class="ui">Save</span> for that (below).</li>
+ <li>You can save a picture or video you haven't changed, for example a screenshot as it is, or one you have only turned or trimmed.</li>
 </ul>
-<h3 id="save">Save: redact the file itself</h3>
-<p><span class="ui">File › Save</span> (<kbd>Ctrl</kbd>+<kbd>S</kbd>) puts the redacted version <b>in place of the file you opened</b>, under the same name. TRT writes the new file beside it and checks it first; only then does it replace the old one. The first time you save a file, TRT asks: <span class="ui">Replace 01.png with the redacted version? The unredacted picture will be gone.</span> After that it saves without asking. The saved file opens again with the redactions now part of it, so they can no longer be moved or undone.</p>
+<h3>Saving over the file you opened</h3>
+<p>Save (or Save As with the same name) can put the edited version <b>in place of the file you opened</b>. The first time, TRT explains that your redactions and other edits become a permanent part of the file, that the unedited picture or video will be gone, and that Save Project keeps them editable. If a video has sound and <span class="ui">Keep Primary Audio</span> is off, it says the sound will go too. Afterwards the saved file opens again, with the edits now part of it.</p>
+<div class="box tip"><b>To keep the original as it is,</b>use Save As with a new name. Later edits then go to that new file with Save; the original isn't touched.</div>
+<h3>Suggested names</h3>
+<p>Save As suggests a name made of the date and time and what the file holds, for example <span class="ui">20261123_140506_REDACTED.png</span>:</p>
 <ul>
- <li>Screenshots and new images have no file yet: Save works like Export there.</li>
- <li>Pictures saved as PNG, JPG, GIF or WebP, and videos saved as MP4, MOV, M4V, AVI, MKV or WebM, can be saved over. For other kinds (such as BMP or TIFF), use Export.</li>
- <li>To keep the unredacted original, use Export with a new name instead.</li>
+ <li><b>REDACTED</b>: it has a Solid, Blur or Pixelate redaction (also one already made part of the picture with Flatten Image or Save).</li>
+ <li><b>EDITED</b>: notes or other changes (crop, resize, rotate, flip, trim, append), but no redaction.</li>
+ <li>Nothing changed: <b>SCREENGRAB</b> (a screenshot), <b>RECORDING</b> (a screen recording), <b>FRAME</b> (a video frame), <b>IMAGE</b> (a new image) or <b>COPY</b> (a file you opened, or a pasted picture). These carry the time the screenshot, recording or frame was taken.</li>
 </ul>
-<p>The window title shows the name of the open file, for example <span class="ui">TinyRedactionTool 3.2.2 - 01.png</span>.</p>
-<h3>Export Options (in the side panel)</h3>
-<p>Click <img class="icon" src="images/icons/panelbutton.png" alt="Panel"> <span class="ui">Panel</span> and open <span class="ui">Export Options</span>:</p>
-<figure><img src="images/side-panel.png" alt="The side panel with Export Options" style="max-width:340px"></figure>
+<p>If the name is already in the folder, <span class="ui">_2</span>, <span class="ui">_3</span> and so on are added. You can always type your own name. Projects are suggested as <span class="ui">20261123_140506.trtwpf.json</span>.</p>
+<h3>Save Options (in the side panel)</h3>
+<p>Click <img class="icon" src="images/icons/panelbutton.png" alt="Panel"> <span class="ui">Panel</span> and open <span class="ui">Save Options</span>:</p>
+<figure><img src="images/side-panel.png" alt="The side panel with Save Options" style="max-width:340px"></figure>
 <ul>
  <li><span class="ui">High</span>, <span class="ui">Normal</span> or <span class="ui">Smaller</span>: better quality, or a smaller file.</li>
  <li><span class="ui">Keep Primary Audio (Unredacted)</span>: keeps the video's sound. TRT asks you to confirm, because the sound is not checked.</li>
- <li><span class="ui">Securely Delete the Original After Export</span>: after a successful export, TRT asks once more, then overwrites the original file and deletes it. <b>This can't be undone.</b></li>
 </ul>
+<h3>Securely deleting the original</h3>
+<p>After Save As has saved a copy, <span class="ui">File › Securely Delete Original…</span> can remove the file you opened. TRT shows the exact file first and asks; if you say yes, it overwrites the file with zeros and deletes it. Your saved copy is kept. <b>This can't be undone.</b> (Your organisation's policy can turn this off.)</p>
 
-<h2 id="other-saves">Copy, projects and other ways to save</h2>
+<h2 id="other-saves">Copy, projects and other ways to keep things</h2>
 <table class="tools">
  <tr><td><img class="icon" src="images/icons/copybutton.png" alt=""> Copy</td><td>Copies the picture <b>with</b> its redactions (<kbd>Ctrl</kbd>+<kbd>C</kbd>), ready to paste into an email or document.</td></tr>
- <tr><td><img class="icon" src="images/icons/saveprojectbutton.png" alt=""> Save Project</td><td>Saves your shapes and notes so you can carry on later. The project needs the original file to open again. A project is not a redacted file: <b>export</b> to share.</td></tr>
- <tr><td><img class="icon" src="images/icons/openprojectbutton.png" alt=""> Open Project</td><td>Opens a saved project.</td></tr>
- <tr><td><img class="icon" src="images/icons/savemediabutton.png" alt=""> Save Media</td><td>Saves a copy of the file <b>as it is, without redactions</b> (File › Save Media As…). Don't share this copy.</td></tr>
+ <tr><td><img class="icon" src="images/icons/saveprojectbutton.png" alt=""> Save Project</td><td>Saves your shapes and notes so you can carry on later. The project needs its picture or video to open again: for a screenshot (or anything else in TRT's temporary folder) TRT saves a checked copy beside the project, named like the project with <span class="ui">_MEDIA</span>, so the project still opens after TRT has wiped its temporary files. A project is not a redacted file: use <b>Save As</b> to share.</td></tr>
+ <tr><td><img class="icon" src="images/icons/openprojectbutton.png" alt=""> Open Project</td><td>Opens a saved project. Save then opens Save As, so the project's own picture or video is never replaced.</td></tr>
+ <tr><td>Original</td><td>For screenshots and recordings: saves or copies it <b>exactly as captured</b> (File › Save or Copy the Original Capture…). Don't share this copy.</td></tr>
 </table>
 
 <h2 id="fileinfo">File Info: what is hidden inside a file</h2>
@@ -388,7 +397,7 @@
  <li>You can drag the bar anywhere by its title. Drop it on the top edge of a screen and it tucks itself away.</li>
  <li>Click the TRT icon in the notification area to open the editor; double-click it to show the capture bar. <span class="ui">Settings › Editor</span> can swap them.</li>
 </ul>
-<div class="box tip"><b>Screenshots are private until you keep them.</b>A screenshot in the editor is kept in a private temporary folder. TRT wipes it when you close it or quit, unless you export it or save it with <span class="ui">File › Save or Copy the Original Capture</span>.</div>
+<div class="box tip"><b>Screenshots are private until you keep them.</b>A screenshot in the editor is kept in a private temporary folder. TRT wipes it when you close it or quit, unless you save it with Save As or with <span class="ui">File › Save or Copy the Original Capture</span>.</div>
 
 <h2 id="recorder">Recording the screen</h2>
 <ol class="steps">
@@ -411,7 +420,7 @@
  <li><span class="ui">Remove History…</span> in the capture bar's menu, or by right-clicking the TRT icon by the clock.</li>
 </ul>
 <figure><img src="images/remove-history.png" alt="The Remove History question" style="max-width:520px"></figure>
-<p>Remove History wipes old screenshots and working copies (it overwrites them before deleting them), clears <span class="ui">Undo</span>, and forgets the folders. What is open in the editor stays until you close it. Files you saved or exported are not touched.</p>
+<p>Remove History wipes old screenshots and working copies (it overwrites them before deleting them), clears <span class="ui">Undo</span>, and forgets the folders. What is open in the editor stays until you close it. Files you saved are not touched.</p>
 
 <h2 id="settings">Settings</h2>
 <p>Open Settings from <span class="ui">Help › Settings…</span>, from the capture bar's menu, or with <img class="icon" src="images/icons/settingsbutton.png" alt=""> (if it's on your toolbar). Click <span class="ui">OK</span> to keep your changes, or <span class="ui">Cancel</span>.</p>
@@ -439,9 +448,8 @@
  <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>E</kbd></td><td>Open the editor</td></tr>
  <tr><td><kbd>Ctrl</kbd>+<kbd>N</kbd></td><td>New image</td></tr>
  <tr><td><kbd>Ctrl</kbd>+<kbd>O</kbd></td><td>Open a picture or video</td></tr>
- <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Save (the redacted version replaces the open file)</td></tr>
- <tr><td><kbd>Ctrl</kbd>+<kbd>E</kbd></td><td>Export</td></tr>
- <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd></td><td>Save Media As (a copy of the file as it is)</td></tr>
+ <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Save (to the file named in the title bar; Save As if there is none)</td></tr>
+ <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd></td><td>Save As (a new file)</td></tr>
  <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd></td><td>Add an image onto this one</td></tr>
  <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>Ctrl</kbd>+<kbd>V</kbd></td><td>Copy the picture with its redactions / paste a picture</td></tr>
  <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd></td><td>Paste a picture onto this one</td></tr>
@@ -466,19 +474,19 @@
 <h2 id="faq">Questions and problems</h2>
 <dl class="faq">
  <dt>Is the original file changed?</dt>
- <dd>No. TRT only reads it. Export always makes a new file. The only exception is if you tick <span class="ui">Securely Delete the Original After Export</span> and say yes when asked.</dd>
+ <dd>Only if you save over it. Save As makes a new file; Save replaces the file named in the title bar, and TRT explains this the first time. <span class="ui">File › Securely Delete Original…</span> deletes it only after you confirm the exact file.</dd>
  <dt>Which effect should I use?</dt>
  <dd><span class="ui">Solid Fill</span>, whenever something must not be read or recognised. Blur and Pixelate look softer but can leave clues.</dd>
  <dt>My screenshot shortcut doesn't work.</dt>
  <dd>Another program may already use that key (for example an older TRT). Quit the other program, or choose a different key in <span class="ui">Settings › Shortcuts</span>. TRT tells you when a shortcut can't be used.</dd>
- <dt>The export failed its check.</dt>
+ <dt>Saving failed its check.</dt>
  <dd>TRT found a difference between what you drew and what was saved, so it didn't keep the file. Try again, or try PNG (for pictures) or MP4 (for videos).</dd>
- <dt>Why is there no sound in my exported video?</dt>
- <dd>TRT removes sound unless you choose <span class="ui">Keep Primary Audio (Unredacted)</span> in the side panel's Export Options, because spoken names can't be redacted.</dd>
+ <dt>Why is there no sound in my saved video?</dt>
+ <dd>TRT removes sound unless you choose <span class="ui">Keep Primary Audio (Unredacted)</span> in the side panel's Save Options, because spoken names can't be redacted.</dd>
  <dt>TRT asks about a network drive.</dt>
  <dd>Files on network drives can be seen by others, so TRT checks with you first. Your organisation may block network drives altogether.</dd>
  <dt>Where are my screenshots?</dt>
- <dd>Until you export or save them, only in TRT's private temporary folder, which is wiped when you close them or quit. To keep one as it is, use <span class="ui">File › Save or Copy the Original Capture…</span>.</dd>
+ <dd>Until you save them, only in TRT's private temporary folder, which is wiped when you close them or quit. To keep one as it is, use <span class="ui">File › Save or Copy the Original Capture…</span>.</dd>
  <dt>Can I see what version I have?</dt>
  <dd>Yes: <span class="ui">Help › About</span>.</dd>
  <dt>How do I open this manual again?</dt>

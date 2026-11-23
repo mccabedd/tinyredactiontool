@@ -27,9 +27,10 @@ public sealed class AppSettings
     public const string ToolbarSpacer = "_";
     // 0.27.0 (David's "TRT settings.json"): his order and hidden buttons are the defaults, with Add Image after Open.
     // 3.1.3 (David's "TRT Default Settings.json"): Save Media before Save Project, Copy and Paste in their own group.
+    // 3.3.0 (David): Save, Save As (ExportButton) and Save Project, all shown; Save Media is gone.
     public static readonly string[] DefaultEditorToolbar =
     [
-        "NewButton", "OpenButton", "AddImageButton", "OpenProjectButton", "PreviousPictureButton", "NextPictureButton", "ExportButton", "SaveMediaButton", "SaveProjectButton", "OriginalButton", "|",
+        "NewButton", "OpenButton", "AddImageButton", "OpenProjectButton", "PreviousPictureButton", "NextPictureButton", "SaveButton", "ExportButton", "SaveProjectButton", "OriginalButton", "|",
         "CopyButton", "PasteButton", "|",
         "UndoButton", "RedoButton", "DeleteButton", "|",
         "SelectToolButton", "RectangleTool", "OvalTool", "PolygonTool", "|",
@@ -41,7 +42,7 @@ public sealed class AppSettings
         ">", "FileInfoButton", "|", "ToolClearRedactions", "ToolClearAnnotations", "ClearScreenButton", "|", "SettingsButton", "PanelButton",
     ];
     public static readonly string[] DefaultHiddenEditorButtons =
-        ["NewButton", "AddImageButton", "OpenProjectButton", "PreviousPictureButton", "NextPictureButton", "SaveProjectButton", "OriginalButton",
+        ["NewButton", "AddImageButton", "OpenProjectButton", "PreviousPictureButton", "NextPictureButton", "OriginalButton",
          "RotateClockwiseButton", "RotateCounterClockwiseButton", "FlipHorizontalButton", "FlipVerticalButton", "ZoomInButton", "ZoomOutButton", "SettingsButton"];
     public static IEnumerable<string> EditorButtonIds => DefaultEditorToolbar.Where(id => id is not (ToolbarSeparator or ToolbarRightSide or ToolbarSpacer));
     public List<string> EditorToolbar { get; set; } = [.. DefaultEditorToolbar];

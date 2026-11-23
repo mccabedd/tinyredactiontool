@@ -127,7 +127,6 @@ public partial class MainWindow
     internal string? ExportBlockReason()
     {
         if (Project.Media == null) return "open an image or video first.";
-        if (Project.Regions.Count == 0 && Project.Annotations.Count == 0 && Project.Crop == null) return "draw a redaction, annotation or crop first.";
         // 0.14.0 (David): no separate Review step any more; followed ranges no longer hold up export.
         if (policy.DisableVisualObscuration && Project.Regions.Any(r => r.Effect != RedactionEffect.Opaque)) return "your organisation's policy allows only Solid Fill; change Blur Fill or Pixelate Fill redactions to Solid Fill.";
         return null;

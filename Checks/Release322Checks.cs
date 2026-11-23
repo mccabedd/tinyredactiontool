@@ -65,7 +65,7 @@ internal static class Release322Checks
             check(preview.Project.Regions.Count == 1 && !RedAt(first, 60, 60), "a redaction is drawn on 01.png (the file itself is still unredacted)");
             questions.Clear(); failed = null;
             var saved = Wait(() => editor.SaveAsync());
-            check(saved && failed == null && questions.Count == 1 && questions[0] == "Replace 01.png with the redacted version? The unredacted picture will be gone.",
+            check(saved && failed == null && questions.Count == 1 && questions[0].StartsWith("Replace 01.png with this version?") && questions[0].Contains("Save Project"),
                 $"File › Save asks once before replacing 01.png ({string.Join(" | ", questions)}{failed?.Message})");
             check(RedAt(first, 60, 60) && !RedAt(first, 20, 20), "01.png now holds the redacted picture (red where the redaction was, the rest as before)");
             check(preview.Project.Regions.Count == 0 && preview.Project.Media?.Path == Path.GetFullPath(first) && editor.Title.EndsWith(" - 01.png") && preview.Image != null && Pixels(preview.Image)[(60 * 300 + 60) * 4 + 2] == 255,
@@ -108,7 +108,7 @@ internal static class Release322Checks
             var frames = preview.Timeline?.Frames.Count ?? 0;
             Redact(2, 2, 40, 40); questions.Clear(); failed = null;
             var videoSaved = Wait(() => editor.SaveAsync());
-            check(videoSaved && failed == null && questions.Count == 1 && questions[0].EndsWith("The unredacted video will be gone."), $"Save on a video asks once and replaces it ({failed?.Message})");
+            check(videoSaved && failed == null && questions.Count == 1 && questions[0].Contains("the unedited video will be gone"), $"Save on a video asks once and replaces it ({failed?.Message})");
             var first0 = Wait(() => tools.FrameAsync(video, null, null, CancellationToken.None)); var v = Pixels(first0); var at = (20 * first0.PixelWidth + 20) * 4;
             check(v[at + 2] > 200 && v[at + 1] < 70 && v[at] < 70 && preview.Timeline?.Frames.Count == frames && preview.Project.Regions.Count == 0 && Held(video),
                 $"the saved video is redacted, keeps its {frames} frames, and is open and held again (pixel {v[at + 2]},{v[at + 1]},{v[at]})");

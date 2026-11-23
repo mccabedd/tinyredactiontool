@@ -485,7 +485,7 @@ internal sealed class CaptureController : IDisposable
                 SaveImageAs(image);
                 break;
             default:
-                var path = store.NewFile("CAPTURE", ".png");
+                var path = store.NewFile("CAPTURE", ".png", new MediaOrigin(MediaOriginKind.Screenshot, DateTime.Now));
                 WritePng(image, path);
                 await OpenInEditorAsync(path);
                 break;
@@ -512,7 +512,7 @@ internal sealed class CaptureController : IDisposable
     private void SaveImageAs(BitmapSource image)
     {
         var folder = Settings.LastSaveFolder is { } last && Directory.Exists(last) ? last : Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
-        var dialog = new SaveFileDialog { Filter = "PNG image|*.png|JPG image|*.jpg", AddExtension = true, AddToRecent = false, InitialDirectory = folder, FileName = $"CAPTURE_{DateTime.Now:yyyyMMdd_HHmmss}.png" };
+        var dialog = new SaveFileDialog { Filter = "PNG image|*.png|JPG image|*.jpg", AddExtension = true, AddToRecent = false, InitialDirectory = folder, FileName = SaveNaming.Suggest(folder, SaveNaming.Screengrab, DateTime.Now, ".png") };
         if (dialog.ShowDialog(DialogOwner()) != true) return;
         if (!AllowDestination(dialog.FileName)) return;
         var jpg = Path.GetExtension(dialog.FileName).Equals(".jpg", StringComparison.OrdinalIgnoreCase);
@@ -550,7 +550,7 @@ internal sealed class CaptureController : IDisposable
         if (Ask(window, $"The new {kind} didn't open. Save it before TRT wipes it?", "New " + kind))
         {
             var folder = Settings.LastSaveFolder is { } last && Directory.Exists(last) ? last : Environment.GetFolderPath(video ? Environment.SpecialFolder.MyVideos : Environment.SpecialFolder.MyPictures);
-            var dialog = new SaveFileDialog { Filter = video ? "MP4 video|*.mp4" : "PNG image|*.png", AddExtension = true, AddToRecent = false, InitialDirectory = folder, FileName = Path.GetFileName(path) };
+            var dialog = new SaveFileDialog { Filter = video ? "MP4 video|*.mp4" : "PNG image|*.png", AddExtension = true, AddToRecent = false, InitialDirectory = folder, FileName = SaveNaming.Suggest(folder, video ? SaveNaming.Recording : SaveNaming.Screengrab, store.OriginOf(path)?.Time ?? DateTime.Now, Path.GetExtension(path)) };
             if (dialog.ShowDialog(window) == true && AllowDestination(dialog.FileName)) { File.Copy(path, dialog.FileName, true); Settings.LastSaveFolder = Path.GetDirectoryName(dialog.FileName); Settings.Save(); }
         }
         try { store.Wipe(path); } catch (IOException) { }
@@ -709,7 +709,7 @@ internal sealed class CaptureController : IDisposable
             var region = Drawing.Rectangle.Intersect(picked, ScreenCapture.VirtualScreen);
             region = ScreenCapture.EvenSize(region);
             if (region.Width < 16 || region.Height < 16) throw new InvalidOperationException("The area is too small to record.");
-            path = store.NewFile("CAPTURE", ".mp4");
+            path = store.NewFile("CAPTURE", ".mp4", new MediaOrigin(MediaOriginKind.Recording, DateTime.Now));
             using (new ScreenCapture.DpiScope())
             {
                 recordingBorder = new RecordingBorder(region); recordingBorder.Show();

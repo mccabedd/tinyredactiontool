@@ -48,7 +48,7 @@ internal static class Release027Checks
         string[] davidToolbar =
         [
             // 3.1.3: David's "TRT Default Settings.json".
-            "NewButton", "OpenButton", "AddImageButton", "OpenProjectButton", "PreviousPictureButton", "NextPictureButton", "ExportButton", "SaveMediaButton", "SaveProjectButton", "OriginalButton", "|",
+            "NewButton", "OpenButton", "AddImageButton", "OpenProjectButton", "PreviousPictureButton", "NextPictureButton", "SaveButton", "ExportButton", "SaveProjectButton", "OriginalButton", "|",
             "CopyButton", "PasteButton", "|", "UndoButton", "RedoButton", "DeleteButton", "|", "SelectToolButton", "RectangleTool", "OvalTool", "PolygonTool", "|", "TrimToolButton", "AppendToolButton", "|",
             "OpaqueTool", "BlurTool", "PixelateTool", "|", "DrawRectangleTool", "DrawOvalTool", "TextTool", "LineTool", "PolylineTool", "FreehandTool", "|",
             "CropTool", "ResizeButton", "RotateClockwiseButton", "RotateCounterClockwiseButton", "FlipHorizontalButton", "FlipVerticalButton", "|",
@@ -58,9 +58,9 @@ internal static class Release027Checks
         var fresh = new AppSettings();
         check(fresh.EditorToolbar.SequenceEqual(davidToolbar) && AppSettings.CleanToolbar(fresh.EditorToolbar).SequenceEqual(davidToolbar),
             "the toolbar starts in David's order, with Add Image between Open and Open Project");
-        check(fresh.EditorHiddenButtons.ToHashSet().SetEquals(["NewButton", "AddImageButton", "OpenProjectButton", "PreviousPictureButton", "NextPictureButton", "SaveProjectButton", "OriginalButton",
+        check(fresh.EditorHiddenButtons.ToHashSet().SetEquals(["NewButton", "AddImageButton", "OpenProjectButton", "PreviousPictureButton", "NextPictureButton", "OriginalButton",
                 "RotateClockwiseButton", "RotateCounterClockwiseButton", "FlipHorizontalButton", "FlipVerticalButton", "ZoomInButton", "ZoomOutButton", "SettingsButton"]),
-            "the hidden buttons are David's 3.1.3 ones (Save Media, Delete, Fit Width, Slideshow and Nav Bar shown; New, Add Image and Rotate hidden)");
+            "the hidden buttons are David's 3.1.3 ones, with Save, Save As and Save Project shown (3.3.0)");
         check(fresh.BarButtons.SequenceEqual(["Region", "Freehand", "ActiveWindow", "WindowObject", "FullScreen", "Scrolling", "Recorder", "Editor", "Output"]) && fresh.StripWidth == 30 && fresh.HideOptionsBar
               && fresh.SlideshowSeconds == 5 && fresh.SlideshowRepeat && fresh.NavBarInEditor && fresh.NavBarInSlideshow && fresh.NavBarPinnedInSlideshow && fresh.NavBarThumbnailSize == 48
               && fresh.ScreenshotShortcut == "Ctrl+PrintScreen" && fresh.RecordingShortcut == "Ctrl+Shift+PrintScreen" && fresh.BarShortcut == "Ctrl+Alt+B" && fresh.EditorShortcut == "Ctrl+Alt+E"
@@ -109,10 +109,11 @@ internal static class Release027Checks
             List<MenuItem> All(ItemsControl parent) => parent.Items.OfType<MenuItem>().SelectMany(m => new[] { m }.Concat(All(m))).ToList();
             var items = All(menu); string Header(MenuItem m) => (m.Header as string ?? "").Replace("_", "");
             var file = menu.Items.OfType<MenuItem>().First(m => Header(m) == "File");
-            // 3.1.2 (David): the File menu's order and shortcuts.
-            var fileItems = file.Items.OfType<MenuItem>().Take(9).Select(m => Header(m) + (string.IsNullOrEmpty(m.InputGestureText) ? "" : " " + m.InputGestureText)).ToArray();
-            check(fileItems.SequenceEqual(["New Image… Ctrl+N", "Open Media… Ctrl+O", "Save Ctrl+S", "Export… Ctrl+E", "Save Media As… Ctrl+Shift+S", "Add Image… Ctrl+Shift+O", "Open Project…", "Save Project…", "File Info… Ctrl+I"]),
-                "the File menu reads New Image, Open Media (Ctrl+O), Save (Ctrl+S, 3.2.2), Export (Ctrl+E), Save Media As (Ctrl+Shift+S), Add Image, Open Project, Save Project, File Info: " + string.Join(" | ", fileItems));
+            // 3.1.2 (David): the File menu's order and shortcuts. 3.3.0: Save, Save As and Save Project together; Export and Save Media As gone.
+            var fileItems = file.Items.OfType<MenuItem>().Take(8).Select(m => Header(m) + (string.IsNullOrEmpty(m.InputGestureText) ? "" : " " + m.InputGestureText)).ToArray();
+            check(fileItems.SequenceEqual(["New Image… Ctrl+N", "Open Media… Ctrl+O", "Save Ctrl+S", "Save As… Ctrl+Shift+S", "Save Project…", "Add Image… Ctrl+Shift+O", "Open Project…", "File Info… Ctrl+I"]),
+                "the File menu reads New Image, Open Media (Ctrl+O), Save (Ctrl+S), Save As (Ctrl+Shift+S), Save Project, Add Image, Open Project, File Info: " + string.Join(" | ", fileItems));
+            check(!items.Any(m => Header(m) is "Export…" or "Save Media As…"), "Export and Save Media As are gone from the menus");
             check(items.Any(m => Header(m) == "Add Image…") && items.Any(m => Header(m) == "Paste onto Image") && items.Any(m => Header(m) == "Resize Image…")
                   && !items.Any(m => Header(m).Contains("picture", StringComparison.OrdinalIgnoreCase)),
                 $"the menus say Image (New Image, Add Image, Paste onto Image...), never picture ({string.Join(", ", items.Select(Header).Where(h => h.Contains("icture")))})");
@@ -124,14 +125,14 @@ internal static class Release027Checks
             var editOrder = edit.Items.Cast<object>().Take(10).Select(o => o is MenuItem m ? Header(m) : "|").ToArray();
             check(editOrder.SequenceEqual(["Undo", "Redo", "|", "Copy Image", "Paste Image", "Paste onto Image", "|", "Transform", "Rotate Image or Video", "Resize Image…"]),
                 "the Edit menu has Copy, Paste and Paste onto Image before Transform, Rotate and Resize: " + string.Join(" | ", editOrder));
-            var saveMedia = (Button)editor.FindName("SaveMediaButton");
-            check(saveMedia.Content as string == "Save Media" && saveMedia.ToolTip as string == "Save Media As… (No Redactions)" && SettingsWindow.ToolbarLabel("SaveMediaButton") == "Save Media",
-                "the Save Media button says Save Media, with the tooltip Save Media As… (No Redactions)");
+            var buttons = new[] { ("SaveButton", "Save", "Save (Ctrl+S)"), ("ExportButton", "Save As", "Save As a New File (Ctrl+Shift+S)"), ("SaveProjectButton", "Save Project", "Save the Project (Keeps the Edits Editable)") };
+            check(buttons.All(b => editor.FindName(b.Item1) is Button button && button.Content as string == b.Item2 && button.ToolTip as string == b.Item3 && Toolbar.GetIcon(button) != null && SettingsWindow.ToolbarLabel(b.Item1) == b.Item2)
+                  && editor.FindName("SaveMediaButton") == null,
+                "the toolbar has Save, Save As and Save Project, each with its icon, tooltip and Settings name; Save Media is gone");
+            check(new[] { "IconSave", "IconSaveAs", "IconSaveProject" }.Select(k => editor.FindResource(k)).Distinct().Count() == 3, "the three save buttons have different icons");
             var redTab = new MinimizedStrip();
             check(redTab.ToolTip == null, "the red tab the capture bar hides in has no tooltip");
             redTab.Close();
-            check(MainWindow.CopyName(@"C:\x\CAPTURE_20261112_101500.png") == "CAPTURE_20261112_101500_COPY.png" && MainWindow.CopyName(@"C:\x\SCREENSHOT_1_COPY_COPY.jpg") == "SCREENSHOT_1_COPY.jpg",
-                "Save Media As suggests the name with _COPY once, never _COPY_COPY");
             var before = editor.Settings.Copy(); var spaced = editor.Settings.Copy();
             var spacedLayout = AppSettings.CleanToolbar(spaced.EditorToolbar);
             spacedLayout.Insert(spacedLayout.IndexOf("ExportButton"), AppSettings.ToolbarSpacer); spacedLayout.Insert(spacedLayout.IndexOf("ExportButton"), AppSettings.ToolbarSpacer);
