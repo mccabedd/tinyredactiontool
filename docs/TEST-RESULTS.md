@@ -1,6 +1,6 @@
 # Verification: 3.3.0, 23 November 2026
 
-Status: **`--release-330-only` 52 passed; `--still-only` 1138 passed (it includes the 3.3.0 and 3.2.2 groups and every earlier still-image group); none failed.** Build: 0 errors, 0 warnings. Full suite: not completed. It stopped after 297 passing checks on a clipboard check (Windows refused the clipboard: the laptop was locked); run it again while the laptop is unlocked. 3.2.2's evidence is in test-history/TEST-RESULTS-3.2.2.md.
+Status: **`--release-330-only` 52 passed; `--still-only` 1138 passed (it includes the 3.3.0 and 3.2.2 groups and every earlier still-image group); none failed.** Build: 0 errors, 0 warnings. Full suite (Prepare-Work-Laptop.ps1 -Check, run again with the laptop unlocked after a first run stopped on the clipboard while it was locked): **1533 passed, none failed.** 3.2.2's evidence is in test-history/TEST-RESULTS-3.2.2.md.
 
 ## What changed
 - File menu and toolbar: Save (Ctrl+S), Save As (Ctrl+Shift+S; the old Export, whose button keeps the name ExportButton so saved toolbar layouts keep it) and Save Project, each with its own icon (IconSave, IconSaveAs, IconSaveProject) and in Settings › Toolbar. Save Media As and Ctrl+E are removed. The side panel's Export Options are Save Options.
@@ -15,7 +15,6 @@ Status: **`--release-330-only` 52 passed; `--still-only` 1138 passed (it include
 - Updated older checks for the new commands: File menu order and toolbar (Release027, Release024, Release013, FrameSpeedChecks, LayoutSettingsChecks), secure deletion as its own command with policy (Release018), File Info wording (Release023), the 3.2.2 Save questions (Release322), Help text (Release300Edit), the empty-work gate (CropChecks).
 
 ## Not checked
-- The rest of the full suite (stopped by the locked laptop; see Status).
 - Pressing the keys themselves (Ctrl+S, Ctrl+Shift+S) in the real window: the checks call the same methods the key handler calls.
 - The Windows Save dialog itself (checks answer it through AnswerSaveAs / AnswerSaveProject).
 
