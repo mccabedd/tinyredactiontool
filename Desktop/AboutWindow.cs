@@ -18,7 +18,8 @@ internal sealed class AboutWindow : Window
 
     // The TRT icon inside the program (named by assembly, so it also loads when the checks run this window).
     internal static Uri AppIcon => new($"pack://application:,,,/{typeof(AboutWindow).Assembly.GetName().Name};component/Assets/icon.ico");
-    public AboutWindow(string version)
+    // 3.4.0: checkForUpdates (the capture side of TRT) runs Check for Updates; without it the button is off.
+    public AboutWindow(string version, Func<Window?, Action<string>, Task<string>>? checkForUpdates = null)
     {
         Title = "About TinyRedactionTool";
         Width = 560; SizeToContent = SizeToContent.Height; ResizeMode = ResizeMode.NoResize; ShowInTaskbar = false;
@@ -49,7 +50,7 @@ internal sealed class AboutWindow : Window
         card.SetResourceReference(Border.BackgroundProperty, "Surface"); card.SetResourceReference(Border.BorderBrushProperty, "ChromeLine");
         panel.Children.Add(card);
 
-        panel.Children.Add(Line("Local media processing. No telemetry or media uploads.", 12.5, FontWeights.SemiBold, 16));
+        panel.Children.Add(Line("Local media processing. No telemetry or media uploads. Connects to GitHub only when you click Check for Updates.", 12.5, FontWeights.SemiBold, 16));
         panel.Children.Add(Line("Licensed under GPL-2.0-or-later. Source available on GitHub.", 12, FontWeights.Normal, 4, opacity: 0.75));
 
         var address = new DockPanel { Margin = new Thickness(0, 10, 0, 0) };
@@ -64,16 +65,30 @@ internal sealed class AboutWindow : Window
         var close = new Button { Name = "CloseButton", Content = "Close", MinWidth = 84, Padding = new Thickness(12, 5, 12, 5), IsDefault = true, IsCancel = true, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(12, 10, 12, 12) };
         close.SetResourceReference(BackgroundProperty, "ToolSelected"); close.SetResourceReference(ForegroundProperty, "ToolSelectedText");
         close.Click += (_, _) => Close();
-        var footer = new Border { Child = close, BorderThickness = new Thickness(0, 1, 0, 0) };
+        // 3.4.0 (David): Check for Updates, at the left of the footer, with a line saying what it is doing.
+        var update = new Button { Name = "CheckUpdatesButton", Content = "Check for Updates", ToolTip = "Ask GitHub for a Newer Version (Only When You Click)", Padding = new Thickness(12, 5, 12, 5), Margin = new Thickness(12, 10, 0, 12), IsEnabled = checkForUpdates != null };
+        ToolTipService.SetShowOnDisabled(update, true);
+        UpdateStatus = new TextBlock { Name = "UpdateStatus", FontSize = 12, Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap, Opacity = 0.8 };
+        UpdateStatus.SetResourceReference(TextBlock.ForegroundProperty, "Foreground");
+        update.Click += async (_, _) =>
+        {
+            if (checkForUpdates == null) return;
+            update.IsEnabled = false;
+            try { UpdateStatus.Text = await checkForUpdates(this, text => UpdateStatus.Text = text); }
+            finally { update.IsEnabled = true; }
+        };
+        var bottom = new DockPanel(); DockPanel.SetDock(close, Dock.Right); bottom.Children.Add(close); DockPanel.SetDock(update, Dock.Left); bottom.Children.Add(update); bottom.Children.Add(UpdateStatus);
+        var footer = new Border { Child = bottom, BorderThickness = new Thickness(0, 1, 0, 0) };
         footer.SetResourceReference(Border.BackgroundProperty, "Surface"); footer.SetResourceReference(Border.BorderBrushProperty, "ChromeLine");
         var layout = new DockPanel();
         DockPanel.SetDock(footer, Dock.Bottom); layout.Children.Add(footer); layout.Children.Add(panel);
         Content = layout;
     }
 
-    public static void Open(Window? owner, string version)
+    internal TextBlock UpdateStatus { get; }
+    public static void Open(Window? owner, string version, Func<Window?, Action<string>, Task<string>>? checkForUpdates = null)
     {
-        var window = new AboutWindow(version);
+        var window = new AboutWindow(version, checkForUpdates);
         if (owner is { IsVisible: true }) window.Owner = owner; else window.WindowStartupLocation = WindowStartupLocation.CenterScreen;
         window.ShowDialog();
     }

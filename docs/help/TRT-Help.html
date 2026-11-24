@@ -116,6 +116,7 @@
  <a href="#ruler">The screen ruler</a>
  <strong>More</strong>
  <a href="#privacy">Privacy and Remove History</a>
+ <a href="#updates">Updates</a>
  <a href="#settings">Settings</a>
  <a href="#keys">Keyboard shortcuts</a>
  <a href="#faq">Questions and problems</a>
@@ -125,7 +126,7 @@
 <h2 id="what">What TRT does</h2>
 <p>TinyRedactionTool (TRT for short) hides private details in pictures and videos before you share them. You draw a shape over a name, a face, a number plate or a card number, and TRT covers it with a <span class="ui">black box</span>, a <span class="ui">blur</span> or <span class="ui">pixels</span>. Then you save it: Save As makes a new file and leaves your original as it was, or Save replaces the original with the redacted version.</p>
 <p>TRT can also take screenshots, record the screen, and add notes such as arrows and text.</p>
-<div class="box tip"><b>Everything stays on your computer.</b>TRT does not upload anything and does not send any information about you or your files anywhere.</div>
+<div class="box tip"><b>Everything stays on your computer.</b>TRT does not upload anything and does not send any information about you or your files anywhere. It goes online only when you click <span class="ui">Check for Updates</span> in the About box.</div>
 
 <h2 id="start">Starting TRT</h2>
 <p>Double-click <span class="ui">TinyRedactionTool</span>. A small <span class="ui">capture bar</span> appears at the top of the screen, and the TRT icon appears in the notification area (the small icons by the clock).</p>
@@ -413,7 +414,7 @@
 <p><span class="ui">Screen Ruler</span> (in the capture bar's menu) puts a ruler on the screen to measure things in pixels. Drag it to move it, drag its end to make it longer, and use its buttons to turn it or to measure an area, a distance or an angle. Right-click it for more choices.</p>
 
 <h2 id="privacy">Privacy and Remove History</h2>
-<p>TRT works only on your computer. It doesn't upload files, doesn't phone home, and doesn't keep a list of the files you open.</p>
+<p>TRT works only on your computer. It doesn't upload files, doesn't phone home, and doesn't keep a list of the files you open. The only time it connects to the internet is when you click <span class="ui">Check for Updates</span> (see <a href="#updates">Updates</a>).</p>
 <p>A few things are kept while TRT runs: screenshots and working copies in a private temporary folder, the last folder you saved to, and the folders Windows remembers for TRT's Open and Save windows. TRT wipes the temporary files when you quit. Because TRT often keeps running by the clock, you can clear them <b>whenever you like</b>:</p>
 <ul>
  <li><span class="ui">File › Remove History…</span> in the editor, or</li>
@@ -422,6 +423,19 @@
 <figure><img src="images/remove-history.png" alt="The Remove History question" style="max-width:520px"></figure>
 <p>Remove History wipes old screenshots and working copies (it overwrites them before deleting them), clears <span class="ui">Undo</span>, and forgets the folders. What is open in the editor stays until you close it. Files you saved are not touched.</p>
 
+<h2 id="updates">Updates</h2>
+<p><span class="ui">Help › About</span> has a <span class="ui">Check for Updates</span> button. TRT never checks by itself: nothing goes online until you click it.</p>
+<ol>
+ <li>TRT asks GitHub for the latest release of TinyRedactionTool. If it is newer than yours, you see what's new and are asked whether to install it. An older or the same version is never offered.</li>
+ <li>TRT downloads the new <span class="ui">.exe</span> and checks it: it must be the size GitHub lists, match the SHA-256 checksum GitHub publishes for it, and be a 64-bit TinyRedactionTool program of that version. Anything else is deleted.</li>
+ <li>TRT closes, asking about unsaved work as it always does, and starts again as the new version. If you keep TRT open (for unsaved work), nothing is changed.</li>
+</ol>
+<ul>
+ <li>TRT only talks to GitHub, over a secure connection (HTTPS). If it is ever sent anywhere else, it stops and downloads nothing.</li>
+ <li>The new version takes the old one's place and name, so your shortcuts, <span class="ui">Start When Windows Starts</span> and <span class="ui">Open with TRT</span> keep working. The file name may still show the old version number; the title bar shows the real one.</li>
+ <li>The previous version is kept beside it with <span class="ui">.old</span> added to its name. To go back: quit TRT, delete the new <span class="ui">.exe</span>, and remove <span class="ui">.old</span> from the old one's name.</li>
+ <li>If TRT can't write to the folder it runs from, it leaves the checked download in your temporary folder and tells you where; close TRT and run the new file yourself.</li>
+</ul>
 <h2 id="settings">Settings</h2>
 <p>Open Settings from <span class="ui">Help › Settings…</span>, from the capture bar's menu, or with <img class="icon" src="images/icons/settingsbutton.png" alt=""> (if it's on your toolbar). Click <span class="ui">OK</span> to keep your changes, or <span class="ui">Cancel</span>.</p>
 <table>
@@ -488,7 +502,7 @@
  <dt>Where are my screenshots?</dt>
  <dd>Until you save them, only in TRT's private temporary folder, which is wiped when you close them or quit. To keep one as it is, use <span class="ui">File › Save or Copy the Original Capture…</span>.</dd>
  <dt>Can I see what version I have?</dt>
- <dd>Yes: <span class="ui">Help › About</span>.</dd>
+ <dd>Yes: <span class="ui">Help › About</span>. <span class="ui">Check for Updates</span> there looks for a newer one (see <a href="#updates">Updates</a>).</dd>
  <dt>How do I open this manual again?</dt>
  <dd>Press <kbd>F1</kbd> in the editor, or choose <span class="ui">Help › Help</span>. It is also in the capture bar's menu and in the menu of the TRT icon by the clock. It opens in its own TRT window, with the contents on the left. Nothing is fetched from the internet: the manual comes with TRT.</dd>
 </dl>

@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.4.0 (November 2026)
+- **Check for Updates** in Help › About. TRT goes online only when you click it. It asks GitHub for the latest release, offers it only when it is newer, shows what's new and asks first. The download must be the size GitHub lists, match the SHA-256 GitHub publishes for it, and be a 64-bit TinyRedactionTool of that version; anything else is deleted. TRT talks only to GitHub over HTTPS and stops if it is sent anywhere else. It then closes (asking about unsaved work first) and starts again as the new version, keeping the old one beside it as `.old`. If TRT is kept open, or can't write to its own folder, nothing is replaced.
+- File menu order: New Image, Open Media, Save, Save As, Open Project, Save Project, Add Image, File Info.
+
 ## 3.3.0 (November 2026)
 Saving is simpler: three commands in the File menu and on the toolbar, each with its own icon and a place in Settings › Toolbar.
 - **Save (Ctrl+S)** saves to the same file again: the file you opened, or the last file Save As wrote (named in the title bar). With nothing changed it does nothing. A screenshot, a new image or a project has no file yet, so Save opens Save As; so does a format TRT can't write. Saving over the file being edited explains first, once, that the edits become permanent and that Save Project keeps them editable (and, for a video, that its sound will go when Keep Primary Audio is off); the saved file then opens again.

@@ -1,8 +1,8 @@
-# TinyRedactionTool 3.3
+# TinyRedactionTool 3.4
 
 A lightweight Windows tool for redacting and editing sensitive areas in videos and images using black box, blur or pixelation. It supports multiple selection shapes, frame-range redactions, broad media input support and a standalone single-EXE build with an embedded custom FFmpeg.
 
-Everything happens on your computer: no telemetry, no uploads, no online services.
+Everything happens on your computer: no telemetry and no uploads. TRT goes online only when you click Check for Updates in the About box (GitHub only, and the download is checked before it is used).
 
 ![The TRT editor with a photo of three people in a car: one face is pixelated, one person's eyes are covered by a black box, and one face is blurred, each labelled in red](docs/help/images/editor1.png)
 
@@ -10,10 +10,10 @@ Everything happens on your computer: no telemetry, no uploads, no online service
 
 ## Download
 
-Get **TinyRedactionTool-3.3.0.exe** from the [latest release](https://github.com/mccabedd/tinyredactiontool/releases/latest) and run it. It needs no installing.
+Get **TinyRedactionTool-3.4.0.exe** from the [latest release](https://github.com/mccabedd/tinyredactiontool/releases/latest) and run it. It needs no installing.
 
-- TRT 3.3 needs Microsoft's free **[.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)** (Windows x64). If it is missing, Windows says so when TRT starts and offers to open the download page.
-- The file is not signed, so Windows SmartScreen may warn the first time. Check the download against `SHA256SUMS-v3.3.0.txt` in the release.
+- TRT 3.4 needs Microsoft's free **[.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)** (Windows x64). If it is missing, Windows says so when TRT starts and offers to open the download page.
+- The file is not signed, so Windows SmartScreen may warn the first time. Check the download against `SHA256SUMS-v3.4.0.txt` in the release.
 - TRT v2.5.1 (the previous, self-contained version) is still available from its own release, and its source is in [history/v2.5.1](history/v2.5.1).
 
 ## What it does

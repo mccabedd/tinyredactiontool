@@ -64,6 +64,28 @@ internal static class Program
                 using (var t320 = new MediaTools()) Release320Checks.Run(t320, output, Check);
                 Console.WriteLine($"{passed} checks passed."); return 0;
             }
+            // 3.4.0: --update-probe <pretend version> <folder>: the real Check for Updates against GitHub (latest release,
+            // download and every check), without installing anything. Only run by hand; the checks themselves use a fake.
+            var probeAt = Array.IndexOf(args, "--update-probe");
+            if (probeAt >= 0 && probeAt + 2 < args.Length)
+            {
+                var updater = new Updater(Version.Parse(args[probeAt + 1]));
+                var found = updater.LatestAsync(CancellationToken.None).GetAwaiter().GetResult();
+                Console.WriteLine(found == null ? "No newer release." : $"Found {found.Tag}: {found.AssetName}, {found.Size} bytes, SHA-256 {found.Sha256}");
+                if (found != null)
+                {
+                    var into = Path.Combine(args[probeAt + 2], found.AssetName);
+                    updater.DownloadAsync(found, into, null, CancellationToken.None).GetAwaiter().GetResult();
+                    Console.WriteLine($"Downloaded and checked: {into} ({new FileInfo(into).Length} bytes)");
+                }
+                return 0;
+            }
+            if (args.Contains("--release-340-only"))
+            {
+                new App { ShutdownMode = ShutdownMode.OnExplicitShutdown, StartDesktopWindow = false }.InitializeComponent();
+                Release340Checks.Run(output, Check);
+                Console.WriteLine($"{passed} checks passed."); return 0;
+            }
             if (args.Contains("--release-330-only"))
             {
                 new App { ShutdownMode = ShutdownMode.OnExplicitShutdown, StartDesktopWindow = false }.InitializeComponent();
@@ -163,6 +185,7 @@ internal static class Program
             using (var release320Tools = new MediaTools()) Release320Checks.Run(release320Tools, output, Check);
             using (var release322Tools = new MediaTools()) Release322Checks.Run(release322Tools, output, Check);
             using (var release330Tools = new MediaTools()) Release330Checks.Run(release330Tools, output, Check);
+            Release340Checks.Run(output, Check);
             if (args.Contains("--still-only"))
             {
                 EyedropperUiChecks.Run(output, Check);

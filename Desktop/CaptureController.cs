@@ -19,7 +19,7 @@ internal enum CaptureMode { ActiveWindow, Object, Rectangle, Freehand, FullScree
 // capture bar with a notification-area icon; the editor opens when a capture goes to it or when asked.
 // The capture shortcuts work while TRT runs, even with the bar hidden. Captures for the editor are
 // kept in the session's CaptureStore and wiped when no longer needed.
-internal sealed class CaptureController : IDisposable
+internal sealed partial class CaptureController : IDisposable
 {
     private const int ScreenshotKey = 1, RecordingKey = 2, BarKey = 3, EditorKey = 4;
     private bool wasBarOff;
@@ -669,7 +669,7 @@ internal sealed class CaptureController : IDisposable
     internal void SetCaptureMousePointer(bool include) { Settings.CaptureMousePointer = include; Settings.Save(); bar?.ShowSettings(Settings); }
     internal void ShowAbout(Window? owner)
     {
-        AboutWindow.Open(owner, System.Text.RegularExpressions.Regex.Match(MainWindow.AboutText, @"\d+\.\d+\.\d+").Value);
+        AboutWindow.Open(owner, System.Text.RegularExpressions.Regex.Match(MainWindow.AboutText, @"\d+\.\d+\.\d+").Value, CheckForUpdatesAsync);
     }
 
     // ---- Screen recording ----
@@ -862,6 +862,7 @@ internal sealed class CaptureController : IDisposable
         if (failed.Count > 0) ShowError("Quit", "TRT could not wipe these captures. Please delete them yourself:\n" + string.Join("\n", failed));
         Settings.Save();
         Dispose();
+        afterQuit?.Invoke(); // 3.4.0: starts the updated TRT (it waits for this one to end).
         Application.Current?.Shutdown();
     }
     // Windows is signing out or shutting down: no questions, wipe what can be wiped.

@@ -77,10 +77,10 @@ internal static class Release027Checks
         // 0.27.1 (David): the simple About box, like the original TRT's, with his description where the old one had its blank area.
         var about = new AboutWindow("0.27.1") { Left = -20000, Top = 0, ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual };
         about.Show(); about.UpdateLayout();
-        var aboutTexts = Descendants<TextBlock>(about).Where(t => t.TemplatedParent is not Button && t.Parent is not Button).Select(t => t.Text).Where(t => t is not ("Copy" or "Close")).ToList(); // 0.28.0: button captions aside.
+        var aboutTexts = Descendants<TextBlock>(about).Where(t => t.TemplatedParent is not Button && t.Parent is not Button).Select(t => t.Text).Where(t => t is not ("Copy" or "Close" or "Check for Updates" or "")).ToList(); // 0.28.0: button captions aside.
         var descriptionBlock = Descendants<TextBlock>(about).First(t => t.Text == AboutWindow.Description);
         // 0.28.0: in this TRT's style, the copyright sits under the name and version.
-        check(aboutTexts.Take(6).SequenceEqual(["TinyRedactionTool v0.27.1", "Copyright (C) 2026 David McCabe", AboutWindow.Description, "Local media processing. No telemetry or media uploads.",
+        check(aboutTexts.Take(6).SequenceEqual(["TinyRedactionTool v0.27.1", "Copyright (C) 2026 David McCabe", AboutWindow.Description, "Local media processing. No telemetry or media uploads. Connects to GitHub only when you click Check for Updates.",
                   "Licensed under GPL-2.0-or-later. Source available on GitHub.", AboutWindow.SourceAddress]) && about.Title == "About TinyRedactionTool",
             $"the About box reads: name and version, copyright, David's description, local processing, licence, the address (got {string.Join(" | ", aboutTexts)})");
         check(descriptionBlock.ActualHeight > 40 && descriptionBlock.ActualWidth <= about.ActualWidth - 40 && about.ActualHeight < 460,
@@ -111,8 +111,8 @@ internal static class Release027Checks
             var file = menu.Items.OfType<MenuItem>().First(m => Header(m) == "File");
             // 3.1.2 (David): the File menu's order and shortcuts. 3.3.0: Save, Save As and Save Project together; Export and Save Media As gone.
             var fileItems = file.Items.OfType<MenuItem>().Take(8).Select(m => Header(m) + (string.IsNullOrEmpty(m.InputGestureText) ? "" : " " + m.InputGestureText)).ToArray();
-            check(fileItems.SequenceEqual(["New Image… Ctrl+N", "Open Media… Ctrl+O", "Save Ctrl+S", "Save As… Ctrl+Shift+S", "Save Project…", "Add Image… Ctrl+Shift+O", "Open Project…", "File Info… Ctrl+I"]),
-                "the File menu reads New Image, Open Media (Ctrl+O), Save (Ctrl+S), Save As (Ctrl+Shift+S), Save Project, Add Image, Open Project, File Info: " + string.Join(" | ", fileItems));
+            check(fileItems.SequenceEqual(["New Image… Ctrl+N", "Open Media… Ctrl+O", "Save Ctrl+S", "Save As… Ctrl+Shift+S", "Open Project…", "Save Project…", "Add Image… Ctrl+Shift+O", "File Info… Ctrl+I"]),
+                "the File menu reads New Image, Open Media (Ctrl+O), Save (Ctrl+S), Save As (Ctrl+Shift+S), Open Project, Save Project, Add Image, File Info (3.4.0): " + string.Join(" | ", fileItems));
             check(!items.Any(m => Header(m) is "Export…" or "Save Media As…"), "Export and Save Media As are gone from the menus");
             check(items.Any(m => Header(m) == "Add Image…") && items.Any(m => Header(m) == "Paste onto Image") && items.Any(m => Header(m) == "Resize Image…")
                   && !items.Any(m => Header(m).Contains("picture", StringComparison.OrdinalIgnoreCase)),

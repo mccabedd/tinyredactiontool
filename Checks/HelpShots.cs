@@ -117,7 +117,7 @@ internal static class HelpShots
             settings.Close();
             Show(new NewPictureWindow(null, null), Path.Combine(folder, "new-image.png"));
             Show(new ResizeWindow(1200, 800), Path.Combine(folder, "resize.png"));
-            Show(new AboutWindow("3.0.0"), Path.Combine(folder, "about.png"));
+            Show(new AboutWindow(System.Text.RegularExpressions.Regex.Match(MainWindow.AboutText, @"\d+\.\d+\.\d+").Value, (_, _) => Task.FromResult("")), Path.Combine(folder, "about.png")); // 3.4.0: with Check for Updates on (nothing is asked of GitHub).
             Show(new ThemedMessage("Wipe TRT's old captures and working copies, clear Undo, and forget the folders TRT last used?\n\nWhat is open in the editor stays. Files you saved or exported are not touched.", "Remove History", MessageBoxButton.YesNo, MessageBoxImage.Question), Path.Combine(folder, "remove-history.png"));
             Show(new RecorderWindow(new AppSettings()), Path.Combine(folder, "recorder.png"));
             editor.Close(); Pump();

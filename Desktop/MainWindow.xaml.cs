@@ -1009,8 +1009,8 @@ public partial class MainWindow : Window
     }
     // 0.28.0: the notification-area menu and the ruler's menu (Windows Forms) follow the theme too.
     internal static event Action<bool>? ThemeApplied;
-    private void About(object sender, RoutedEventArgs e) => AboutWindow.Open(this, VersionText);
+    private void About(object sender, RoutedEventArgs e) => AboutWindow.Open(this, VersionText, captures == null ? null : captures.CheckForUpdatesAsync);
     private void OpenHelp(object sender, RoutedEventArgs e) => HelpManual.Open(this); // 3.0.0 (David)
     // 0.27.1 (David): the About box is the simple one (AboutWindow); this text is its version and description.
-    internal static string AboutText => "TinyRedactionTool 3.3.0\n" + AboutWindow.Description;
+    internal static string AboutText => "TinyRedactionTool 3.4.0\n" + AboutWindow.Description;
 }

@@ -13,6 +13,8 @@ public partial class App : Application
         AppContext.SetSwitch("Switch.System.Windows.Controls.Text.UseAdornerForTextboxSelectionRendering", false);
     }
     internal bool StartDesktopWindow { get; init; } = true;
+    internal const string AfterUpdateArgument = "--after-update";
+    internal static string? PolicyPath { get; private set; } // Passed on when an update restarts TRT.
     private CaptureController? captures;
     private SingleInstance? instance;
     protected override void OnStartup(StartupEventArgs e)
@@ -28,6 +30,18 @@ public partial class App : Application
             {
                 if (args.Count < 2) throw new ArgumentException("Use --managed-policy <local policy.json>.");
                 policyPath = args[1]; args.RemoveRange(0, 2);
+            }
+            PolicyPath = policyPath;
+            // 3.4.0: started by Check for Updates: wait (up to a minute) for the TRT that installed this one to end, so the
+            // single-instance check below finds no other TRT.
+            var updated = false;
+            var after = args.IndexOf(AfterUpdateArgument);
+            if (after >= 0)
+            {
+                if (after + 1 >= args.Count || !int.TryParse(args[after + 1], out var previous)) throw new ArgumentException($"Use {AfterUpdateArgument} <process id>.");
+                args.RemoveRange(after, 2); updated = true;
+                try { using var old = System.Diagnostics.Process.GetProcessById(previous); old.WaitForExit(60_000); }
+                catch (ArgumentException) { } // Already ended.
             }
             // 0.18.0: "--startup" (from the Windows startup entry) starts quietly in the notification area.
             var quiet = args.Remove(StartupEntry.Argument);
@@ -52,6 +66,7 @@ public partial class App : Application
             captures.Start(showBar: !quiet);
             instance.Listen(path => Dispatcher.BeginInvoke(async () => { if (path == null) captures.ShowBar(); else await captures.OpenPathInEditorAsync(path); }));
             if (file != null) _ = captures.OpenPathInEditorAsync(file);
+            if (updated) captures.ShowUpdated();
         }
         catch (Exception ex) { ThemedMessage.Show("Application could not start.\n\n" + ex.Message, "Application Could Not Start"); Shutdown(1); }
     }
