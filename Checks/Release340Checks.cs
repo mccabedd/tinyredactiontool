@@ -116,7 +116,7 @@ internal static class Release340Checks
         var exe = Path.Combine(folder, "TinyRedactionTool-3.3.0.exe"); File.WriteAllText(exe, "old"); File.WriteAllText(UpdateSwap.DownloadPath(exe), "new");
         UpdateSwap.Swap(exe, UpdateSwap.DownloadPath(exe));
         check(File.ReadAllText(exe) == "new" && File.ReadAllText(UpdateSwap.OldPath(exe)) == "old" && !File.Exists(UpdateSwap.DownloadPath(exe)),
-            "the new program takes the old one's name (shortcuts keep working); the old one is kept as .old");
+            "the new program takes the old one's name (shortcuts keep working); the old one is set aside as .old until the new one starts");
         UpdateSwap.Undo(exe, UpdateSwap.DownloadPath(exe));
         check(File.ReadAllText(exe) == "old" && !File.Exists(UpdateSwap.OldPath(exe)) && File.ReadAllText(UpdateSwap.DownloadPath(exe)) == "new", "undoing puts the old program back and keeps the download");
         File.Delete(UpdateSwap.DownloadPath(exe));
@@ -124,6 +124,17 @@ internal static class Release340Checks
         check(failed && File.ReadAllText(exe) == "old" && !File.Exists(UpdateSwap.OldPath(exe)), "a swap that fails half-way puts the old program straight back");
         var (besideTarget, beside) = UpdateSwap.DownloadTarget(exe, asset);
         check(beside && besideTarget == UpdateSwap.DownloadPath(exe), "the download goes beside the program when that folder can be written");
+        // 3.5.1: which program may replace itself. The packaged .exe unpacks its code to a temporary folder, so this is
+        // decided from the program file: a TRT .exe with no TinyRedactionTool.dll beside it.
+        var alone = Path.Combine(folder, "alone"); Directory.CreateDirectory(alone); var aloneExe = Path.Combine(alone, "TinyRedactionTool.exe"); File.Copy(program, aloneExe, true);
+        check(!Updater.IsSingleFileProgram(program) && Updater.IsSingleFileProgram(aloneExe) && !Updater.IsSingleFileProgram(Environment.ProcessPath) && !Updater.IsSingleFileProgram(null),
+            "a TRT .exe on its own can replace itself; a development build (its .dll beside it) and dotnet.exe can't (3.5.1)");
+        var renamedExe = Path.Combine(alone, "TRT.exe"); File.Copy(program, renamedExe, true);
+        check(Updater.IsSingleFileProgram(renamedExe), "a renamed TRT .exe can still replace itself");
+        // 3.5.1 (as notepad.md does): the first start after an update deletes the previous version and the download.
+        File.WriteAllText(UpdateSwap.OldPath(aloneExe), "old"); File.WriteAllText(UpdateSwap.DownloadPath(aloneExe), "new"); File.WriteAllText(UpdateSwap.DownloadPath(aloneExe) + ".partial", "part");
+        check(UpdateSwap.CleanUp(aloneExe) && File.Exists(aloneExe) && !File.Exists(UpdateSwap.OldPath(aloneExe)) && !File.Exists(UpdateSwap.DownloadPath(aloneExe)) && !File.Exists(UpdateSwap.DownloadPath(aloneExe) + ".partial"),
+            "after an update the previous version (.old) and the download are deleted; the program stays");
 
         // ---- The whole flow, with the About box ----
         var temp = Path.Combine(output, "release340-temp"); if (Directory.Exists(temp)) Directory.Delete(temp, true); Directory.CreateDirectory(temp);

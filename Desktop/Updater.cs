@@ -25,8 +25,18 @@ internal sealed class Updater(Version current, HttpMessageHandler? handler = nul
     internal sealed class UpdateRefused(string message) : IOException(message);
 
     public static Version CurrentVersion => Version.Parse(System.Text.RegularExpressions.Regex.Match(MainWindow.AboutText, @"\d+\.\d+\.\d+").Value);
-    // The standalone single-file .exe can replace itself; a development build (TinyRedactionTool.dll beside it) can't.
-    public static bool CanReplaceItself => string.IsNullOrEmpty(typeof(Updater).Assembly.Location) && Environment.ProcessPath is { Length: > 0 };
+    // The standalone single-file .exe can replace itself; a development build (TinyRedactionTool.dll beside it) or a run
+    // through dotnet.exe can't. 3.5.1: decided from the program file itself. (3.4.0 and 3.5.0 asked whether the code had a
+    // file of its own, but the packaged .exe unpacks its code into a temporary folder, so it always looked like a
+    // development build and the update only downloaded.)
+    public static bool CanReplaceItself => IsSingleFileProgram(Environment.ProcessPath);
+    internal static bool IsSingleFileProgram(string? exe)
+    {
+        if (string.IsNullOrEmpty(exe) || !File.Exists(exe) || !exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) return false;
+        var code = typeof(Updater).Assembly.GetName().Name + ".dll";
+        if (File.Exists(Path.Combine(Path.GetDirectoryName(exe)!, code))) return false; // A development build.
+        return System.Diagnostics.FileVersionInfo.GetVersionInfo(exe).ProductName == "TinyRedactionTool"; // Not dotnet.exe.
+    }
 
     private HttpClient Client()
     {
@@ -177,7 +187,7 @@ internal sealed class Updater(Version current, HttpMessageHandler? handler = nul
 }
 
 // Putting the checked download in place of the running .exe (3.4.0): Windows lets a running program
-// be renamed, so the old .exe becomes <name>.old (kept, to go back), the new one takes its name (shortcuts, the startup
+// be renamed, so the old .exe becomes <name>.old (3.5.1: deleted when the new one starts), the new one takes its name (shortcuts, the startup
 // entry and "Open with" keep working), and if anything fails the old one is put back. Undo is for when TRT then can't
 // close (the user kept unsaved work open).
 internal static class UpdateSwap
@@ -191,6 +201,21 @@ internal static class UpdateSwap
         File.Move(exe, old);
         try { File.Move(download, exe); }
         catch { File.Move(old, exe); throw; }
+    }
+    // 3.5.1 (David: as notepad.md does): the first start after an update deletes the previous version and any leftover
+    // download. The old program may still be ending, so it is tried for about ten seconds. True when both are gone.
+    public static bool CleanUp(string exe)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                foreach (var leftover in new[] { OldPath(exe), DownloadPath(exe), DownloadPath(exe) + ".partial" }) if (File.Exists(leftover)) File.Delete(leftover);
+                return true;
+            }
+            catch (Exception ex) when ((ex is IOException or UnauthorizedAccessException) && attempt < 40) { Thread.Sleep(250); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return false; }
+        }
     }
     public static void Undo(string exe, string download)
     {

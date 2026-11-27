@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.5.1 (November 2026)
+- **Check for Updates now installs the update itself**: TRT closes, puts the new version in place of the old one (same name and folder, so shortcuts keep working) and opens again as the new version. In 3.4.0 and 3.5.0 the packaged TRT wrongly decided it couldn't replace itself, so it only downloaded the new version into a temporary folder and left the rest to you. (Those two versions still behave that way once more: the update to 3.5.1 has to be put in place by hand; after that, updates install themselves.)
+- After an update, the new version deletes the previous one (`.old`) and the download, as notepad.md does.
+
 ## 3.5.0 (November 2026)
 - **Tabs.** Every screenshot, recording and opened file (File › Open Media, Open Project, File Explorer, drag and drop) gets its own tab along the top of the picture; an empty tab takes the next one. Each tab keeps its own redactions, notes, Undo and zoom. **+** (Ctrl+T) adds an empty tab; a tab's **✕** (Ctrl+W, or a middle click) closes it, asking first when it is unsaved; Ctrl+Tab and Ctrl+Shift+Tab (or Ctrl+Page Down / Page Up) go to the next and previous tab. A frame chosen for Edit in Capture Frame opens in a new tab.
 - **Copy part of one tab into another.** With Select, the dashed box you drag round an area stays marked; Copy (Ctrl+C) then copies just that area, as it would be saved (redactions and notes included). Paste (Ctrl+V) puts it into another tab: in an empty tab it becomes the picture, on a picture it goes on top as an item to move and size (as Paste onto Image), and with a video open it goes to a new tab.

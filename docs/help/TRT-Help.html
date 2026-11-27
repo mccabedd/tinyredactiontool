@@ -451,13 +451,13 @@
 <ol>
  <li>TRT asks GitHub for the latest release of TinyRedactionTool. If it is newer than yours, you see what's new and are asked whether to install it. An older or the same version is never offered.</li>
  <li>TRT downloads the new <span class="ui">.exe</span> and checks it: it must be the size GitHub lists, match the SHA-256 checksum GitHub publishes for it, and be a 64-bit TinyRedactionTool program of that version. Anything else is deleted.</li>
- <li>TRT closes, asking about unsaved work as it always does, and starts again as the new version. If you keep TRT open (for unsaved work), nothing is changed.</li>
+ <li>TRT closes, asking about unsaved work as it always does, puts the new version in place of the old one, and opens again by itself as the new version. If you keep TRT open (for unsaved work), nothing is changed.</li>
 </ol>
 <ul>
  <li>TRT only talks to GitHub, over a secure connection (HTTPS). If it is ever sent anywhere else, it stops and downloads nothing.</li>
  <li>The new version takes the old one's place and name, so your shortcuts, <span class="ui">Start When Windows Starts</span> and <span class="ui">Open with TRT</span> keep working. The file name may still show the old version number; the title bar shows the real one.</li>
- <li>The previous version is kept beside it with <span class="ui">.old</span> added to its name. To go back: quit TRT, delete the new <span class="ui">.exe</span>, and remove <span class="ui">.old</span> from the old one's name.</li>
- <li>If TRT can't write to the folder it runs from, it leaves the checked download in your temporary folder and tells you where; close TRT and run the new file yourself.</li>
+ <li>While it swaps them, the previous version is set aside with <span class="ui">.old</span> added to its name; the new version deletes it when it starts. To go back to an older version, download it from the releases page on GitHub.</li>
+ <li>If TRT can't write to the folder it runs from (for example under Program Files), it leaves the checked download in your temporary folder and tells you where; close TRT and run the new file yourself. Keep TRT in a folder of your own to have it update itself.</li>
 </ul>
 <h2 id="settings">Settings</h2>
 <p>Open Settings from <span class="ui">Help › Settings…</span>, from the capture bar's menu, or with <img class="icon" src="images/icons/settingsbutton.png" alt=""> (if it's on your toolbar). Click <span class="ui">OK</span> to keep your changes, or <span class="ui">Cancel</span>.</p>

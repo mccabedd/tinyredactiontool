@@ -80,6 +80,10 @@ internal static class Program
                 }
                 return 0;
             }
+            // 3.5.1: --single-file-probe <exe>: whether that program file may replace itself with an update (run by hand on
+            // the packaged .exe; the checks can't, as they run before packaging).
+            var singleAt = Array.IndexOf(args, "--single-file-probe");
+            if (singleAt >= 0 && singleAt + 1 < args.Length) { Console.WriteLine($"Can replace itself: {Updater.IsSingleFileProgram(args[singleAt + 1])}"); return 0; }
             if (args.Contains("--release-350-only"))
             {
                 new App { ShutdownMode = ShutdownMode.OnExplicitShutdown, StartDesktopWindow = false }.InitializeComponent();

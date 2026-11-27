@@ -25,9 +25,12 @@ internal sealed partial class CaptureController
             return Process.Start(start);
         };
 
-    // The first start after an update: say so, and where the previous version was kept.
-    internal void ShowUpdated() =>
-        Notify($"Updated to TinyRedactionTool {Updater.CurrentVersion.ToString(3)}. The previous version is kept as {Path.GetFileName(UpdateSwap.OldPath(Environment.ProcessPath ?? "TinyRedactionTool.exe"))}.");
+    // The first start after an update: say so, and (3.5.1, as notepad.md does) delete the previous version and the download.
+    internal void ShowUpdated()
+    {
+        Notify($"Updated to TinyRedactionTool {Updater.CurrentVersion.ToString(3)}.");
+        if (Updater.CanReplaceItself && Environment.ProcessPath is { } exe) _ = Task.Run(() => UpdateSwap.CleanUp(exe));
+    }
     // status: a line in the About box ("Checking…", "Downloading… 40 %"). Returns what happened, for the About box.
     internal async Task<string> CheckForUpdatesAsync(Window? owner, Action<string> status)
     {
@@ -46,7 +49,7 @@ internal sealed partial class CaptureController
         if (notes.Length > 1200) notes = notes[..1200].TrimEnd() + "…";
         var replace = ProgramPath != null;
         var question = $"TinyRedactionTool {release.Version.ToString(3)} is available (you have {Updater.CurrentVersion.ToString(3)}).\n\n{notes}\n\n" +
-            (replace ? "Download and install it? TRT checks the download, then closes (asking about unsaved work first) and starts again." : "Download it? TRT checks the download and tells you where it is.");
+            (replace ? "Download and install it now? TRT checks the download, then closes (asking about unsaved work first) and reopens as the new version." : "Download it? TRT checks the download and tells you where it is.");
         if (!AskUpdate(owner, question, "Update Available")) return "Not updated.";
 
         var (target, beside) = UpdateSwap.DownloadTarget(ProgramPath, release.AssetName);
