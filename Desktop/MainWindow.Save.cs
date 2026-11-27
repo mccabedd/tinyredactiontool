@@ -39,8 +39,11 @@ public partial class MainWindow
         saveTarget = existing == null ? openedPath : null;
         lastSavedCopy = null;
     }
-    private void UpdateTitle() =>
+    private void UpdateTitle()
+    {
         Title = $"TinyRedactionTool {VersionText}" + (picturesOnly ? " · Image Editor" : "") + (saveTarget != null && Project.Media != null ? " - " + Path.GetFileName(saveTarget) : "");
+        captures?.RefreshTabs(); // 3.5.0: the tab's name follows.
+    }
     private void UpdateSaveUi()
     {
         if (SecureDeleteMenuItem == null) return;
@@ -253,6 +256,7 @@ public partial class MainWindow
             if (backing != null) captures!.Store.MarkKept(media.Path);
         }, "Saving cancelled. No project file was written.", "Saving Project");
         if (!saved) return false;
+        captures?.RefreshTabs(); // 3.5.0: the tab is named after the project.
         Status.Text = backing != null
             ? $"Project saved, with a copy of the {(media.IsVideo ? "video" : "picture")} beside it ({Path.GetFileName(backing)}), so it opens again after TRT clears its temporary files."
             : "Project saved. Media is referenced, not embedded.";

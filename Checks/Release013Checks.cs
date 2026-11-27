@@ -105,7 +105,7 @@ internal static class Release013Checks
         var savedPath = AppSettings.Path;
         AppSettings.Path = Path.Combine(output, "release013-settings.json"); if (File.Exists(AppSettings.Path)) File.Delete(AppSettings.Path);
         var temp = Path.Combine(output, "release013-temp"); if (Directory.Exists(temp)) Directory.Delete(temp, true); Directory.CreateDirectory(temp);
-        var controller = new CaptureController(new ManagedPolicy(), false, temp);
+        var controller = new CaptureController(new ManagedPolicy(), false, temp) { ReplaceInShownTab = true };
         controller.EditorFactory = () => new MainWindow(controller.Policy) { WindowState = WindowState.Normal, Width = 1240, Height = 800, Left = -20000, Top = 0, ShowInTaskbar = false, ConfirmKeepQuestion = (_, _, _) => true };
         var previousClipboard = ClipboardRetry.Text();
         try

@@ -112,7 +112,7 @@ internal static class Release021Checks
             var other = controller.OtherEditors[0]; var otherPreview = (PreviewSurface)other.FindName("Preview");
             check(otherPreview.Project.Media is { IsVideo: false } frame && Path.GetFileName(frame.Path).StartsWith("CAPTURE_") && frame.Width == preview.Project.Media!.Width,
                 "the new window has the frame as a picture");
-            check(controller.Editor == editor && preview.Project.Media is { IsVideo: true } && preview.Project.Media.Path == original, "the video stays open in the first window");
+            check(controller.Editor == other && controller.Tabs.Contains(editor) && preview.Project.Media is { IsVideo: true } && preview.Project.Media.Path == original, "the frame is in a new tab (3.5.0); the video stays open in the first tab");
             other.UpdateLayout();
             check(other.PicturesOnly && other.Title.Contains("Image Editor") && ((FrameworkElement)other.FindName("AppendVideoMenuItem")).Visibility != Visibility.Visible
                 && ((FrameworkElement)other.FindName("CaptureFrameMenuItem")).Visibility != Visibility.Visible && ((FrameworkElement)other.FindName("PlaybackBar")).Visibility != Visibility.Visible
@@ -122,8 +122,8 @@ internal static class Release021Checks
             check(!Wait(() => other.OpenPathAsync(video)) && otherFailures.Any(f => f.Contains("pictures only")) && otherPreview.Project.Media is { IsVideo: false },
                 "the picture editor will not open a video (it says to use the main editor) and keeps its picture");
             var framePath = otherPreview.Project.Media!.Path;
-            other.Close(); Pump();
-            check(controller.OtherEditors.Count == 0 && !File.Exists(framePath), "closing the frame's window wipes its working copy");
+            controller.CloseTab(other); Pump();
+            check(controller.OtherEditors.Count == 0 && !File.Exists(framePath) && controller.Editor == editor && editor.IsVisible, "closing the frame's tab wipes its working copy and shows the video's tab");
             editor.Close(); Pump();
         }
         finally

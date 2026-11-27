@@ -1,5 +1,5 @@
 <Window x:Class="TinyRedaction.Desktop.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:TinyRedaction.Desktop"
- Title="TinyRedactionTool 3.4.0" Icon="Assets/icon.ico" Width="1240" Height="800" MinWidth="900" MinHeight="580" WindowState="Maximized" Background="{DynamicResource Background}" Foreground="{DynamicResource Foreground}" PreviewKeyDown="WindowKeyDown" AllowDrop="True" DragOver="MediaDragOver" DragEnter="MediaDragOver" Drop="MediaDropped">
+ Title="TinyRedactionTool 3.5.0" Icon="Assets/icon.ico" Width="1240" Height="800" MinWidth="900" MinHeight="580" WindowState="Maximized" Background="{DynamicResource Background}" Foreground="{DynamicResource Foreground}" PreviewKeyDown="WindowKeyDown" AllowDrop="True" DragOver="MediaDragOver" DragEnter="MediaDragOver" Drop="MediaDropped">
  <!-- Editor layout: menu bar, one row of icon buttons, options bar, workspace, status bar. -->
  <Grid>
  <DockPanel>
@@ -24,6 +24,10 @@
     <MenuItem Header="A_dd Image…" InputGestureText="Ctrl+Shift+O" Click="AddPictureFiles" IsEnabled="{Binding IsEnabled, ElementName=AddImageButton}" ToolTip="Put Images onto This One, to Move and Size"/>
     <!-- 0.23.0: what is written inside the file besides the picture, and what saving removes. -->
     <MenuItem Header="File _Info…" InputGestureText="Ctrl+I" Click="ShowFileInfo"/>
+    <Separator/>
+    <!-- 3.5.0 (David): tabs. Save in every tab with unsaved work; close every tab (asking about unsaved ones). -->
+    <MenuItem x:Name="SaveAllTabsMenuItem" Header="Save A_ll Tabs" Click="SaveAllTabs" ToolTip="Save Each Tab with Unsaved Work, in Turn"/>
+    <MenuItem x:Name="CloseAllTabsMenuItem" Header="Close All _Tabs" Click="CloseAllTabs" ToolTip="Close Every Tab, Asking About Unsaved Ones"/>
     <Separator/>
     <MenuItem x:Name="OriginalMenuItem" Header="Save or Copy the _Original Capture…" Click="KeepOriginal" IsEnabled="False"/>
     <!-- 3.3.0: secure deletion is its own command, after Save As wrote a copy; it names the exact file first. -->
@@ -192,7 +196,7 @@
     <Button x:Name="UndoButton" Style="{StaticResource ToolButton}" Content="Undo" Click="Undo" ToolTip="Undo (Ctrl+Z)" local:Toolbar.Icon="{StaticResource IconUndo}"/>
     <Button x:Name="RedoButton" Style="{StaticResource ToolButton}" Content="Redo" Click="Redo" ToolTip="Redo (Ctrl+Y)" local:Toolbar.Icon="{StaticResource IconRedo}"/>
     <Rectangle Style="{StaticResource ToolSeparator}"/>
-    <Button x:Name="SelectToolButton" Style="{StaticResource ToolButton}" Content="Select" Tag="Select" Click="SelectTool" ToolTip="Select, Move, Resize and Turn Shapes (Drag Round Several to Select Them)" local:Toolbar.Icon="{StaticResource IconSelect}" local:Toolbar.Accent="{StaticResource IconSelect}" local:Toolbar.AccentBrush="{StaticResource AccentWhite}"/>
+    <Button x:Name="SelectToolButton" Style="{StaticResource ToolButton}" Content="Select" Tag="Select" Click="SelectTool" ToolTip="Select, Move, Resize and Turn Shapes (Drag Round an Area to Select It and the Shapes in It)" local:Toolbar.Icon="{StaticResource IconSelect}" local:Toolbar.Accent="{StaticResource IconSelect}" local:Toolbar.AccentBrush="{StaticResource AccentWhite}"/>
     <Button x:Name="RectangleTool" Style="{StaticResource ToolButton}" Content="Rectangle" Tag="Rectangle" Click="SelectTool" ToolTip="Draw a Rectangle Redaction" local:Toolbar.Icon="{StaticResource IconRectangle}" local:Toolbar.Accent="{StaticResource IconRectangle}" local:Toolbar.AccentBrush="{StaticResource AccentSolid}"/>
     <Button x:Name="OvalTool" Style="{StaticResource ToolButton}" Content="Oval" Tag="Oval" Click="SelectTool" ToolTip="Draw an Oval Redaction" local:Toolbar.Icon="{StaticResource IconOval}" local:Toolbar.Accent="{StaticResource IconOval}" local:Toolbar.AccentBrush="{StaticResource AccentSolid}"/>
     <Button x:Name="PolygonTool" Style="{StaticResource ToolButton}" Content="Polygon" Tag="Polygon" Click="SelectTool" ToolTip="Draw a Polygon Redaction" local:Toolbar.Icon="{StaticResource IconPolygon}" local:Toolbar.Accent="{StaticResource IconPolygon}" local:Toolbar.AccentBrush="{StaticResource AccentSolid}"/>
@@ -282,6 +286,10 @@
      </StackPanel>
     </StackPanel>
    </WrapPanel>
+  </Border>
+  <!-- 3.5.0 (David): tabs, one per screenshot, recording or opened file (MainWindow.Tabs.cs). -->
+  <Border x:Name="TabBar" DockPanel.Dock="Top" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource ChromeLine}" BorderThickness="0,0,0,1" Padding="4,4,4,0" Visibility="Collapsed">
+   <WrapPanel x:Name="TabHeaders"/>
   </Border>
   <Grid>
    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition x:Name="PropertiesColumn" Width="0"/></Grid.ColumnDefinitions>

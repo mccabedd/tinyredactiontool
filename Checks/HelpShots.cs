@@ -34,7 +34,7 @@ internal static class HelpShots
         var temp = Path.Combine(testOutput, "help-temp"); if (Directory.Exists(temp)) Directory.Delete(temp, true); Directory.CreateDirectory(temp);
         var savedPath = AppSettings.Path; AppSettings.Path = Path.Combine(temp, "settings.json");
         MainWindow.ApplyThemeResources("Light");
-        var controller = new CaptureController(new ManagedPolicy(), false, temp);
+        var controller = new CaptureController(new ManagedPolicy(), false, temp) { ReplaceInShownTab = true };
         controller.EditorFactory = () => new MainWindow(controller.Policy) { WindowState = WindowState.Normal, Width = 1280, Height = 760, Left = -20000, Top = 0, ShowInTaskbar = false, ShowActivated = false, ConfirmKeepQuestion = (_, _, _) => true };
         var places = new Dictionary<string, object>();
         try

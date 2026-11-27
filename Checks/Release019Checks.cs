@@ -93,7 +93,7 @@ internal static class Release019Checks
         // ---- In the editor: Edit › Rotate on a real picture and a real video; Transform; the rotate handle; marching ants. ----
         var temp = Path.Combine(output, "release019-temp"); if (Directory.Exists(temp)) Directory.Delete(temp, true); Directory.CreateDirectory(temp);
         var savedPath = AppSettings.Path; AppSettings.Path = Path.Combine(output, "release019-settings.json"); if (File.Exists(AppSettings.Path)) File.Delete(AppSettings.Path);
-        var controller = new CaptureController(new ManagedPolicy(), false, temp);
+        var controller = new CaptureController(new ManagedPolicy(), false, temp) { ReplaceInShownTab = true };
         controller.EditorFactory = () => new MainWindow(controller.Policy) { WindowState = WindowState.Normal, Width = 1240, Height = 800, Left = -20000, Top = 0, ShowInTaskbar = false, ConfirmKeepQuestion = (_, _, _) => true };
         try
         {
@@ -153,7 +153,7 @@ internal static class Release019Checks
             check(preview.MultiRegions.SequenceEqual([second]) && preview.MultiAnnotations.Count == 1 && preview.HasMultiSelection, "dragging a dashed box with Select selects every shape inside it");
             preview.MouseDownAt(At(20, 160), MouseButton.Left, 1); preview.PointerMove(At(25, 155)); preview.PointerUp(); Pump();
             check(Math.Abs(second.GeometryAt(0).X - 15) < 0.01 && Math.Abs(preview.MultiAnnotations[0].Box.X - 65) < 0.01, $"dragging one of them moves the whole group ({second.GeometryAt(0).X}, {preview.MultiAnnotations[0].Box.X})");
-            check(editor.TransformSelected(TurnOp.FlipHorizontal) && second.GeometryAt(0).X == 65 && preview.Project.Annotations[^1].Box.X == 15, "Transform flips the group as one");
+            check(editor.TransformSelected(TurnOp.FlipHorizontal) && Math.Abs(second.GeometryAt(0).X - 65) < 0.01 && Math.Abs(preview.Project.Annotations[^1].Box.X - 15) < 0.01, $"Transform flips the group as one ({second.GeometryAt(0).X}, {preview.Project.Annotations[^1].Box.X}, {preview.MultiRegions.Count}+{preview.MultiAnnotations.Count})");
             var count = preview.Project.Regions.Count + preview.Project.Annotations.Count;
             typeof(MainWindow).GetMethod("DeleteRegion", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.Invoke(editor, [editor, new RoutedEventArgs()]);
             check(preview.Project.Regions.Count + preview.Project.Annotations.Count == count - 2, "Delete removes the whole group");

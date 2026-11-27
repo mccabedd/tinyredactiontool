@@ -80,6 +80,12 @@ internal static class Program
                 }
                 return 0;
             }
+            if (args.Contains("--release-350-only"))
+            {
+                new App { ShutdownMode = ShutdownMode.OnExplicitShutdown, StartDesktopWindow = false }.InitializeComponent();
+                Release350Checks.Run(output, Check);
+                Console.WriteLine($"{passed} checks passed."); return 0;
+            }
             if (args.Contains("--release-340-only"))
             {
                 new App { ShutdownMode = ShutdownMode.OnExplicitShutdown, StartDesktopWindow = false }.InitializeComponent();
@@ -186,6 +192,7 @@ internal static class Program
             using (var release322Tools = new MediaTools()) Release322Checks.Run(release322Tools, output, Check);
             using (var release330Tools = new MediaTools()) Release330Checks.Run(release330Tools, output, Check);
             Release340Checks.Run(output, Check);
+            Release350Checks.Run(output, Check);
             if (args.Contains("--still-only"))
             {
                 EyedropperUiChecks.Run(output, Check);

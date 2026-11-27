@@ -37,7 +37,7 @@ internal static class Release322Checks
         var temp = Path.Combine(output, "release322-temp"); if (Directory.Exists(temp)) Directory.Delete(temp, true); Directory.CreateDirectory(temp);
         var savedPath = AppSettings.Path; AppSettings.Path = Path.Combine(output, "release322-settings.json"); if (File.Exists(AppSettings.Path)) File.Delete(AppSettings.Path);
         var questions = new List<string>(); var answer = true; Exception? failed = null;
-        var controller = new CaptureController(new ManagedPolicy(), false, temp);
+        var controller = new CaptureController(new ManagedPolicy(), false, temp) { ReplaceInShownTab = true };
         controller.EditorFactory = () => new MainWindow(controller.Policy)
         {
             WindowState = WindowState.Normal, Width = 1240, Height = 800, Left = -20000, Top = 0, ShowInTaskbar = false, ShowActivated = false,

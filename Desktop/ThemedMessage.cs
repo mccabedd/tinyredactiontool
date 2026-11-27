@@ -26,11 +26,24 @@ internal sealed class ThemedMessage : Window
         return box.Result;
     }
 
-    internal ThemedMessage(string text, string caption, MessageBoxButton buttons, MessageBoxImage image)
+    // 3.5.0 (David): the unsaved screenshot questions. One sentence per line, [Cancel] on its own at the left, [No] [Yes]
+    // at the right, Yes the default (Enter); Esc is Cancel. The box is only as wide as its lines.
+    internal static MessageBoxResult ShowUnsaved(Window? owner, string text, string caption)
+    {
+        if (Answer is { } answer) return answer(text, caption, MessageBoxButton.YesNoCancel);
+        var box = new ThemedMessage(text, caption, MessageBoxButton.YesNoCancel, MessageBoxImage.Warning, split: true);
+        if (owner is { IsVisible: true } && owner.IsLoaded) { box.Owner = owner; box.WindowStartupLocation = WindowStartupLocation.CenterOwner; }
+        else { box.WindowStartupLocation = WindowStartupLocation.CenterScreen; box.Topmost = true; }
+        box.ShowDialog();
+        return box.Result;
+    }
+
+    internal ThemedMessage(string text, string caption, MessageBoxButton buttons, MessageBoxImage image, bool split = false)
     {
         Title = caption; SizeToContent = SizeToContent.WidthAndHeight; ResizeMode = ResizeMode.NoResize; ShowInTaskbar = false;
-        MinWidth = 320; MaxWidth = 560; FontFamily = new FontFamily("Segoe UI"); FontSize = 13;
+        MinWidth = split ? 0 : 320; MaxWidth = 560; FontFamily = new FontFamily("Segoe UI"); FontSize = 13;
         SetResourceReference(BackgroundProperty, "Background"); SetResourceReference(ForegroundProperty, "Foreground");
+        if (split) { Content = SplitLayout(text, caption, image); return; }
         var choices = buttons switch
         {
             MessageBoxButton.OKCancel => new[] { MessageBoxResult.OK, MessageBoxResult.Cancel },
@@ -59,6 +72,32 @@ internal sealed class ThemedMessage : Window
         Content = layout;
         // Ctrl+C copies the message, as Windows' box does.
         KeyDown += (_, e) => { if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control) try { Clipboard.SetText(caption + "\n\n" + text); } catch (System.Runtime.InteropServices.ExternalException) { } };
+    }
+
+    private DockPanel SplitLayout(string text, string caption, MessageBoxImage image)
+    {
+        Result = MessageBoxResult.Cancel; // Closing the box keeps everything as it is.
+        var message = new DockPanel { Margin = new Thickness(20, 18, 24, 18) };
+        if (Glyph(image) is { } glyph) { DockPanel.SetDock(glyph, Dock.Left); message.Children.Add(glyph); }
+        message.Children.Add(new TextBlock { Name = "MessageText", Text = text, VerticalAlignment = VerticalAlignment.Center, LineHeight = 19 });
+        Button Make(MessageBoxResult choice)
+        {
+            var button = new Button { Content = choice.ToString(), MinWidth = 76, Padding = new Thickness(12, 5, 12, 5), Tag = choice, IsDefault = choice == MessageBoxResult.Yes, IsCancel = choice == MessageBoxResult.Cancel };
+            if (choice == MessageBoxResult.Yes) { button.SetResourceReference(BackgroundProperty, "ToolSelected"); button.SetResourceReference(ForegroundProperty, "ToolSelectedText"); }
+            button.Click += (_, _) => { Result = choice; DialogResult = true; };
+            return button;
+        }
+        var row = new DockPanel { Margin = new Thickness(12, 10, 12, 12), LastChildFill = false };
+        var cancel = Make(MessageBoxResult.Cancel); DockPanel.SetDock(cancel, Dock.Left); row.Children.Add(cancel);
+        var yes = Make(MessageBoxResult.Yes); yes.Margin = new Thickness(6, 0, 0, 0); DockPanel.SetDock(yes, Dock.Right); row.Children.Add(yes);
+        var no = Make(MessageBoxResult.No); no.Margin = new Thickness(24, 0, 0, 0); DockPanel.SetDock(no, Dock.Right); row.Children.Add(no);
+        var footer = new Border { Child = row, BorderThickness = new Thickness(0, 1, 0, 0) };
+        footer.SetResourceReference(Border.BackgroundProperty, "Surface"); footer.SetResourceReference(Border.BorderBrushProperty, "ChromeLine");
+        var layout = new DockPanel();
+        DockPanel.SetDock(footer, Dock.Bottom); layout.Children.Add(footer); layout.Children.Add(message);
+        KeyDown += (_, e) => { if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control) try { Clipboard.SetText(caption + "\n\n" + text); } catch (System.Runtime.InteropServices.ExternalException) { } };
+        Loaded += (_, _) => yes.Focus();
+        return layout;
     }
 
     // A round badge with !, ? or i, in TRT's own drawing.

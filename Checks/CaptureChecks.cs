@@ -158,11 +158,17 @@ internal static class CaptureChecks
             check(E<MenuItem>("OriginalMenuItem").IsEnabled && E<MenuItem>("CaptureMenu").IsVisible && E<MenuItem>("QuitMenuItem").Visibility == Visibility.Visible && ((string)E<Button>("OriginalButton").ToolTip).Contains("as Captured, Without Edits"),
                 "the editor shows Original and a Capture menu for a capture");
 
-            // A second capture while the first is unsaved: the editor asks; keeping the first wipes the new one.
+            // A second capture while the first is unsaved: 3.5.0, it opens in a tab of its own (nothing asked); closing
+            // that tab asks, then wipes it, and the first tab is shown again.
             answer = false; asked = null;
             Wait(() => controller.DeliverAsync(Picture(40, 30, 0, 0, 0)));
-            check(asked != null && preview.Project.Media?.Path == firstCapture && controller.Store.Files.Count == 1, "a new capture asks before replacing an unsaved one, and keeping the current one leaves it open (the new one is offered for saving, then wiped)");
+            check(asked == null && controller.Tabs.Count == 2 && controller.Editor != editor && preview.Project.Media?.Path == firstCapture && controller.Store.Files.Count == 2,
+                "a new capture opens in a new tab without asking; the unsaved first one stays open in its own tab");
+            var newTab = controller.Editor!; var newCapture = newTab.ShownMediaPath;
+            check(!controller.CloseTab(newTab) && asked != null && controller.Tabs.Count == 2, "closing the new tab asks first (No keeps it)");
             answer = true;
+            check(controller.CloseTab(newTab) && controller.Tabs.Count == 1 && controller.Editor == editor && newCapture != null && !File.Exists(newCapture) && controller.Store.Files.Count == 1,
+                "Yes closes the tab and wipes its capture; the first tab is shown again");
 
             // Original: save a verified copy, copy, and wipe TRT's capture; the editor carries on with the copy.
             var annotation = new Annotation { Kind = AnnotationKind.Rectangle, Box = new(5, 5, 20, 20), Width = 2, Color = "#FF0000", Order = 1 };
@@ -180,24 +186,27 @@ internal static class CaptureChecks
             var pixel = new byte[4]; new FormatConvertedBitmap(decoded, PixelFormats.Bgra32, null, 0).CopyPixels(new Int32Rect(10, 5, 1, 1), pixel, 4, 0);
             check(pixel[2] == 200 && pixel[0] == 30, "the saved original has no annotation in it");
 
-            // Clearing an unsaved capture asks first and wipes it.
+            // Clearing an unsaved capture asks first and wipes it. (3.5.0: the capture is in a new tab, the first tab
+            // showing the saved copy.)
             preview.Project.Annotations.Clear();
             typeof(MainWindow).GetMethod("Refresh", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.Invoke(editor, null);
             Wait(() => controller.DeliverAsync(Picture(30, 20, 90, 90, 90)));
-            var second = preview.Project.Media!.Path;
+            var tab2 = controller.Editor!; var preview2 = (PreviewSurface)tab2.FindName("Preview");
+            var second = preview2.Project.Media!.Path;
             asked = null;
-            typeof(MainWindow).GetMethod("Clear", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.Invoke(editor, [editor, new RoutedEventArgs()]); Pump();
-            check(asked?.Contains("has not been saved or exported") == true && preview.Project.Media == null && !File.Exists(second) && controller.Store.Files.Count == 0, "clearing an unsaved screenshot asks first, then wipes it");
+            typeof(MainWindow).GetMethod("Clear", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.Invoke(tab2, [tab2, new RoutedEventArgs()]); Pump();
+            check(tab2 != editor && asked?.Contains("has not been saved.") == true && preview2.Project.Media == null && !File.Exists(second) && controller.Store.Files.Count == 0, "clearing an unsaved screenshot asks first, then wipes it");
 
             // Original without saving, and closing the editor.
             Wait(() => controller.DeliverAsync(Picture(30, 20, 90, 90, 90)));
-            var third = preview.Project.Media!.Path;
-            Wait(async () => result = await editor.KeepOriginalAsync(null, false, true));
-            check(result && preview.Project.Media == null && !File.Exists(third), "Original can wipe a capture without saving (after asking) and closes it");
+            var third = preview2.Project.Media!.Path;
+            check(controller.Editor == tab2 && controller.Tabs.Count == 2, "a capture goes into the empty tab in view (no new tab)");
+            Wait(async () => result = await tab2.KeepOriginalAsync(null, false, true));
+            check(result && preview2.Project.Media == null && !File.Exists(third), "Original can wipe a capture without saving (after asking) and closes it");
             Wait(() => controller.DeliverAsync(Picture(30, 20, 90, 90, 90)));
-            var fourth = preview.Project.Media!.Path;
-            editor.Close(); Pump();
-            check(controller.Editor == null && !File.Exists(fourth), "closing the editor wipes the capture it was showing");
+            var fourth = preview2.Project.Media!.Path;
+            tab2.Close(); Pump();
+            check(controller.Editor == null && controller.Tabs.Count == 0 && !File.Exists(fourth), "closing the editor closes every tab and wipes the capture it was showing");
             check(controller.Bar!.IsVisible, "closing the editor leaves the capture bar running");
 
             // The dialogs.

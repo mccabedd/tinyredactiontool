@@ -66,6 +66,23 @@ public partial class MainWindow
         return PlacementText(r.Left, r.Top, r.Right, r.Bottom, maximized);
     }
 
+    // 3.5.0 (tabs): a tab being shown takes the place of the one it replaces, maximised or not.
+    internal void TakePlacement(MainWindow other)
+    {
+        if (other.CurrentPlacement() is { } text) ApplyPlacement(text);
+        else { WindowState = other.WindowState == WindowState.Minimized ? WindowState.Normal : other.WindowState; Left = other.Left; Top = other.Top; Width = other.Width; Height = other.Height; }
+    }
+    internal void ApplyPlacement(string text)
+    {
+        var handle = new WindowInteropHelper(this).Handle;
+        if (handle == IntPtr.Zero) { UsePlacement(text); return; } // Not shown yet: placed as it first appears.
+        if (ParsePlacement(text) is not { } saved || IsVisible) return;
+        var placement = new WindowPlacement { Length = Marshal.SizeOf<WindowPlacement>(), ShowCommand = 0, NormalPosition = new NativeRect { Left = saved.Left, Top = saved.Top, Right = saved.Right, Bottom = saved.Bottom } };
+        SetWindowPlacement(handle, ref placement);
+        WindowState = saved.Maximized ? WindowState.Maximized : WindowState.Normal;
+        lastShownState = WindowState;
+    }
+
     [StructLayout(LayoutKind.Sequential)] private struct NativeRect { public int Left, Top, Right, Bottom; }
     [StructLayout(LayoutKind.Sequential)] private struct NativePoint { public int X, Y; }
     [StructLayout(LayoutKind.Sequential)]

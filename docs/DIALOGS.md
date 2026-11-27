@@ -5,6 +5,16 @@ gives a wording (111 rows) now shows it; rows marked "—" or "keep: safety" are
 text before 0.22.4. Row 6: the extra sentence about unsaved changes is gone ("Any changes will be lost" covers it).
 Row 77 changes the quit box's title only, not the notification-area menu item.
 
+**Applied in 3.5.0 (David):** rows 5 to 7 and 9. The unsaved screenshot questions put one sentence on each line and
+have three buttons, [Cancel] on its own at the left and [No] [Yes] at the right, with Yes the default (Enter); Esc is
+Cancel. The box is only as wide as its longest line. Title: "Unsaved Screenshot" (or "Unsaved Recording").
+- Row 6 (closing a tab or the editor, Clear): "This {CaptureKind} has not been saved. / Any changes will be lost. /
+  Continue?" Yes closes it; No keeps it (Close All Tabs then goes on to the next tab); Cancel stops.
+- Row 7 (a new screenshot over an unsaved one in the same tab, which tabs now mostly avoid): "Discard and open the
+  new {incoming} instead? / The current {CaptureKind} has not been saved. / Any changes will be lost." Yes replaces
+  it; No keeps it and opens the new one in a tab of its own; Cancel opens nothing.
+- Row 9 ("Discard your unsaved changes?") uses the same three buttons.
+
 Every piece of text TRT shows in a dialogue box, grouped by where it appears. **Now** is the current text.
 **Suggested** is a shorter, plainer wording to consider ("—" means keep it as it is; "— (keep: safety)"
 means the wording carries a safety, policy or privacy meaning and should not be weakened).

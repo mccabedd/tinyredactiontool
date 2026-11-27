@@ -95,6 +95,7 @@
  <strong>The editor</strong>
  <a href="#editor">The editor at a glance</a>
  <a href="#open">Opening pictures and videos</a>
+ <a href="#tabs">Tabs: several pictures at once</a>
  <a href="#redact">Hiding things: redactions</a>
  <a href="#select">Selecting, moving and changing shapes</a>
  <a href="#notes">Adding notes: annotations</a>
@@ -156,6 +157,7 @@
  <span style="left:33%;top:12.5%">2</span>
  <span style="left:6.5%;top:55%">3</span>
  <span style="left:62%;top:27%">4</span>
+ <span style="left:13%;top:15%">5</span>
  <figcaption>The editor with a letter open. The account number is covered by a black box and the signature is blurred.</figcaption>
 </figure>
 <table>
@@ -164,6 +166,7 @@
  <tr><td>2</td><td>Toolbar</td><td>The buttons you use most. You can choose which buttons it shows in <a href="#settings">Settings</a>.</td></tr>
  <tr><td>3</td><td>Workspace</td><td>The grey area around your picture.</td></tr>
  <tr><td>4</td><td>Your picture</td><td>Draw on it to hide things or add notes.</td></tr>
+ <tr><td>5</td><td>Tabs</td><td>One for each screenshot, recording or file you open. See <a href="#tabs">Tabs</a>.</td></tr>
 </table>
 <p>Short messages appear at the bottom of the picture now and then, for example "The PNG was checked pixel for pixel". They fade away by themselves.</p>
 <p>The <img class="icon" src="images/icons/panelbutton.png" alt="Panel"> <span class="ui">Panel</span> button (top right) opens a side panel. It lists your redactions and notes, and it has the <span class="ui">Save Options</span>.</p>
@@ -177,8 +180,27 @@
  <li>You can also drag a file from File Explorer and drop it on the editor.</li>
  <li>TRT opens most picture types (PNG, JPG, GIF, WebP, BMP, TIFF, HEIC and more) and most video types (MP4, MOV, AVI, MKV, WebM and more).</li>
  <li>While a file is open, TRT holds it so it can't be changed by accident.</li>
+ <li>Each file opens in a <b>tab</b> of its own, so what you already have open stays open (see <a href="#tabs">Tabs</a>).</li>
 </ul>
 <p>If you open a file from a network drive, TRT asks first, because the file has not been redacted yet.</p>
+
+<h2 id="tabs">Tabs: several pictures at once</h2>
+<p>Every screenshot, recording and file you open gets its own <b>tab</b> along the top of the picture. Click a tab to see it; each keeps its own redactions, notes and <span class="ui">Undo</span>. An empty tab takes the next thing you open or capture.</p>
+<table class="tools">
+ <tr><td>+</td><td>A new, empty tab (<kbd>Ctrl</kbd>+<kbd>T</kbd>).</td></tr>
+ <tr><td>✕ on a tab</td><td>Closes that tab (<kbd>Ctrl</kbd>+<kbd>W</kbd>, or click the tab with the middle mouse button). If it has a screenshot or changes that aren't saved, TRT asks first.</td></tr>
+ <tr><td><kbd>Ctrl</kbd>+<kbd>Tab</kbd></td><td>The next tab (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Tab</kbd>: the one before).</td></tr>
+ <tr><td>File › Save All Tabs</td><td>Saves each tab that has something unsaved, one after the other. A screenshot asks where to save it. If you cancel one, TRT stops there and shows that tab.</td></tr>
+ <tr><td>File › Close All Tabs</td><td>Closes every tab. For each unsaved one TRT shows it and asks: <span class="ui">Yes</span> closes it, <span class="ui">No</span> keeps it open and goes on to the next, <span class="ui">Cancel</span> stops. One empty tab is left.</td></tr>
+</table>
+<h3>Copying part of one tab into another</h3>
+<ol class="steps">
+ <li>In the first tab, click <img class="icon" src="images/icons/selecttoolbutton.png" alt="Select"> <span class="ui">Select</span> and drag a box round the part you want. A dashed line marks it.</li>
+ <li>Click <img class="icon" src="images/icons/copybutton.png" alt="Copy"> <span class="ui">Copy</span> (<kbd>Ctrl</kbd>+<kbd>C</kbd>). Just that part is copied, with any redactions and notes on it.</li>
+ <li>Go to another tab (or click <span class="ui">+</span> for a new one) and press <kbd>Ctrl</kbd>+<kbd>V</kbd>. In an empty tab, the copy becomes its picture; in a tab with a picture, it goes on top as a picture you can move and size.</li>
+ <li>Do the same from other tabs. Then redact, annotate and save the result.</li>
+</ol>
+<div class="box tip"><b>Closing the editor closes every tab.</b>TRT asks about each one that isn't saved, the same way as Close All Tabs.</div>
 
 <h2 id="redact">Hiding things: redactions</h2>
 <p>A <b>redaction</b> is a shape that hides part of the picture. You choose the <b>shape</b> and the <b>effect</b>.</p>
@@ -222,6 +244,7 @@
  <li><b>Resize</b> it: drag one of the small squares.</li>
  <li><b>Turn</b> it: move the pointer just outside a corner until it becomes a curved arrow, then drag.</li>
  <li><b>Select several</b>: drag a box around them on an empty part of the picture. Move them together, or delete them together.</li>
+ <li><b>Copy an area</b>: the box you drag stays marked with a dashed line. <span class="ui">Copy</span> then copies just that area, to paste into another tab (see <a href="#tabs">Tabs</a>). A click elsewhere or <kbd>Esc</kbd> lets go of it.</li>
  <li><b>Delete</b> the selected shape: press <kbd>Delete</kbd>.</li>
 </ul>
 <div class="box tip"><b>Tip</b>With the Rectangle or Oval tool you can also click an existing shape to move or resize it. You don't need to switch to Select every time.</div>
@@ -254,7 +277,7 @@
 <h2 id="images">Adding images and new images</h2>
 <ul>
  <li><img class="icon" src="images/icons/addimagebutton.png" alt=""> <span class="ui">Add Image</span> puts another picture on top of the open one (for example a logo). You can move it, resize it and turn it like any shape.</li>
- <li><img class="icon" src="images/icons/pastebutton.png" alt=""> <span class="ui">Paste</span> (<kbd>Ctrl</kbd>+<kbd>V</kbd>) opens a picture from the clipboard. <span class="ui">Edit › Paste onto Image</span> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd>) puts it on top of the open picture instead, as a picture you can move and size. With a drawing tool you draw over a pasted picture; use <span class="ui">Select</span> to move it, and <kbd>Esc</kbd> to let go of it. On a New Image of the same size, the pasted picture becomes the image itself.</li>
+ <li><img class="icon" src="images/icons/pastebutton.png" alt=""> <span class="ui">Paste</span> (<kbd>Ctrl</kbd>+<kbd>V</kbd>) puts the picture from the clipboard on top of the open picture, as a picture you can move and size; in an empty tab it becomes the tab's picture, and with a video open it goes to a new tab. <span class="ui">Edit › Paste onto Image</span> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd>) always puts it on top of the open picture. With a drawing tool you draw over a pasted picture; use <span class="ui">Select</span> to move it, and <kbd>Esc</kbd> to let go of it. On a New Image of the same size, the pasted picture becomes the image itself.</li>
  <li><img class="icon" src="images/icons/newbutton.png" alt=""> <span class="ui">New</span> (<kbd>Ctrl</kbd>+<kbd>N</kbd>) makes a blank picture to draw on. Choose a size and a background colour. It can start with the current picture already on it, as part of the new picture (ready to redact and annotate).</li>
 </ul>
 <figure><img src="images/new-image.png" alt="The New Image window" style="max-width:520px"></figure>
@@ -369,7 +392,7 @@
 
 <h2 id="other-saves">Copy, projects and other ways to keep things</h2>
 <table class="tools">
- <tr><td><img class="icon" src="images/icons/copybutton.png" alt=""> Copy</td><td>Copies the picture <b>with</b> its redactions (<kbd>Ctrl</kbd>+<kbd>C</kbd>), ready to paste into an email or document.</td></tr>
+ <tr><td><img class="icon" src="images/icons/copybutton.png" alt=""> Copy</td><td>Copies the picture <b>with</b> its redactions (<kbd>Ctrl</kbd>+<kbd>C</kbd>), ready to paste into an email or document. With an area selected (a dashed box drawn with Select), it copies just that area.</td></tr>
  <tr><td><img class="icon" src="images/icons/saveprojectbutton.png" alt=""> Save Project</td><td>Saves your shapes and notes so you can carry on later. The project needs its picture or video to open again: for a screenshot (or anything else in TRT's temporary folder) TRT saves a checked copy beside the project, named like the project with <span class="ui">_MEDIA</span>, so the project still opens after TRT has wiped its temporary files. A project is not a redacted file: use <b>Save As</b> to share.</td></tr>
  <tr><td><img class="icon" src="images/icons/openprojectbutton.png" alt=""> Open Project</td><td>Opens a saved project. Save then opens Save As, so the project's own picture or video is never replaced.</td></tr>
  <tr><td>Original</td><td>For screenshots and recordings: saves or copies it <b>exactly as captured</b> (File › Save or Copy the Original Capture…). Don't share this copy.</td></tr>
@@ -465,7 +488,9 @@
  <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Save (to the file named in the title bar; Save As if there is none)</td></tr>
  <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd></td><td>Save As (a new file)</td></tr>
  <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd></td><td>Add an image onto this one</td></tr>
- <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>Ctrl</kbd>+<kbd>V</kbd></td><td>Copy the picture with its redactions / paste a picture</td></tr>
+ <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>Ctrl</kbd>+<kbd>V</kbd></td><td>Copy the picture (or the selected area) with its redactions / paste a picture</td></tr>
+ <tr><td><kbd>Ctrl</kbd>+<kbd>T</kbd> / <kbd>Ctrl</kbd>+<kbd>W</kbd></td><td>New tab / close this tab</td></tr>
+ <tr><td><kbd>Ctrl</kbd>+<kbd>Tab</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>Next / previous tab (also <kbd>Ctrl</kbd>+<kbd>Page Down</kbd> / <kbd>Ctrl</kbd>+<kbd>Page Up</kbd>)</td></tr>
  <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd></td><td>Paste a picture onto this one</td></tr>
  <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd></td><td>Undo / redo</td></tr>
  <tr><td><kbd>Delete</kbd></td><td>Delete the selected shape</td></tr>

@@ -25,10 +25,15 @@ public partial class PreviewSurface
     public event Action? PictureClicked;
     private bool selectionBeforePress;
 
+    // 3.5.0 (David: copy a part of one tab into another): the area the last dashed box went round, in picture pixels.
+    // Copy then copies just that area (as it looks, redactions and annotations included). A click elsewhere, Esc, another
+    // tool or another picture lets it go.
+    internal MediaRect? SelectedArea { get; private set; }
+    internal void SelectArea(MediaRect? area) { SelectedArea = area; if (area != null) EnsureAnts(); MultiSelectionChanged?.Invoke(); InvalidateVisual(); }
     internal void ClearMultiSelection()
     {
-        if (MultiRegions.Count + MultiAnnotations.Count == 0 && marqueeStart == null) return;
-        MultiRegions.Clear(); MultiAnnotations.Clear(); marqueeStart = marqueeEnd = null; ants.Stop();
+        if (MultiRegions.Count + MultiAnnotations.Count == 0 && marqueeStart == null && SelectedArea == null) return;
+        MultiRegions.Clear(); MultiAnnotations.Clear(); marqueeStart = marqueeEnd = null; SelectedArea = null; ants.Stop();
         MultiSelectionChanged?.Invoke(); InvalidateVisual();
     }
     // Selects exactly these shapes (checks use this; the marquee ends here too).
@@ -58,7 +63,7 @@ public partial class PreviewSurface
     }
     private void MarchAnts(object? sender, EventArgs e)
     {
-        if (marqueeStart == null && !HasMultiSelection) { ants.Stop(); return; }
+        if (marqueeStart == null && !HasMultiSelection && SelectedArea == null) { ants.Stop(); return; }
         antsOffset = (antsOffset + 1) % 8; InvalidateVisual();
     }
     private MediaRect ShapeExtent(Region r) => ShapeTurn.Extent(r.GeometryAt(Math.Clamp(Time, r.Start, r.End)), r.Rotation);
@@ -68,6 +73,7 @@ public partial class PreviewSurface
     private bool MarqueePointerDown(Point p, MediaPoint s, MouseButton button)
     {
         if (button != MouseButton.Left) return false;
+        if (SelectedArea != null && !HasMultiSelection) { SelectedArea = null; InvalidateVisual(); MultiSelectionChanged?.Invoke(); }
         if (HasMultiSelection)
         {
             var onMember = MultiRegions.Any(r => Active(r) && ShapeGeometry(r, r.GeometryAt(Time)).FillContains(p)) || MultiAnnotations.Any(a => Active(a) && HitAnnotation(a, p));
@@ -120,8 +126,12 @@ public partial class PreviewSurface
         // 0.22.0 (David): a shape the box touches is selected, not only one wholly inside it.
         bool Touches(MediaRect r) => r.X <= box.X + box.Width && r.X + r.Width >= box.X && r.Y <= box.Y + box.Height && r.Y + r.Height >= box.Y;
         // 0.28.0 (David): a plain click on the picture (not one that only put a selection away) plays or pauses an animated GIF.
-        if (box.Width < 2 || box.Height < 2) { SelectShapes([], []); if (!selectionBeforePress) PictureClicked?.Invoke(); return; }
+        if (box.Width < 2 || box.Height < 2) { SelectedArea = null; SelectShapes([], []); if (!selectionBeforePress) PictureClicked?.Invoke(); return; }
+        // 3.5.0: the area itself is kept for Copy, whole pixels, as well as the shapes it touches.
+        var x0 = Math.Floor(box.X); var y0 = Math.Floor(box.Y);
+        SelectedArea = new MediaRect(x0, y0, Math.Ceiling(box.X + box.Width) - x0, Math.Ceiling(box.Y + box.Height) - y0);
         SelectShapes(Project.Regions.Where(r => Active(r) && Touches(ShapeExtent(r))), Project.Annotations.Where(x => Active(x) && Touches(ShapeExtent(x))));
+        EnsureAnts();
     }
     private void DrawMarquee(DrawingContext dc)
     {
@@ -129,6 +139,7 @@ public partial class PreviewSurface
         void Ants(Rect r) { dc.DrawRectangle(null, black, r); dc.DrawRectangle(null, white, r); }
         if (marqueeStart is { } a && marqueeEnd is { } b)
             Ants(Screen(new MediaRect(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Abs(b.X - a.X), Math.Abs(b.Y - a.Y))));
+        else if (SelectedArea is { } area) Ants(Screen(area));
         if (!HasMultiSelection) return;
         foreach (var r in MultiRegions.Where(Project.Regions.Contains).Where(Active)) Ants(Screen(ShapeExtent(r)));
         foreach (var x in MultiAnnotations.Where(Project.Annotations.Contains).Where(Active)) Ants(Screen(ShapeExtent(x)));

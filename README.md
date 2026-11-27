@@ -1,4 +1,4 @@
-# TinyRedactionTool 3.4
+# TinyRedactionTool 3.5
 
 A lightweight Windows tool for redacting and editing sensitive areas in videos and images using black box, blur or pixelation. It supports multiple selection shapes, frame-range redactions, broad media input support and a standalone single-EXE build with an embedded custom FFmpeg.
 
@@ -10,10 +10,10 @@ Everything happens on your computer: no telemetry and no uploads. TRT goes onlin
 
 ## Download
 
-Get **TinyRedactionTool-3.4.0.exe** from the [latest release](https://github.com/mccabedd/tinyredactiontool/releases/latest) and run it. It needs no installing.
+Get **TinyRedactionTool-3.5.0.exe** from the [latest release](https://github.com/mccabedd/tinyredactiontool/releases/latest) and run it. It needs no installing.
 
-- TRT 3.4 needs Microsoft's free **[.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)** (Windows x64). If it is missing, Windows says so when TRT starts and offers to open the download page.
-- The file is not signed, so Windows SmartScreen may warn the first time. Check the download against `SHA256SUMS-v3.4.0.txt` in the release.
+- TRT 3.5 needs Microsoft's free **[.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)** (Windows x64). If it is missing, Windows says so when TRT starts and offers to open the download page.
+- The file is not signed, so Windows SmartScreen may warn the first time. Check the download against `SHA256SUMS-v3.5.0.txt` in the release.
 - TRT v2.5.1 (the previous, self-contained version) is still available from its own release, and its source is in [history/v2.5.1](history/v2.5.1).
 
 ## What it does
@@ -21,6 +21,7 @@ Get **TinyRedactionTool-3.4.0.exe** from the [latest release](https://github.com
 - **Redact** pictures and videos with rectangles, ovals and polygons, filled with a solid colour, blur or pixels (Default or Aggressive). Move, resize and turn them with the mouse, or nudge them with the arrow keys.
 - **Videos:** track a moving subject frame by frame, or keep a box in place for a range of frames; trim, crop, append and capture frames, and choose the frames each note starts and ends on. The timeline shows every redaction and note. Sound is removed unless you choose to keep it.
 - **Annotate** with text, outlines, ellipses, lines and arrows, polylines and a pen. Add, paste or create images.
+- **Tabs:** every screenshot, recording and file opens in its own tab. Select an area in one tab, copy it, and paste it into another; Save All Tabs and Close All Tabs.
 - **Layers:** move redactions and notes up or down, duplicate them, or flatten them into the picture.
 - **Capture** the screen: region, freehand, window or object, full screen, scrolling windows (long web pages), screen recordings and a screen ruler. A small capture bar and a notification-area icon keep it at hand.
 - **Crop, resize, rotate and flip**; zoom, full screen, slideshow, folder navigation bar; animated GIFs play and export animated.
@@ -39,7 +40,7 @@ Windows x64 and Windows PowerShell 5.1 are needed. Nothing is installed machine-
 
 1. `Bootstrap-Dev.ps1` downloads only the pinned .NET SDK and packages and checks their hashes.
 2. Put the approved FFmpeg and FFprobe binaries (hashes in [THIRD-PARTY.md](THIRD-PARTY.md)) in `tools/`.
-3. `Build-Dev.ps1` builds offline and runs the 1,453 checks.
+3. `Build-Dev.ps1` builds offline and runs the 1,598 checks.
 4. `Package-Standalone.ps1` makes the single `.exe` in `standalone/<version>/`.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how it fits together.

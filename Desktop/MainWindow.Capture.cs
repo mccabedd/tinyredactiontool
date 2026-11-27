@@ -16,7 +16,13 @@ public partial class MainWindow
     internal CaptureController? Captures
     {
         get => captures;
-        set { captures = value; CaptureMenu.Visibility = QuitMenuItem.Visibility = value == null ? Visibility.Collapsed : Visibility.Visible; UpdateCaptureUi(); }
+        set
+        {
+            captures = value;
+            CaptureMenu.Visibility = QuitMenuItem.Visibility = value == null ? Visibility.Collapsed : Visibility.Visible;
+            SaveAllTabsMenuItem.IsEnabled = CloseAllTabsMenuItem.IsEnabled = value != null; // 3.5.0: tabs belong to the capture side.
+            UpdateCaptureUi();
+        }
     }
     internal bool CanTakeCapture => !busy && !closing;
     private bool IsCapture => Project.Media is { } media && captures?.Store.Owns(media.Path) == true;
@@ -48,8 +54,10 @@ public partial class MainWindow
         if (ask && UnsavedCapture)
         {
             incoming ??= Path.GetExtension(path).Equals(".mp4", StringComparison.OrdinalIgnoreCase) ? "new recording" : "new screenshot";
-            var dirty = savedSnapshot != ProjectStore.Serialize(Project);
-            if (!ConfirmKeepQuestion(this, $"Open the {incoming} instead?\n\nThe current {CaptureKind} has not been saved or exported. Any changes will be lost.", "Unsaved " + CaptureKind)) return false;
+            // 3.5.0 (David): one sentence per line; Yes replaces it, No keeps it and opens the new one in a tab of its own.
+            var answer = AskUnsaved($"Discard and open the {incoming} instead?\nThe current {CaptureKind} has not been saved.\nAny changes will be lost.", UnsavedTitle);
+            if (answer == MessageBoxResult.No && captures != null) return await captures.OpenInNewTabAsync(this, tab => tab.OpenCaptureAsync(path, false));
+            if (answer != MessageBoxResult.Yes) return false;
         }
         else if (ask && !ConfirmDiscard()) return false;
         var loaded = false;
@@ -66,8 +74,17 @@ public partial class MainWindow
         try { c.Store.Wipe(previous); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { Status.Text = "TRT could not wipe the previous capture yet. It will be wiped when TRT quits."; }
     }
-    private string ConfirmText(bool unsavedProject) =>
-        $"This {CaptureKind} has not been saved or exported. Any changes will be lost.\n\nContinue?";
+    // 3.5.0 (David): one sentence per line, with Cancel, No and Yes (Yes is the default).
+    private string ConfirmText() => $"This {CaptureKind} has not been saved.\nAny changes will be lost.\nContinue?";
+    private string UnsavedTitle => Project.Media?.IsVideo == true ? "Unsaved Recording" : "Unsaved Screenshot";
+    // Checks answer the three-way questions here; a check that answers ConfirmKeepQuestion gets its Yes or No.
+    internal Func<Window, string, string, MessageBoxResult>? UnsavedQuestion { get; set; }
+    private MessageBoxResult AskUnsaved(string text, string title)
+    {
+        if (UnsavedQuestion != null) return UnsavedQuestion(this, text, title);
+        if (!ReferenceEquals(ConfirmKeepQuestion, DefaultKeepQuestion)) return ConfirmKeepQuestion(this, text, title) ? MessageBoxResult.Yes : MessageBoxResult.No;
+        return ThemedMessage.ShowUnsaved(this, text, title);
+    }
 
     private async void KeepOriginal(object sender, RoutedEventArgs e)
     {
@@ -121,7 +138,8 @@ public partial class MainWindow
         return true;
     }
     // Question asker for the Original actions; checks replace it to answer without a dialog.
-    internal Func<Window, string, string, bool> ConfirmKeepQuestion { get; set; } =
+    internal Func<Window, string, string, bool> ConfirmKeepQuestion { get; set; } = DefaultKeepQuestion;
+    private static readonly Func<Window, string, string, bool> DefaultKeepQuestion =
         (owner, text, title) => ThemedMessage.Show(owner, text, title, MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes;
     private static BitmapSource DecodeOriginal(string path)
     {
@@ -195,16 +213,16 @@ public partial class MainWindow
                 Status.Text = $"Frame {frameNumber} saved as {Path.GetFileName(path)}."; return true;
             default:
                 if (captures == null) { Status.Text = "Editing a frame needs the capture part of TRT, which is not running."; return false; }
-                // 0.21.0 (David): in another editor window; the video stays open in this one.
+                // 0.21.0 (David): in a picture editor of its own (3.5.0: a new tab); the video stays open in this one.
                 var capture = captures.Store.NewFile("CAPTURE", ".png", new MediaOrigin(MediaOriginKind.Frame, DateTime.Now));
                 CaptureController.WritePng(picture, capture);
                 var other = captures.OpenAnotherEditor();
                 var opened = await other.OpenCaptureAsync(capture);
-                if (!opened) { other.Close(); ReleaseCapture(capture); }
+                if (!opened) { captures.CloseTab(other); ReleaseCapture(capture); }
                 else
                 {
                     if (chosen.WithEdits) { var shown = SaveNaming.Suffix(Project, MediaOriginKind.Frame, map, Time); other.CarryProvenance(shown == SaveNaming.Redacted, shown == SaveNaming.Edited); }
-                    Status.Text = $"Frame {frameNumber} opened in another editor window.";
+                    other.Notice($"Frame {frameNumber} opened in a new tab. The video stays open in its own tab.");
                 }
                 return opened;
         }
@@ -219,7 +237,7 @@ public partial class MainWindow
             WindowStartupLocation = WindowStartupLocation.CenterOwner, Background = (System.Windows.Media.Brush)FindResource("Surface"), Foreground = (System.Windows.Media.Brush)FindResource("Foreground"),
         };
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
-        foreach (var (label, use, tip) in new[] { ("Save As…", FrameUse.Save, "Save the Frame as a PNG or JPG Picture"), ("Copy", FrameUse.Copy, "Copy the Frame to the Clipboard"), ("Edit", FrameUse.Edit, "Open the Frame as a New Picture in Another Editor Window (The Video Stays Open Here)") })
+        foreach (var (label, use, tip) in new[] { ("Save As…", FrameUse.Save, "Save the Frame as a PNG or JPG Picture"), ("Copy", FrameUse.Copy, "Copy the Frame to the Clipboard"), ("Edit", FrameUse.Edit, "Open the Frame as a New Picture in a New Tab (The Video Stays Open Here)") })
         {
             var button = new Button { Content = label, MinWidth = 80, ToolTip = tip };
             button.Click += (_, _) => { answer = (use, withEdits.IsChecked == true); window.Close(); };
@@ -255,7 +273,7 @@ public partial class MainWindow
         { Activate(); await AddPictureFilesAsync(dropped); return; }
         if (DroppedMedia(e.Data) is not { } file) { Status.Text = "Drop one picture or video file that TRT can open."; return; }
         Activate();
-        await OpenPathAsync(file);
+        await OpenFileInTabAsync(file); // 3.5.0: in its own tab when this one shows something.
     }
 
     // ---- Copy and Paste (0.14.0, David) ----
@@ -277,9 +295,21 @@ public partial class MainWindow
             picture = await Task.Run(() => RenderForCopy(frame, snapshot, media.IsVideo ? time : 0, media.IsVideo ? map : null, token), token);
         }, "Copy cancelled.", "Copying");
         if (picture == null) return false;
+        // 3.5.0 (David): with Select, a dashed box round an area copies just that area (to paste into another tab).
+        var area = Preview.SelectedArea is { } chosen ? AreaInCopy(chosen, snapshot.Crop, picture.PixelWidth, picture.PixelHeight) : null;
+        if (area is { } part) { var cut = new CroppedBitmap(picture, part); cut.Freeze(); picture = cut; }
         if (!CaptureController.CopyImage(picture)) { Status.Text = CaptureController.ClipboardBusy; return false; }
-        Status.Text = media.IsVideo ? "Copied this frame, with its redactions and annotations, to the clipboard." : "Copied the picture, with its redactions and annotations, to the clipboard.";
+        Status.Text = area is { } copied ? $"Copied the selected area ({copied.Width} × {copied.Height}), with its redactions and annotations. Paste it into another tab with Ctrl+V." :
+            media.IsVideo ? "Copied this frame, with its redactions and annotations, to the clipboard." : "Copied the picture, with its redactions and annotations, to the clipboard.";
         return true;
+    }
+    // The selected area in the copied picture's pixels (which start at the crop's corner), or null if it misses it.
+    internal static Int32Rect? AreaInCopy(MediaRect area, MediaRect? crop, int width, int height)
+    {
+        var left = (int)Math.Floor(area.X - (crop?.X ?? 0)); var top = (int)Math.Floor(area.Y - (crop?.Y ?? 0));
+        var right = (int)Math.Ceiling(area.X + area.Width - (crop?.X ?? 0)); var bottom = (int)Math.Ceiling(area.Y + area.Height - (crop?.Y ?? 0));
+        left = Math.Clamp(left, 0, width); top = Math.Clamp(top, 0, height); right = Math.Clamp(right, 0, width); bottom = Math.Clamp(bottom, 0, height);
+        return right - left < 1 || bottom - top < 1 ? null : new Int32Rect(left, top, right - left, bottom - top);
     }
     internal static BitmapSource RenderForCopy(BitmapSource frame, RedactionProject project, double time, FrameTimeline? map, CancellationToken token)
     {
@@ -307,20 +337,26 @@ public partial class MainWindow
         if (IsNewPicture) return await PasteOntoPictureAsync() > 0; // 0.26.0: onto a New picture, as items.
         try
         {
+            // 3.5.0 (David: copy a part of one tab, paste it into another): onto an open picture, as an item to move and size.
+            if (UsesTabs && Project.Media is { IsVideo: false } && ClipboardHasPicture()) return await PasteOntoPictureAsync() > 0;
             if (Clipboard.ContainsFileDropList() && Clipboard.GetFileDropList() is { Count: 1 } files && files[0] is { } file && File.Exists(file))
-                return await OpenPathAsync(file);
+                return await OpenFileInTabAsync(file);
             // A PNG on the clipboard keeps its transparency (0.22.1); otherwise the ordinary picture.
             if ((Transparency.ClipboardPng() ?? (Clipboard.ContainsImage() ? Clipboard.GetImage() : null)) is not { } image) { Status.Text = "There is no picture on the clipboard to paste."; return false; }
             if (captures == null) { Status.Text = "Paste needs the capture part of TRT, which is not running."; return false; }
             var path = captures.Store.NewFile("CAPTURE", ".png", new MediaOrigin(MediaOriginKind.Pasted, DateTime.Now));
             CaptureController.WritePng(image, path);
-            var opened = await OpenCaptureAsync(path);
+            // 3.5.0: in a tab of its own when this one shows a video.
+            var opened = UsesTabs ? await captures.OpenInNewTabAsync(this, tab => tab.OpenCaptureAsync(path)) : await OpenCaptureAsync(path);
             if (!opened) ReleaseCapture(path);
             else Status.Text = "Pasted picture ready. Redact or annotate it, then Save As or Copy.";
             return opened;
         }
         catch (System.Runtime.InteropServices.COMException) { Status.Text = "The clipboard is busy. Try Paste again."; return false; }
     }
+    private static bool ClipboardHasPicture() =>
+        Clipboard.ContainsImage() || Clipboard.ContainsData("PNG") ||
+        Clipboard.ContainsFileDropList() && Clipboard.GetFileDropList().Cast<string>().Any(f => PictureExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()));
 
     private async void MenuCapture(object sender, RoutedEventArgs e)
     {

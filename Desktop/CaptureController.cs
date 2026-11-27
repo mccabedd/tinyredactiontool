@@ -544,7 +544,8 @@ internal sealed partial class CaptureController : IDisposable
         var window = OpenEditor();
         // 0.26.1 (David): a screenshot taken while a New picture is open goes onto it, as an item.
         if (await window.AddCaptureOntoNewPictureAsync(path)) { Notify("Screenshot added to your New picture. Ctrl+Z takes it back."); return; }
-        if (await window.OpenCaptureAsync(path)) return;
+        // 3.5.0 (David): each screenshot or recording in a tab of its own (an empty tab takes it).
+        if (window.IsEmptyTab || ReplaceInShownTab ? await window.OpenCaptureAsync(path) : await OpenInNewTabAsync(window, tab => tab.OpenCaptureAsync(path))) return;
         var video = Path.GetExtension(path).Equals(".mp4", StringComparison.OrdinalIgnoreCase);
         var kind = video ? "recording" : "screenshot";
         if (Ask(window, $"The new {kind} didn't open. Save it before TRT wipes it?", "New " + kind))
@@ -561,37 +562,36 @@ internal sealed partial class CaptureController : IDisposable
     internal Func<MainWindow>? EditorFactory { get; set; }
     internal Func<Window, string, string, bool> Ask { get; set; } =
         (owner, text, title) => ThemedMessage.Show(owner, text, title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
+    // The shown tab (3.5.0); captures, shortcuts and files from File Explorer go to it, or to a new tab beside it.
     internal MainWindow OpenEditor()
     {
         if (editor == null)
         {
             editor = CreateEditor();
-            if (EditorFactory == null) RememberPlacement(editor); // Checks' off-screen editors stay where they are put.
+            if (EditorFactory == null) editor.UsePlacement(Settings.EditorPlacement);
+            RefreshTabs();
         }
         editor.Show();
         if (editor.WindowState == WindowState.Minimized) editor.WindowState = WindowState.Maximized;
         editor.Activate();
         return editor;
     }
-    // 0.21.0 (David): a captured video frame chosen for Edit opens in its own picture editor window, beside
-    // the video. Captures, shortcuts and files from Explorer still go to the main editor; a picture editor
-    // never becomes the main one.
-    private readonly List<MainWindow> otherEditors = [];
-    internal IReadOnlyList<MainWindow> OtherEditors => otherEditors;
-    private IEnumerable<MainWindow> AllEditors => editor == null ? otherEditors : otherEditors.Prepend(editor);
+    // 0.21.0 (David): a captured video frame chosen for Edit opens as a picture editor; 3.5.0: in a tab of its own.
+    internal IReadOnlyList<MainWindow> OtherEditors => tabs.Where(t => t.PicturesOnly).ToList();
+    private IEnumerable<MainWindow> AllEditors => tabs;
     internal MainWindow OpenAnotherEditor()
     {
-        var created = CreateEditor(); created.PicturesOnly = true; otherEditors.Add(created);
-        created.Show(); created.Activate();
+        var created = NewTab(editor); created.PicturesOnly = true;
         return created;
     }
-    // 3.0.0 (David): the main editor opens the way it was last closed (maximised or windowed, its size and place).
-    internal void RememberPlacement(MainWindow window)
+    // 3.0.0 (David): the editor opens the way it was last closed (maximised or windowed, its size and place). 3.5.0: the
+    // place of whichever tab is shown when it closes.
+    internal void RememberPlacement(MainWindow window) { window.UsePlacement(Settings.EditorPlacement); SavePlacementOnClose(window); }
+    private void SavePlacementOnClose(MainWindow window)
     {
-        window.UsePlacement(Settings.EditorPlacement);
         window.Closing += (_, e) =>
         {
-            if (e.Cancel || window.CurrentPlacement() is not { } now || now == Settings.EditorPlacement) return;
+            if (e.Cancel || EditorFactory != null || !window.IsVisible || window.CurrentPlacement() is not { } now || now == Settings.EditorPlacement) return;
             Settings.EditorPlacement = now; Settings.Save();
         };
     }
@@ -599,11 +599,10 @@ internal sealed partial class CaptureController : IDisposable
     {
         var created = EditorFactory?.Invoke() ?? new MainWindow(policy);
         created.Captures = this;
-        created.Closed += (_, _) =>
-        {
-            otherEditors.Remove(created);
-            if (editor == created) editor = null;
-        };
+        tabs.Add(created);
+        SavePlacementOnClose(created); // Checks' off-screen editors stay where they are put.
+        created.Closing += (_, e) => WatchClosing(created, e);
+        created.Closed += (_, _) => TabClosed(created);
         return created;
     }
     internal void OpenFileInEditor() => OpenEditor().ShowOpenDialog();
@@ -611,7 +610,7 @@ internal sealed partial class CaptureController : IDisposable
     internal async Task OpenPathInEditorAsync(string path)
     {
         if (quitting || disposed) return;
-        await OpenEditor().OpenPathAsync(path);
+        await OpenEditor().OpenFileInTabAsync(path); // 3.5.0: in a new tab when the editor shows something.
     }
     internal void EditSettings(Window? owner)
     {
@@ -644,7 +643,7 @@ internal sealed partial class CaptureController : IDisposable
                 }
                 catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException) { ShowError("Default App for Pictures", "Windows wouldn't let TRT register itself for pictures: " + ex.Message); }
             }
-            if (editor != null) { editor.SetTheme(dialog.ThemeChosen); foreach (var other in otherEditors) other.SetTheme(dialog.ThemeChosen); }
+            if (editor != null) foreach (var tab in tabs) tab.SetTheme(dialog.ThemeChosen);
             else MainWindow.SetThemeWithoutEditor(dialog.ThemeChosen);
             Notify(Settings.Save() ? "Settings saved." : "Settings applied, but not saved for next time.");
         }
@@ -855,8 +854,7 @@ internal sealed partial class CaptureController : IDisposable
             if (ThemedMessage.Show("You are recording. Discard it and quit?", "Quit TRT", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
             discardRecording = true; recorder.RequestStop(); recorder.Completion.Wait(TimeSpan.FromSeconds(65)); FinishRecording();
         }
-        foreach (var other in otherEditors.ToList()) { other.Close(); if (otherEditors.Contains(other)) return; } // It asked and the user kept it open.
-        while (editor is { } main) { main.Close(); if (editor == main) return; }
+        if (!CloseAllTabs(keepEditorOpen: false)) return; // 3.5.0: asked about a tab and the user kept it (or cancelled).
         quitting = true;
         var failed = store.WipeAll();
         if (failed.Count > 0) ShowError("Quit", "TRT could not wipe these captures. Please delete them yourself:\n" + string.Join("\n", failed));

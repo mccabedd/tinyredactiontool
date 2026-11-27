@@ -139,7 +139,7 @@ internal static class Release300EditChecks
         try
         {
             var temp = Path.Combine(output, "placement-temp"); Directory.CreateDirectory(temp);
-            using var controller = new CaptureController(new ManagedPolicy(), false, temp);
+            using var controller = new CaptureController(new ManagedPolicy(), false, temp) { ReplaceInShownTab = true };
             controller.Settings.EditorPlacement = MainWindow.PlacementText(left, top, right, bottom, false);
             var editor = new MainWindow(controller.Policy) { ShowInTaskbar = false, ShowActivated = false };
             controller.RememberPlacement(editor);

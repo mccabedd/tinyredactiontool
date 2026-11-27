@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -89,7 +89,11 @@ public partial class MainWindow : Window
         Closing += (_, e) =>
         {
             if (busy) { ThemedMessage.Show(this, "Cancel the current task and wait for it to stop, then close.", "Still Working"); e.Cancel = true; return; }
-            if (!ConfirmDiscard()) { e.Cancel = true; return; }
+            // 3.5.0: closing the window (its ✕, Close Editor) closes every tab, asking about each unsaved one in turn.
+            // The others first (each unsaved one is shown and asked about), then this one; Cancel keeps every tab still open.
+            if (!closingOneTab && captures is { } tabsOwner && tabsOwner.Tabs.Count > 1 && tabsOwner.Tabs.Contains(this) && !tabsOwner.CloseOtherTabs(this))
+            { e.Cancel = true; return; }
+            if (!skipCloseQuestion && !ConfirmDiscard()) { e.Cancel = true; return; }
             var shown = Project.Media?.Path;
             closing = true; Pause(); clock.Stop(); work?.Cancel(); seekWork?.Cancel(); prefetchWork?.Cancel(); thumbnails.Dispose(); Preview.Player.Dispose(); sourceLock?.Dispose(); tools.Dispose(); SystemEvents.UserPreferenceChanged -= SystemThemeChanged;
             Preview.Project = new(); ReleaseCapture(shown); foreach (var file in historyMedia) ReleaseCapture(file);
@@ -97,11 +101,13 @@ public partial class MainWindow : Window
         UpdateEditingState();
     }
     // 0.12.0: a screenshot or recording that was neither saved nor exported is wiped when it closes, so ask.
-    private bool ConfirmDiscard()
+    private bool ConfirmDiscard() => AskDiscard() == MessageBoxResult.Yes;
+    // 3.5.0: Yes (go ahead), No (keep this one; Close All Tabs carries on with the others) or Cancel (stop).
+    internal MessageBoxResult AskDiscard()
     {
         var unsavedProject = Project.Media != null && savedSnapshot != ProjectStore.Serialize(Project);
-        if (UnsavedCapture) return ConfirmKeepQuestion(this, ConfirmText(unsavedProject), "Unsaved " + CaptureKind);
-        return !unsavedProject || ConfirmKeepQuestion(this, "Discard your unsaved changes?", "Unsaved Changes");
+        if (UnsavedCapture) return AskUnsaved(ConfirmText(), UnsavedTitle);
+        return !unsavedProject ? MessageBoxResult.Yes : AskUnsaved("Discard your unsaved changes?", "Unsaved Changes");
     }
     private static string F(double d) => d.ToString("0.######", CultureInfo.InvariantCulture);
     private static double Number(TextBox box) => double.Parse(box.Text, CultureInfo.InvariantCulture);
@@ -137,7 +143,7 @@ public partial class MainWindow : Window
         ClearScreenButton.IsEnabled = !busy;
         // 0.16.0: here (after any work ends), not in Refresh, which runs while loading is still busy.
         CopyButton.IsEnabled = !busy && Project.Media != null;
-        CopyButton.ToolTip = Project.Media == null ? "Copy: Open an Image or Video First" : "Copy the Image with Its Redactions (Ctrl+C)";
+        CopyButton.ToolTip = Project.Media == null ? "Copy: Open an Image or Video First" : "Copy the Image, or the Selected Area, with Its Redactions (Ctrl+C)";
         PasteButton.IsEnabled = !busy;
         ToolClearRedactions.IsEnabled = !busy && Project.Regions.Count > 0;
         UpdateSaveUi(); // 3.3.0: Save, Save As, Save Project and Securely Delete Original.
@@ -237,9 +243,12 @@ public partial class MainWindow : Window
     }
     private async void OpenMedia(object sender, RoutedEventArgs e)
     {
-        if (busy || !ConfirmDiscard()) return;
+        // 3.5.0: with something already open, the file opens in a new tab (nothing to discard here).
+        var newTab = UsesTabs;
+        if (busy || !newTab && !ConfirmDiscard()) return;
         var dialog = new OpenFileDialog { Title = PicturesOnly ? "Open an Image" : "Open an Image or Video", Filter = (PicturesOnly ? "Images|*.png;*.jpg;*.jpeg;*.jpe;*.bmp;*.tif;*.tiff;*.gif;*.webp;*.apng;*.tga;*.dds;*.exr;*.hdr;*.dpx;*.jp2;*.j2k;*.j2c;*.jpc;*.jls;*.psd;*.pcx;*.qoi;*.avif;*.heic;*.heif|" : "") + "Media Files|*.png;*.jpg;*.jpeg;*.bmp;*.tif;*.tiff;*.gif;*.webp;*.mp4;*.mov;*.m4v;*.avi;*.mkv;*.webm;*.wmv;*.asf;*.mpg;*.mpeg;*.mpe;*.vob;*.ts;*.mts;*.m2ts;*.m2t;*.flv;*.3gp;*.3g2;*.f4v;*.ogv;*.rm;*.rmvb;*.mxf;*.wtv;*.dv;*.mjpeg;*.mjpg;*.mlv;*.r3d;*.jpe;*.apng;*.tga;*.dds;*.exr;*.hdr;*.dpx;*.jp2;*.j2k;*.j2c;*.jpc;*.jls;*.psd;*.pcx;*.qoi;*.avif;*.heic;*.heif|All Files|*.*", AddToRecent = false };
         if (dialog.ShowDialog(this) != true) return;
+        if (newTab) { await captures!.OpenInNewTabAsync(this, tab => tab.OpenPathAsync(dialog.FileName)); return; }
         await RunWork(async token => { if (CheckPath(dialog.FileName, false)) await LoadMedia(dialog.FileName, null, token); }, "Loading cancelled. The previous workspace is unchanged.", "Opening");
     }
     // keepHistory (0.21.0): the new media replaces the old as an undoable step (Rotate, Trim, Append, or
@@ -252,7 +261,7 @@ public partial class MainWindow : Window
         try
         {
             var video = !PictureExtensions.Contains(Path.GetExtension(path).ToLowerInvariant());
-            if (video && PicturesOnly) throw new InvalidDataException("This window opens pictures only. Open videos in the main editor.");
+            if (video && PicturesOnly) throw new InvalidDataException("This tab opens pictures only. Open the video in a new tab.");
             // The fingerprint is taken while FFmpeg reads the frames (0.10.4); both read the whole file.
             using var stop = CancellationTokenSource.CreateLinkedTokenSource(token);
             var hashTask = Task.Run(() => ProjectStore.HashAsync(path, stop.Token), stop.Token);
@@ -304,10 +313,12 @@ public partial class MainWindow : Window
     }
     private async void OpenProject(object sender, RoutedEventArgs e)
     {
-        if (busy || !ConfirmDiscard()) return;
+        var newTab = UsesTabs; // 3.5.0: a project opens in a new tab too.
+        if (busy || !newTab && !ConfirmDiscard()) return;
         var dialog = new OpenFileDialog { Filter = "TRT Project|*.trtwpf.json", AddToRecent = false };
         if (dialog.ShowDialog(this) != true) return;
-        await OpenProjectAsync(dialog.FileName);
+        if (newTab) await captures!.OpenInNewTabAsync(this, tab => tab.OpenProjectAsync(dialog.FileName));
+        else await OpenProjectAsync(dialog.FileName);
     }
     internal async Task<bool> OpenProjectAsync(string projectFile)
     {
@@ -923,6 +934,7 @@ public partial class MainWindow : Window
     }
     private async void WindowKeyDown(object sender, KeyEventArgs e)
     {
+        if (TabKey(e)) { e.Handled = true; return; } // 3.5.0: also while a text box has the keyboard or work is running.
         if (e.OriginalSource is TextBox || busy) return;
         if (NudgeKey(e)) { e.Handled = true; return; }
         if (BrowseKey(e)) { e.Handled = true; return; }
@@ -1012,5 +1024,5 @@ public partial class MainWindow : Window
     private void About(object sender, RoutedEventArgs e) => AboutWindow.Open(this, VersionText, captures == null ? null : captures.CheckForUpdatesAsync);
     private void OpenHelp(object sender, RoutedEventArgs e) => HelpManual.Open(this); // 3.0.0 (David)
     // 0.27.1 (David): the About box is the simple one (AboutWindow); this text is its version and description.
-    internal static string AboutText => "TinyRedactionTool 3.4.0\n" + AboutWindow.Description;
+    internal static string AboutText => "TinyRedactionTool 3.5.0\n" + AboutWindow.Description;
 }

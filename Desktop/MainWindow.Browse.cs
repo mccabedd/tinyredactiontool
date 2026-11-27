@@ -65,7 +65,7 @@ public partial class MainWindow
         if (on)
         {
             beforeFullScreen = (WindowStyle, WindowState, ResizeMode, MenuRow.Visibility, ToolStrip.Visibility, OptionsBar.Visibility, PropertiesPanel.Visibility, PropertiesColumn.Width);
-            MenuRow.Visibility = ToolStrip.Visibility = OptionsBar.Visibility = PropertiesPanel.Visibility = Visibility.Collapsed;
+            MenuRow.Visibility = ToolStrip.Visibility = OptionsBar.Visibility = PropertiesPanel.Visibility = TabBar.Visibility = Visibility.Collapsed; // 3.5.0: the tabs too.
             PropertiesColumn.Width = new GridLength(0);
             // A window without a frame covers the taskbar only when it is maximised after losing the frame.
             WindowState = WindowState.Normal; WindowStyle = WindowStyle.None; ResizeMode = ResizeMode.NoResize; WindowState = WindowState.Maximized;
@@ -76,6 +76,7 @@ public partial class MainWindow
             beforeFullScreen = null;
             WindowState = WindowState.Normal; WindowStyle = was.Style; ResizeMode = was.Resize; WindowState = was.State;
             MenuRow.Visibility = was.Menu; ToolStrip.Visibility = was.Tools; OptionsBar.Visibility = was.Options; PropertiesPanel.Visibility = was.Panel; PropertiesColumn.Width = was.Column;
+            TabBar.Visibility = captures != null ? Visibility.Visible : Visibility.Collapsed;
             UpdateOptionsBar();
         }
         Preview.Focus();

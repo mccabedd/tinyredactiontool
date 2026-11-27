@@ -128,7 +128,7 @@ internal static class Release340Checks
         // ---- The whole flow, with the About box ----
         var temp = Path.Combine(output, "release340-temp"); if (Directory.Exists(temp)) Directory.Delete(temp, true); Directory.CreateDirectory(temp);
         var savedPath = AppSettings.Path; AppSettings.Path = Path.Combine(output, "release340-settings.json"); if (File.Exists(AppSettings.Path)) File.Delete(AppSettings.Path);
-        var controller = new CaptureController(new ManagedPolicy(), false, temp);
+        var controller = new CaptureController(new ManagedPolicy(), false, temp) { ReplaceInShownTab = true };
         controller.EditorFactory = () => new MainWindow(controller.Policy) { WindowState = WindowState.Normal, Width = 1240, Height = 800, Left = -20000, Top = 0, ShowInTaskbar = false, ShowActivated = false, ConfirmKeepQuestion = (_, _, _) => false };
         var told = new List<string>(); var asked = new List<string>(); var answer = true; var started = 0;
         controller.AskUpdate = (_, text, _) => { asked.Add(text); return answer; };

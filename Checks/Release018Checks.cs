@@ -70,7 +70,7 @@ internal static class Release018Checks
         AppSettings.Path = Path.Combine(output, "release018-settings.json");
         File.WriteAllText(AppSettings.Path, "{\"ShowCaptureBar\":false,\"StripAtSetPlace\":true,\"StripPositionPercent\":100,\"StripWidth\":100,\"BarShortcut\":\"nonsense\"}");
         var temp = Path.Combine(output, "release018-temp"); if (Directory.Exists(temp)) Directory.Delete(temp, true); Directory.CreateDirectory(temp);
-        var controller = new CaptureController(new ManagedPolicy(), false, temp) { EditorFactory = () => Editor() };
+        var controller = new CaptureController(new ManagedPolicy(), false, temp) { EditorFactory = () => Editor(), ReplaceInShownTab = true };
         try
         {
             controller.Start();
@@ -83,7 +83,7 @@ internal static class Release018Checks
             check(!bar.IsVisible, "and hides it again");
             var area = new Rect(0, 0, 1000, 600);
             check(Math.Abs(controller.StripLeft(area) - 900) < .5, "the red tab can sit at a set place along the top edge (here the right-hand end)");
-            var quiet = new CaptureController(new ManagedPolicy(), false, Path.Combine(temp, "quiet")) { EditorFactory = () => Editor() };
+            var quiet = new CaptureController(new ManagedPolicy(), false, Path.Combine(temp, "quiet")) { EditorFactory = () => Editor(), ReplaceInShownTab = true };
             Directory.CreateDirectory(Path.Combine(temp, "quiet"));
             File.WriteAllText(AppSettings.Path, "{}");
             quiet.Start(showBar: false);
